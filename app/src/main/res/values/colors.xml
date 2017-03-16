@@ -1,0 +1,50 @@
+<resources>
+    <color name="background_gradient_start">#000000</color>
+    <color name="background_gradient_end">#DDDDDD</color>
+    <color name="fastlane_background">#0096a6</color>
+    <color name="search_opaque">#ffaa3f</color>
+    <color name="selected_background">#ffaa3f</color>
+    <color name="detail_background">#0096a6</color>
+    <color name="soft_opaque">#30000000</color>
+    <color name="img_soft_opaque">#30FF0000</color>
+    <color name="img_full_opaque">#00000000</color>
+    <color name="black_opaque">#AA000000</color>
+    <color name="black">#59000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="orange_transparent">#AAFADCA7</color>
+    <color name="orange">#FADCA7</color>
+    <color name="yellow">#EEFF41</color>
+    <color name="default_background">#3d3d3d</color>
+
+    <!-- theme colors -->
+    <color name="colorPrimary">@color/accentColor</color>
+    <color name="colorPrimaryDark">#003134</color>
+
+    <!-- accent color for nav bar, list cells, buttons, etc -->
+    <color name="accentColor">#00484f</color>
+    <color name="lighterAccentColor">#00616a</color>
+    <color name="lightestAccentColor">#00818a</color>
+    <color name="translucentAccentColor">#8800484f</color>
+
+    <!-- text colors -->
+    <color name="textColor">@android:color/white</color>
+    <color name="dimmedTextColor">#88ffffff</color>
+
+    <!-- navigation bar -->
+
+    <!-- window background -->
+    <color name="backgroundColor">@android:color/black</color>
+    <color name="backgroundColorGradient">#002024</color>
+
+    <!-- dialog colors -->
+    <color name="dialogBackgroundColor">#002024</color>
+    <color name="dialogAccentColor">#00484f</color>
+
+    <!-- push buttons -->
+    <color name="buttonBackgroundFocusedColor">@color/translucentAccentColor</color>
+    <color name="buttonBackgroundColor">#10ffffff</color>
+    <color name="buttonBackgroundPressedColor">@color/accentColor</color>
+
+    <!-- menu backgrounds -->
+    <color name="menuBackground">#A0000000</color>
+</resources>
