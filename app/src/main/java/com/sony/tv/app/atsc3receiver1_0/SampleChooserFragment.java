@@ -36,7 +36,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
+import com.sony.tv.app.atsc3receiver1_0.app.
+        FluteReceiver;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
 import java.io.IOException;

@@ -38,6 +38,7 @@ public final  class ATSCUdpDataSource implements DataSource {
      */
     public static final int DEFAULT_MAX_PACKET_SIZE = 2000;
 
+
     /**
      * The default socket timeout, in milliseconds.
      */

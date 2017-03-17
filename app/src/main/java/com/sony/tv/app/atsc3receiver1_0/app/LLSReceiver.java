@@ -61,6 +61,7 @@ public class LLSReceiver {
     private LLSTaskManager mLLSTaskManager;
 
     boolean first=true;
+
     /**
      * LLSReceiver is singleton
      */
@@ -240,7 +241,7 @@ public class LLSReceiver {
                 int tries = 0;
                 int len;
                 do {
-                    bytes = new byte[8192];
+                    bytes = new byte[ATSCUdpDataSource.DEFAULT_MAX_PACKET_SIZE];
 
                     try {
                         udpDataSource.open(dataSpec);
@@ -249,7 +250,7 @@ public class LLSReceiver {
                         return;
                     } finally {
                         try {
-                            len = udpDataSource.read(bytes, 0, 8192);
+                            len = udpDataSource.read(bytes, 0, ATSCUdpDataSource.DEFAULT_MAX_PACKET_SIZE);
                             udpDataSource.close();
                         } catch (UdpDataSource.UdpDataSourceException e) {
                             e.printStackTrace();
@@ -257,7 +258,8 @@ public class LLSReceiver {
                         }
                     }
 
-                } while (mType != bytes[0] && tries < 100);
+                } while (mType != bytes[0] && tries < 100);         //bytes[0] should contain the type of LLS message. Wait till we see relevant one.
+                /*TODO better efficency to receive any type of message*/
                 if (tries < 100) {
                     mTask.fetchTaskData(bytes[0], bytes, len);
                 }else {
