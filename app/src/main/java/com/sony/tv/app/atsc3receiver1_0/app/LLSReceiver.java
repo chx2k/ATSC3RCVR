@@ -1,5 +1,8 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
@@ -10,8 +13,16 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.android.exoplayer2.upstream.DataSpec;
+import com.google.android.exoplayer2.upstream.Loader;
 import com.google.android.exoplayer2.upstream.TransferListener;
 import com.google.android.exoplayer2.upstream.UdpDataSource;
+import com.sony.tv.app.atsc3receiver1_0.MainActivity;
+
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import static android.R.attr.type;
 
 
 /**
@@ -20,11 +31,16 @@ import com.google.android.exoplayer2.upstream.UdpDataSource;
 
 public class LLSReceiver {
 
+    public LLSData slt;
+    public LLSData systemTime;
     private static DataSpec dataSpec;
     private ATSCUdpDataSource udpDataSource;
     private TransferListener<ATSCUdpDataSource> listener;
     private byte[] bytes;
     private Handler mHandler;
+    public static final String SLTTAG="SLT";
+    public static final String SYSTEMTIMETAG="SystemTime";
+
     private final static byte SLT=1;
     private final static byte ST=3;
     private static final int TASK_COMPLETE=1;
@@ -35,11 +51,16 @@ public class LLSReceiver {
     private static final int FOUND_SLT=4;
     private static final int FOUND_ST=5;
 
+
+
     private static final String TAG="LLS";
 
     private static LLSReceiver sInstance=new LLSReceiver();
+    private static Activity activityContext;
 
     private LLSTaskManager mLLSTaskManager;
+
+    boolean first=true;
     /**
      * LLSReceiver is singleton
      */
@@ -57,24 +78,26 @@ public class LLSReceiver {
                     case TASK_COMPLETE:
                         Log.d(TAG,"FOUND LLS MESSAGES");
 
-
-                        long t= System.currentTimeMillis();
-
-                            new ATSCXmlParse(llstask.mSLTData, "SLT").LLSParse();
-                            new ATSCXmlParse(llstask.mSTData, "SystemTime").LLSParse();
-                        Log.d(TAG,"LLS xml parse time in ms: "+(System.currentTimeMillis()-t));
                         break;
                     case TASK_STARTED:
                         Log.d(TAG,"STARTED");
                         break;
                     case FOUND_SLT:
                         Log.d(TAG,"FOUND SLT");
+                        if (slt!=null) first=false;
+                        slt= new ATSCXmlParse(llstask.mSLTData, "SLT").LLSParse();
+                        saveLLSData(slt);
+                        if (first) ((MainActivity) activityContext).callBackSLTFound(true);
                         break;
                     case FOUND_ST:
                         Log.d(TAG,"FOUND ST");
+//                        long t= System.currentTimeMillis();
+                        systemTime= new ATSCXmlParse(llstask.mSTData, SYSTEMTIMETAG).LLSParse();
+                        saveLLSData(systemTime);
+//                        Log.d(TAG,"LLS xml parse time in ms: "+(System.currentTimeMillis()-t));
                         break;
                     case TASK_ERROR:
-                        Log.d(TAG,"FOUND ERROR");
+                        Log.d(TAG,"FOUND ERROR: "+llstask.error);
                         break;
                     case TASK_STOPPED:
                         Log.d(TAG,"STOP REQUEST ISSUED");
@@ -101,8 +124,10 @@ public class LLSReceiver {
     /**
      * start the task manager
      */
-    public void start(){
-        mLLSTaskManager.start();
+    public void start(Activity m){
+        this.activityContext=m;
+        first=true;
+        if ( m!=null)  mLLSTaskManager.start();
     }
 
     /**
@@ -123,6 +148,23 @@ public class LLSReceiver {
         (mHandler.obtainMessage(state, task)).sendToTarget();
     }
 
+    public boolean saveLLSData(LLSData data){
+
+        String fileName="/LLS/"+data.type;
+        try {
+            FileOutputStream f=activityContext.openFileOutput(fileName, Activity.MODE_PRIVATE);
+            f.write(data.xmlString.getBytes());
+            f.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        } finally{
+            return true;
+
+        }
+
+    }
+
     /**
      * Class to decode the LLS message headers from  bytes receiver
      * from LLSFetchManager, convert to string, and send to UI
@@ -131,6 +173,7 @@ public class LLSReceiver {
 
         public String mSLTData;
         public String mSTData;
+        public String error;
         Thread SLTThread;
         Runnable SLTRunnable;
         Runnable STRunnable;
@@ -159,18 +202,21 @@ public class LLSReceiver {
         public void fetchTaskData(int type, byte[] data, int len){
 
             if (type==SLT ) {
+
+                sInstance.handleTaskState(this, FOUND_SLT);
                 mSLTData=new String (data,4,len-4);
                 STRunnable.run();
             }else if (type==ST){
+                sInstance.handleTaskState(this, FOUND_ST);
                 mSTData=new String (data,4,len-4);
-            }
-            if (mSTData!=null && mSLTData!=null) {
-                sInstance.handleTaskState(this, TASK_COMPLETE);
                 SLTRunnable.run();
-
-            }else{
-                sInstance.handleTaskState(this, TASK_ERROR);
             }
+
+
+        }
+        public void reportError(String error){
+            this.error=error;
+            sInstance.handleTaskState(this, TASK_ERROR);
         }
 
 
@@ -214,6 +260,8 @@ public class LLSReceiver {
                 } while (mType != bytes[0] && tries < 100);
                 if (tries < 100) {
                     mTask.fetchTaskData(bytes[0], bytes, len);
+                }else {
+                    mTask.reportError("Too many tries");
                 }
             }
         }

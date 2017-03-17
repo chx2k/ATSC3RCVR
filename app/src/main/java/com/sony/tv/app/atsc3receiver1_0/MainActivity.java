@@ -27,6 +27,7 @@ import com.sony.tv.app.atsc3receiver1_0.app.LLSData;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 
 import static java.lang.Thread.sleep;
@@ -42,11 +43,13 @@ public class MainActivity extends Activity {
     SampleChooserFragment sampleChooserFragment;
     LLSReceiver mLLSReceiver;
     private static final String TAG="MainActivity";
+    private static boolean fragmentsInitialized=false;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        initFragments();
+        initLLSReceiver();
+//        initFragments();
     }
 
     /**
@@ -69,43 +72,36 @@ public class MainActivity extends Activity {
         transaction.show(sampleChooserFragment);
         transaction.commit();
 
-        initLLSReceiver();
+        fragmentsInitialized=true;
     }
 
     private void initLLSReceiver(){
         mLLSReceiver=LLSReceiver.getInstance();
-        mLLSReceiver.start();
-
-//       SLTData s=new SLTData();
-//        try {
-//            Log.d(TAG,"Value of bsid before"+(s.hashMap.get("bsid")).invoke(s));
-//            s.bsid=1234;
-//            Log.d(TAG,"Value of bsid after"+(s.hashMap.get("bsid")).invoke(s));
-//
-//        } catch (IllegalAccessException e) {
-//            e.printStackTrace();
-//        } catch (InvocationTargetException e) {
-//            e.printStackTrace();
-//        }
-//
-//        LLSData llsData=new LLSData();
-//
-//        try {
-//            llsData.hashMap.get("bsid").invoke(llsData, llsData.newSLTData(), "1");
-//        } catch (IllegalAccessException e) {
-//            e.printStackTrace();
-//        } catch (InvocationTargetException e) {
-//            e.printStackTrace();
-//        }
-
-
+        startLLSReceiver();
     }
     public void stopLLSReceiver(){
         mLLSReceiver.stop();
 
     }
     public void startLLSReceiver(){
-//        mLLSReceiver.start();
+        mLLSReceiver.start(this);
+    }
+
+//    public void refreshFragments(){
+//        sampleChooserFragment.refreshFragments();
+//    }
+    public void callBackSLTFound(Boolean completed){
+        if (completed) {
+            if (!fragmentsInitialized)
+                initFragments();
+        }
+    }
+
+    public void startFluteSession(int type){
 
     }
+    public void stopFluteSession(int type){
+
+    }
+
 }

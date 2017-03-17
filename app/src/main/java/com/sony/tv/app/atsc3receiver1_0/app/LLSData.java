@@ -1,9 +1,13 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
+import android.content.res.AssetManager;
+import android.util.Log;
+
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+
 
 /**
  * Created by xhamc on 3/15/17.
@@ -16,8 +20,9 @@ public class LLSData {
     public SLTData mSLTData;
     public STData mSTData;
     public String type;
+    public String xmlString;
 
-    public LLSData(String type){
+    public LLSData(String type, String data){
 
         hashMap=new HashMap<>();
         try {
@@ -52,18 +57,21 @@ public class LLSData {
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         }
-        if (type.equals("SLT")){
+        if (type.equals(LLSReceiver.SLTTAG)){
             mSLTData=new SLTData();
-        }else if (type.equals("SystemTime")){
+        }else if (type.equals(LLSReceiver.SYSTEMTIMETAG)){
             mSTData=new STData();
-        }
+        }/*TODO add other types*/
         this.type=type;
+        this.xmlString=data;
     }
+
+
 
     public void putXmlns(String value){
         if (type.equals("SLT"))
             mSLTData.xmlns=value;
-        else if (type.equals("SystemTime")){
+        else if (type.equals(LLSReceiver.SYSTEMTIMETAG)){
             mSTData.xmlns=value;
         }
     }
@@ -101,6 +109,8 @@ public class LLSData {
         s.serviceCategory=Byte.parseByte(value);
     }
     public void putShortServiceName(int item, String value){
+        Log.d("***","size of item: "+ item+"  size of mServices: "+mSLTData.mServices.size());
+
         SLTData.Service s;
         if (item>mSLTData.mServices.size()) s=mSLTData.addService(item-1); else s=mSLTData.mServices.get(item-1);
         s.shortServiceName=value;

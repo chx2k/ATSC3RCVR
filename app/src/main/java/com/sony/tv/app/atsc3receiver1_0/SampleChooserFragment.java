@@ -20,25 +20,32 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.ExpandableListView.OnChildClickListener;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
+import com.sony.tv.app.atsc3receiver1_0.SampleListLoader.*;
 /**
  * An activity for selecting from a list of samples.
  */
@@ -49,6 +56,7 @@ public class SampleChooserFragment extends Fragment {
   private Context context;
   private AdapterLoader loaderTask;
   private ExpandableListView sampleListView;
+    private static boolean test=false;
 
   public View onCreateView(LayoutInflater inflater, ViewGroup container,
                            Bundle savedInstanceState) {
@@ -58,35 +66,43 @@ public class SampleChooserFragment extends Fragment {
     return inflater.inflate(R.layout.sample_chooser_activity, container, false);
   }
 
-
   @Override
   public void onStart() {
     super.onStart();
-    Intent intent = getActivity().getIntent();
-    String dataUri = intent.getDataString();
+      if (!test) {
+          String[] uris;
 
-    String[] uris;
-    if (dataUri != null) {
-      uris = new String[]{dataUri};
-    } else {
-        ArrayList<String> uriList = new ArrayList<>();
-        AssetManager assetManager = getActivity().getAssets();
-        try {
-            for (String asset : assetManager.list("")) {
-                if (asset.endsWith(".exolist.json")) {
-                    uriList.add("asset:///" + asset);
-                }
-            }
-        } catch (IOException e) {
-            Toast.makeText(activity.getApplicationContext(), R.string.sample_list_load_error, Toast.LENGTH_LONG)
-                    .show();
-        }
-        uris = new String[uriList.size()];
-        uriList.toArray(uris);
-        Arrays.sort(uris);
-    }
-    loaderTask = new AdapterLoader(uris);
-    loaderTask.execute();
+          Intent intent = getActivity().getIntent();
+
+          String dataUri = intent.getDataString();
+
+//        String[] uris;
+          if (dataUri != null) {
+              uris = new String[]{dataUri};
+          } else {
+              ArrayList<String> uriList = new ArrayList<>();
+              AssetManager assetManager = getActivity().getAssets();
+              try {
+                  for (String asset : assetManager.list("")) {
+
+                      if (asset.endsWith(".exolist.json")) {
+                          uriList.add("asset:///" + asset);
+                      }
+                  }
+              } catch (IOException e) {
+                  Toast.makeText(activity.getApplicationContext(), R.string.sample_list_load_error, Toast.LENGTH_LONG)
+                          .show();
+              }
+              uris = new String[uriList.size()];
+              uriList.toArray(uris);
+              Arrays.sort(uris);
+          }
+          loaderTask = new AdapterLoader(uris);
+          loaderTask.execute();
+      }
+    test=true;
+
+
 
   }
   @Override
@@ -101,7 +117,36 @@ public class SampleChooserFragment extends Fragment {
       ((MainActivity)getActivity()).startLLSReceiver();
   }
 
-
+//  public void refreshFragments(){
+//      String[] uris;
+//      Intent intent = getActivity().getIntent();
+//      String dataUri = intent.getDataString();
+//
+////        String[] uris;
+//      if (dataUri != null) {
+//          uris = new String[]{dataUri};
+//      } else {
+//          ArrayList<String> uriList = new ArrayList<>();
+//          AssetManager assetManager = getActivity().getAssets();
+//          try {
+//              for (String asset : assetManager.list("")) {
+//
+//                  if (asset.endsWith(".exolist2.json")) {
+//                      uriList.add("asset:///" + asset);
+//                  }
+//              }
+//          } catch (IOException e) {
+//              Toast.makeText(activity.getApplicationContext(), R.string.sample_list_load_error, Toast.LENGTH_LONG)
+//                      .show();
+//          }
+//          uris = new String[uriList.size()];
+//          uriList.toArray(uris);
+//          Arrays.sort(uris);
+//      }
+//
+//        loaderTask = new AdapterLoader(uris);
+//        loaderTask.execute();
+//  }
   private final class AdapterLoader extends AsyncTask<Void, Void, SampleListLoader> {
 
     private String[] uris;
@@ -117,16 +162,32 @@ public class SampleChooserFragment extends Fragment {
 
     @Override
     protected void onPostExecute(SampleListLoader sampleList){
-      onSampleGroups(sampleList.getSampleGroup(), sampleList.getError() );
+        onSampleGroupsAddATSC(sampleList.getSampleGroup(), sampleList.getError() );
     }
 
-    private void onSampleGroups(final List<SampleListLoader.SampleGroup> groups, boolean sawError) {
+    private void onSampleGroupsAddATSC(List<SampleGroup> groups, boolean sawError){
+        SampleGroup g=new SampleGroup("ATSC3.0 Content");
+        Log.d("***", "size: "+LLSReceiver.getInstance().slt.mSLTData.mServices.size());
+        for (int i=0; i< LLSReceiver.getInstance().slt.mSLTData.mServices.size(); i++) {
+            String url = (LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress).toString();
+            String port = String.valueOf(LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort);
+            String name = "MultiRateDynamic.mpd"; /* TODO detect automatically from USBD*/
+            String title = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).shortServiceName;
+            ATSCSample s = new ATSCSample(title, null, null, null, false, url, port, name);
+            g.samples.add(s);
+        }
+        groups.add(0,g);
+        onSampleGroups(groups, sawError);
+    }
+
+    private void onSampleGroups(final List<SampleGroup> groups, boolean sawError) {
       if (sawError) {
         Toast.makeText(context, R.string.sample_list_load_error, Toast.LENGTH_LONG)
                 .show();
       }else {
         sampleListView = (ExpandableListView) activity.findViewById(R.id.sample_list);
-        sampleListView.setAdapter(new SampleAdapter(groups));
+        final SampleAdapter sampleAdapter=  new SampleAdapter(groups);
+        sampleListView.setAdapter(sampleAdapter);
         sampleListView.setOnChildClickListener(new OnChildClickListener() {
           @Override
           public boolean onChildClick(ExpandableListView parent, View view, int groupPosition,
@@ -135,11 +196,34 @@ public class SampleChooserFragment extends Fragment {
             return true;
           }
         });
+
+          sampleListView.setOnGroupExpandListener(new ExpandableListView.OnGroupExpandListener() {
+              @Override
+              public void onGroupExpand(int groupPosition){
+                  if (groupPosition==0){
+                      Log.d(TAG,"Started Flute Signalling receivers");
+                      ((MainActivity) activity).startFluteSession(FluteReceiver.SIGNALLING);
+                  }
+
+              }
+          });
+
+          sampleListView.setOnGroupCollapseListener(new ExpandableListView.OnGroupCollapseListener() {
+              @Override
+              public void onGroupCollapse(int groupPosition){
+                  if (groupPosition==0){
+                      Log.d(TAG,"Stopped Flute Signalling receivers");
+                      ((MainActivity) activity).stopFluteSession(FluteReceiver.SIGNALLING);
+                  }
+
+              }
+          });
+
       }
 
     }
 
-    private void onSampleSelected(SampleListLoader.Sample sample) {
+    private void onSampleSelected(Sample sample) {
         ((MainActivity)activity).stopLLSReceiver();
         activity.startActivity(sample.buildIntent(context));
     }
@@ -147,80 +231,104 @@ public class SampleChooserFragment extends Fragment {
   }
 
 
-  private final class SampleAdapter extends BaseExpandableListAdapter {
+    public final class ATSCSample extends Sample {
+
+        public final String uri;
+    //        public final String extension;
+
+        public ATSCSample(String name, UUID drmSchemeUuid, String drmLicenseUrl,
+                          String[] drmKeyRequestProperties, boolean preferExtensionDecoders, String uri, String port, String fileName) {
+            super(name, drmSchemeUuid, drmLicenseUrl, drmKeyRequestProperties, preferExtensionDecoders);
+            this.uri = "file:///"+port+"/"+uri+"/"+fileName;
+    //            this.extension = extension;
+        }
+
+        @Override
+        public Intent buildIntent(Context context) {
+            return super.buildIntent(context)
+                    .setData(Uri.parse(uri))
+    //                    .putExtra(PlayerActivity.EXTENSION_EXTRA, extension)
+                    .setAction(PlayerActivity.ACTION_VIEW);
+        }
+
+    }
+
+    private final class SampleAdapter extends BaseExpandableListAdapter {
 
 //    private final Context context;
-    private final List<SampleListLoader.SampleGroup> sampleGroups;
+        private final List<SampleListLoader.SampleGroup> sampleGroups;
 
-    public SampleAdapter(List<SampleListLoader.SampleGroup>  sampleGroups) {
-      this.sampleGroups = sampleGroups;
-    }
+        public SampleAdapter(List<SampleListLoader.SampleGroup>  sampleGroups) {
+          this.sampleGroups = sampleGroups;
+        }
 
-    @Override
-    public SampleListLoader.Sample getChild(int groupPosition, int childPosition) {
-      return getGroup(groupPosition).samples.get(childPosition);
-    }
+        @Override
+        public Sample getChild(int groupPosition, int childPosition) {
+          return getGroup(groupPosition).samples.get(childPosition);
+        }
 
-    @Override
-    public long getChildId(int groupPosition, int childPosition) {
-      return childPosition;
-    }
+        @Override
+        public long getChildId(int groupPosition, int childPosition) {
+          return childPosition;
+        }
 
-    @Override
-    public View getChildView(int groupPosition, int childPosition, boolean isLastChild,
-                             View convertView, ViewGroup parent) {
-      View view = convertView;
-      if (view == null) {
-        view = LayoutInflater.from(context).inflate(android.R.layout.simple_list_item_1, parent,
-                false);
+        @Override
+        public View getChildView(int groupPosition, int childPosition, boolean isLastChild,
+                                 View convertView, ViewGroup parent) {
+          View view = convertView;
+          if (view == null) {
+            view = LayoutInflater.from(context).inflate(R.layout.simple_text_layout, parent,
+                    false);
+
+          }
+          ((TextView) view).setText(getChild(groupPosition, childPosition).name);
+
+          return view;
+        }
+
+        @Override
+        public int getChildrenCount(int groupPosition) {
+          return getGroup(groupPosition).samples.size();
+        }
+
+        @Override
+        public SampleListLoader.SampleGroup  getGroup(int groupPosition) {
+          return sampleGroups.get(groupPosition);
+        }
+
+        @Override
+        public long getGroupId(int groupPosition) {
+          return groupPosition;
+        }
+
+        @Override
+        public View getGroupView(int groupPosition, boolean isExpanded, View convertView,
+                                 ViewGroup parent) {
+          View view = convertView;
+          if (view == null) {
+            view = LayoutInflater.from(context).inflate(android.R.layout.simple_expandable_list_item_1,
+                    parent, false);
+          }
+          ((TextView) view).setText(getGroup(groupPosition).title);
+          return view;
+        }
+
+        @Override
+        public int getGroupCount() {
+          return sampleGroups.size();
+        }
+
+        @Override
+        public boolean hasStableIds() {
+          return false;
+        }
+
+        @Override
+        public boolean isChildSelectable(int groupPosition, int childPosition) {
+          return true;
+        }
+
       }
-      ((TextView) view).setText(getChild(groupPosition, childPosition).name);
-      return view;
-    }
-
-    @Override
-    public int getChildrenCount(int groupPosition) {
-      return getGroup(groupPosition).samples.size();
-    }
-
-    @Override
-    public SampleListLoader.SampleGroup  getGroup(int groupPosition) {
-      return sampleGroups.get(groupPosition);
-    }
-
-    @Override
-    public long getGroupId(int groupPosition) {
-      return groupPosition;
-    }
-
-    @Override
-    public View getGroupView(int groupPosition, boolean isExpanded, View convertView,
-                             ViewGroup parent) {
-      View view = convertView;
-      if (view == null) {
-        view = LayoutInflater.from(context).inflate(android.R.layout.simple_expandable_list_item_1,
-                parent, false);
-      }
-      ((TextView) view).setText(getGroup(groupPosition).title);
-      return view;
-    }
-
-    @Override
-    public int getGroupCount() {
-      return sampleGroups.size();
-    }
-
-    @Override
-    public boolean hasStableIds() {
-      return false;
-    }
-
-    @Override
-    public boolean isChildSelectable(int groupPosition, int childPosition) {
-      return true;
-    }
-
-  }
 
 
 }

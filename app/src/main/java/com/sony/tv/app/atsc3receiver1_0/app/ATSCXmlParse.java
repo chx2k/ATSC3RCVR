@@ -17,19 +17,21 @@ public class ATSCXmlParse {
     private XmlPullParserFactory factory;
     private XmlPullParser xpp;
     private static final String TAG="XML";
-    LLSData llsData;
+    private LLSData llsData;
     String type;
     String data;
 
-    public  ATSCXmlParse(final String data, String type){
-        llsData =new LLSData(type);
+    public  ATSCXmlParse(final String data, final String type){
+        llsData =new LLSData(type, data);
         this.type=type;
         this.data=data;
 
     }
-    public void LLSParse(){
+    public LLSData LLSParse(){
         int tagLevel=-1;
-        int[] xmlItems=new int[10];
+        int serviceItems=0;
+        int [] broadcastItems=new int[10];
+
         boolean foundStartTag =false;
 
         try {
@@ -40,11 +42,13 @@ public class ATSCXmlParse {
             int eventType = xpp.getEventType();
             while (eventType!=XmlPullParser.END_DOCUMENT) {
                 if(eventType == XmlPullParser.START_DOCUMENT) {
-//                    Log.d(TAG,"Start document");
-                } else if(eventType == XmlPullParser.START_TAG) {
-                    tagLevel++;
-                    xmlItems[tagLevel]++;
 
+                } else if(eventType == XmlPullParser.START_TAG) {
+                    Log.d(TAG,"Start Tag"+xpp.getName());
+                    tagLevel++;
+                    if (tagLevel==1) serviceItems++;
+                    if (tagLevel==2) broadcastItems[serviceItems-1]++;
+                    Log.d(TAG,"taglevel: "+ tagLevel+ "serviceItems "+ serviceItems + "  broadcastItems[0]:  "+ broadcastItems[0] );
                     if (type.equals(xpp.getName())){
                         foundStartTag=true;
                         for (int i=0; i<xpp.getAttributeCount(); i++){
@@ -66,20 +70,19 @@ public class ATSCXmlParse {
                             }
 
                         }
-                    }
-                    if (foundStartTag) {
+                    }else if (foundStartTag) {
                         try {
                             if (tagLevel == 1) {
                                 for (int i = 0; i < xpp.getAttributeCount(); i++) {
                                     Log.d(TAG,"attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
 
-                                    llsData.hashMap.get(xpp.getAttributeName(i)).invoke(llsData, xmlItems[1], xpp.getAttributeValue(i));
+                                    llsData.hashMap.get(xpp.getAttributeName(i)).invoke(llsData, serviceItems, xpp.getAttributeValue(i));
                                 }
                             } else if (tagLevel == 2) { //*****currently allowing for XML two levels only
                                 for (int i = 0; i < xpp.getAttributeCount(); i++) {
                                     Log.d(TAG,"attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
 
-                                    llsData.hashMap.get(xpp.getAttributeName(i)).invoke(llsData, xmlItems[1], xmlItems[2], xpp.getAttributeValue(i));
+                                    llsData.hashMap.get(xpp.getAttributeName(i)).invoke(llsData, serviceItems, broadcastItems[serviceItems-1], xpp.getAttributeValue(i));
                                 }
                             }
                         } catch (IllegalAccessException e) {
@@ -89,10 +92,10 @@ public class ATSCXmlParse {
                         }
                     }
                 } else if(eventType == XmlPullParser.END_TAG) {
-//                    Log.d(TAG,"End tag "+xpp.getName());
-                    xmlItems[tagLevel]=0;
+                    Log.d(TAG,"End tag "+xpp.getName());
                     tagLevel--;
-//                    Log.d(TAG,"Tag level "+tagLevel);
+                    Log.d(TAG,"taglevel: "+ tagLevel+ "serviceItems "+ serviceItems + "  broadcastItems[0]:  "+ broadcastItems[0] );
+
 
 
                 } else if(eventType == XmlPullParser.TEXT) {
@@ -111,6 +114,8 @@ public class ATSCXmlParse {
         }catch (Exception e){
             e.printStackTrace();
         }
+
+        return llsData;
     }
 
 
