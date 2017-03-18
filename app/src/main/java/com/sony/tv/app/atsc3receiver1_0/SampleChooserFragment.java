@@ -70,7 +70,7 @@ public class SampleChooserFragment extends Fragment {
   @Override
   public void onStart() {
     super.onStart();
-      if (!test) {
+
           String[] uris;
 
           Intent intent = getActivity().getIntent();
@@ -100,11 +100,8 @@ public class SampleChooserFragment extends Fragment {
           }
           loaderTask = new AdapterLoader(uris);
           loaderTask.execute();
-      }
-    test=true;
 
-
-
+      ((MainActivity)getActivity()).startLLSReceiver();
   }
   @Override
   public void onStop(){
@@ -115,7 +112,7 @@ public class SampleChooserFragment extends Fragment {
   @Override
   public void onResume(){
       super.onResume();
-      ((MainActivity)getActivity()).startLLSReceiver();
+
   }
 
 //  public void refreshFragments(){

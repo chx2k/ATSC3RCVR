@@ -33,9 +33,9 @@ public class LLSReceiver {
 
     public LLSData slt;
     public LLSData systemTime;
+    public boolean running=false;
     private static DataSpec dataSpec;
-    private ATSCUdpDataSource udpDataSource;
-    private TransferListener<ATSCUdpDataSource> listener;
+    private UdpDataSource udpDataSource;
     private byte[] bytes;
     private Handler mHandler;
     public static final String SLTTAG="SLT";
@@ -51,10 +51,7 @@ public class LLSReceiver {
     private static final int FOUND_SLT=4;
     private static final int FOUND_ST=5;
 
-
-
     private static final String TAG="LLS";
-
     private static LLSReceiver sInstance=new LLSReceiver();
     private static Activity activityContext;
 
@@ -68,7 +65,6 @@ public class LLSReceiver {
     private LLSReceiver() {
 
         dataSpec = new DataSpec(Uri.parse("udp://224.0.23.60:4937"));
-        udpDataSource = new ATSCUdpDataSource();
         mHandler=new Handler(Looper.getMainLooper()) {
             @Override
             public void handleMessage(Message inputMessage) {
@@ -78,24 +74,26 @@ public class LLSReceiver {
                     // The decoding is done
                     case TASK_COMPLETE:
                         Log.d(TAG,"FOUND LLS MESSAGES");
-
                         break;
                     case TASK_STARTED:
                         Log.d(TAG,"STARTED");
                         break;
                     case FOUND_SLT:
                         Log.d(TAG,"FOUND SLT");
-                        if (slt!=null) first=false;
+                        long t= System.currentTimeMillis();
                         slt= new ATSCXmlParse(llstask.mSLTData, "SLT").LLSParse();
+                        Log.d(TAG,"LLS xml parse time in ms: "+(System.currentTimeMillis()-t));
+
                         saveLLSData(slt);
-                        if (first) ((MainActivity) activityContext).callBackSLTFound(true);
+                        if (first) {
+                            ((MainActivity) activityContext).callBackSLTFound(true);
+                            first = false;
+                        }
                         break;
                     case FOUND_ST:
                         Log.d(TAG,"FOUND ST");
-//                        long t= System.currentTimeMillis();
                         systemTime= new ATSCXmlParse(llstask.mSTData, SYSTEMTIMETAG).LLSParse();
                         saveLLSData(systemTime);
-//                        Log.d(TAG,"LLS xml parse time in ms: "+(System.currentTimeMillis()-t));
                         break;
                     case TASK_ERROR:
                         Log.d(TAG,"FOUND ERROR: "+llstask.error);
@@ -110,8 +108,6 @@ public class LLSReceiver {
                 }
             }
         };
-         mLLSTaskManager=new LLSTaskManager();
-
     }
 
     /**
@@ -127,8 +123,12 @@ public class LLSReceiver {
      */
     public void start(Activity m){
         this.activityContext=m;
+        mLLSTaskManager=new LLSTaskManager();
         first=true;
-        if ( m!=null)  mLLSTaskManager.start();
+        if ( m!=null) {
+            new Thread(mLLSTaskManager).start();
+            running=true;
+        }
     }
 
     /**
@@ -136,6 +136,7 @@ public class LLSReceiver {
      */
     public void stop(){
         mLLSTaskManager.stop();
+        running=false;
     }
 
     /**
@@ -170,102 +171,97 @@ public class LLSReceiver {
      * Class to decode the LLS message headers from  bytes receiver
      * from LLSFetchManager, convert to string, and send to UI
      */
-    private class LLSTaskManager {
+    private class LLSTaskManager implements Runnable{
 
         public String mSLTData;
         public String mSTData;
         public String error;
-        Thread SLTThread;
-        Runnable SLTRunnable;
-        Runnable STRunnable;
-        Boolean stopRequest=false;
+        private int packetSize;
+        private boolean running;
+        Boolean stopRequest;
+
 
         LLSTaskManager (){
-
-//            STThread=new Thread (new LLSFetch(this,ST));
-
+            stopRequest=false;
          }
+
+
+        @Override
+        public void run(){
+
+            udpDataSource = new UdpDataSource(new TransferListener<UdpDataSource>() {
+                @Override
+                public void onTransferStart(UdpDataSource source, DataSpec dataSpec) {
+                    running=true;
+                }
+
+                @Override
+                public void onBytesTransferred(UdpDataSource source, int bytesTransferred) {
+                    packetSize=bytesTransferred;
+                }
+                @Override
+                public void onTransferEnd(UdpDataSource source) {
+                    running=false;
+                }
+            });
+
+            try {
+                udpDataSource.open(dataSpec);
+            } catch (UdpDataSource.UdpDataSourceException e) {
+                e.printStackTrace();
+                return;
+            }
+            mainloop:while (!stopRequest && running) {
+
+                int len;
+                int offset = 0;
+                bytes = new byte[UdpDataSource.DEFAULT_MAX_PACKET_SIZE];
+                do {
+                    try {
+                        len = udpDataSource.read(bytes, offset, 10);
+                        offset += len;
+                    } catch (UdpDataSource.UdpDataSourceException e) {
+                        e.printStackTrace();
+                        reportError();
+                        break mainloop;
+                    }
+                } while (offset < packetSize);
+
+                transferDataToUIThread(bytes[0], bytes, packetSize);
+
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    reportError();
+                    break;
+                }
+            }
+            udpDataSource.close();
+        }
+
         public void stop(){
             stopRequest=true;
             sInstance.handleTaskState(this, TASK_STOPPED);
         }
 
-        public void start(){
-           /*TODO need to correctly scan all the LLS messages based on the group id and group count*/
-
-            stopRequest=false;
-            STRunnable=new LLSFetchManager(this,ST);
-            SLTRunnable=new LLSFetchManager(this,SLT);
-            SLTThread= new Thread (SLTRunnable);
-            SLTThread.start();
-        }
-
-        public void fetchTaskData(int type, byte[] data, int len){
+        public void transferDataToUIThread(int type, byte[] data, int len){
 
             if (type==SLT ) {
-
                 sInstance.handleTaskState(this, FOUND_SLT);
                 mSLTData=new String (data,4,len-4);
-                STRunnable.run();
             }else if (type==ST){
                 sInstance.handleTaskState(this, FOUND_ST);
                 mSTData=new String (data,4,len-4);
-                SLTRunnable.run();
             }
-
-
         }
-        public void reportError(String error){
-            this.error=error;
+
+        public void reportError(){
+            stopRequest=true;
             sInstance.handleTaskState(this, TASK_ERROR);
         }
 
 
     }
 
-    /**
-     * Class to fetch byte data from udp LLS messages and send to Task Manager
-     */
-    private class LLSFetchManager implements Runnable{
-        private LLSTaskManager mTask;
-        private byte mType;
-        private byte[] bytes;
-
-        public LLSFetchManager(LLSTaskManager task, byte type){
-            mTask=task;
-            mType=type;
-        }
-        @Override
-        public void run() {
-            if (!mTask.stopRequest) {
-                int tries = 0;
-                int len;
-                do {
-                    bytes = new byte[ATSCUdpDataSource.DEFAULT_MAX_PACKET_SIZE];
-
-                    try {
-                        udpDataSource.open(dataSpec);
-                    } catch (UdpDataSource.UdpDataSourceException e) {
-                        e.printStackTrace();
-                        return;
-                    } finally {
-                        try {
-                            len = udpDataSource.read(bytes, 0, ATSCUdpDataSource.DEFAULT_MAX_PACKET_SIZE);
-                            udpDataSource.close();
-                        } catch (UdpDataSource.UdpDataSourceException e) {
-                            e.printStackTrace();
-                            return;
-                        }
-                    }
-
-                } while (mType != bytes[0] && tries < 100);         //bytes[0] should contain the type of LLS message. Wait till we see relevant one.
-                /*TODO better efficency to receive any type of message*/
-                if (tries < 100) {
-                    mTask.fetchTaskData(bytes[0], bytes, len);
-                }else {
-                    mTask.reportError("Too many tries");
-                }
-            }
-        }
-    }
 }

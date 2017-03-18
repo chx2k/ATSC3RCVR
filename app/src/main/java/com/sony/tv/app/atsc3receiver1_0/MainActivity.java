@@ -84,7 +84,8 @@ public class MainActivity extends Activity {
 
     }
     public void startLLSReceiver(){
-        mLLSReceiver.start(this);
+        if (!mLLSReceiver.running)
+            mLLSReceiver.start(this);
     }
 
 //    public void refreshFragments(){
