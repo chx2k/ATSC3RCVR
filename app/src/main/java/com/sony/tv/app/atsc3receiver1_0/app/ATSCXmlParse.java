@@ -48,7 +48,7 @@ public class ATSCXmlParse {
                     tagLevel++;
                     if (tagLevel==1) serviceItems++;
                     if (tagLevel==2) broadcastItems[serviceItems-1]++;
-                    Log.d(TAG,"taglevel: "+ tagLevel+ "serviceItems "+ serviceItems + "  broadcastItems[0]:  "+ broadcastItems[0] );
+//                    Log.d(TAG,"taglevel: "+ tagLevel+ "serviceItems "+ serviceItems + "  broadcastItems[0]:  "+ broadcastItems[0] );
                     if (type.equals(xpp.getName())){
                         foundStartTag=true;
                         for (int i=0; i<xpp.getAttributeCount(); i++){

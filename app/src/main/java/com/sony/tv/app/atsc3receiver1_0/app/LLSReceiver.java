@@ -218,7 +218,7 @@ public class LLSReceiver {
                 bytes = new byte[UdpDataSource.DEFAULT_MAX_PACKET_SIZE];
                 do {
                     try {
-                        len = udpDataSource.read(bytes, offset, 10);
+                        len = udpDataSource.read(bytes, offset, 500);
                         offset += len;
                     } catch (UdpDataSource.UdpDataSourceException e) {
                         e.printStackTrace();

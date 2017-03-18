@@ -27,17 +27,14 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.ExpandableListView.OnChildClickListener;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
-import com.sony.tv.app.atsc3receiver1_0.app.
-        FluteReceiver;
+import com.sony.tv.app.atsc3receiver1_0.app.FluteDataSource;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
 import java.io.IOException;
@@ -200,7 +197,7 @@ public class SampleChooserFragment extends Fragment {
               public void onGroupExpand(int groupPosition){
                   if (groupPosition==0){
                       Log.d(TAG,"Started Flute Signalling receivers");
-                      ((MainActivity) activity).startFluteSession(FluteReceiver.SIGNALLING);
+                      ((MainActivity) activity).startFluteSession(FluteDataSource.SIGNALLING);
                   }
 
               }
@@ -211,7 +208,7 @@ public class SampleChooserFragment extends Fragment {
               public void onGroupCollapse(int groupPosition){
                   if (groupPosition==0){
                       Log.d(TAG,"Stopped Flute Signalling receivers");
-                      ((MainActivity) activity).stopFluteSession(FluteReceiver.SIGNALLING);
+                      ((MainActivity) activity).stopFluteSession(FluteDataSource.SIGNALLING);
                   }
 
               }

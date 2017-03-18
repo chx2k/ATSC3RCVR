@@ -20,7 +20,7 @@ import java.net.SocketException;
  * Created by xhamc on 3/13/17.
  */
 
-public final  class ATSCUdpDataSource implements DataSource {
+public final class ATSCUdpDataSource implements DataSource {
 
     /**
      * Thrown when an error is encountered when trying to read from a {@link UdpDataSource}.
@@ -42,7 +42,7 @@ public final  class ATSCUdpDataSource implements DataSource {
     /**
      * The default socket timeout, in milliseconds.
      */
-    public static final int DEAFULT_SOCKET_TIMEOUT_MILLIS = 8 * 1000;
+    public static final int DEFAULT_SOCKET_TIMEOUT_MILLIS = 8 * 1000;
 
     private final int socketTimeoutMillis;
     private final byte[] packetBuffer;
@@ -75,7 +75,7 @@ public final  class ATSCUdpDataSource implements DataSource {
      * @param maxPacketSize The maximum datagram packet size, in bytes.
      */
     public ATSCUdpDataSource(TransferListener<? super ATSCUdpDataSource> listener, int maxPacketSize) {
-        this(listener, maxPacketSize, DEAFULT_SOCKET_TIMEOUT_MILLIS);
+        this(listener, maxPacketSize, DEFAULT_SOCKET_TIMEOUT_MILLIS);
     }
 
     /**
