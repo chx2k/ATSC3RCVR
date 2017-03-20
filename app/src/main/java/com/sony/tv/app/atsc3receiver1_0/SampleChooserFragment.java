@@ -164,8 +164,8 @@ public class SampleChooserFragment extends Fragment {
         SampleGroup g=new SampleGroup("ATSC3.0 Content");
         Log.d("***", "size: "+LLSReceiver.getInstance().slt.mSLTData.mServices.size());
         for (int i=0; i< LLSReceiver.getInstance().slt.mSLTData.mServices.size(); i++) {
-            String url = (LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress).toString();
-            String port = String.valueOf(LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort);
+            String url = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress;
+            String port = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort;
             String name = "MultiRateDynamic.mpd"; /* TODO detect automatically from USBD*/
             String title = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).shortServiceName;
             ATSCSample s = new ATSCSample(title, null, null, null, false, url, port, name);

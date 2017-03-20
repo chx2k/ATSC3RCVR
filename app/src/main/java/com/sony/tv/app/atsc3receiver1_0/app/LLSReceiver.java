@@ -38,8 +38,7 @@ public class LLSReceiver {
     private UdpDataSource udpDataSource;
     private byte[] bytes;
     private Handler mHandler;
-    public static final String SLTTAG="SLT";
-    public static final String SYSTEMTIMETAG="SystemTime";
+
 
     private final static byte SLT=1;
     private final static byte ST=3;
@@ -92,7 +91,7 @@ public class LLSReceiver {
                         break;
                     case FOUND_ST:
                         Log.d(TAG,"FOUND ST");
-                        systemTime= new ATSCXmlParse(llstask.mSTData, SYSTEMTIMETAG).LLSParse();
+                        systemTime= new ATSCXmlParse(llstask.mSTData, ATSCXmlParse.SYSTEMTIMETAG).LLSParse();
                         saveLLSData(systemTime);
                         break;
                     case TASK_ERROR:

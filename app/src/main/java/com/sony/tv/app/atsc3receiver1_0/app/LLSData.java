@@ -57,9 +57,9 @@ public class LLSData {
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         }
-        if (type.equals(LLSReceiver.SLTTAG)){
+        if (type.equals(ATSCXmlParse.SLTTAG)){
             mSLTData=new SLTData();
-        }else if (type.equals(LLSReceiver.SYSTEMTIMETAG)){
+        }else if (type.equals(ATSCXmlParse.SYSTEMTIMETAG)){
             mSTData=new STData();
         }/*TODO add other types*/
         this.type=type;
@@ -71,7 +71,7 @@ public class LLSData {
     public void putXmlns(String value){
         if (type.equals("SLT"))
             mSLTData.xmlns=value;
-        else if (type.equals(LLSReceiver.SYSTEMTIMETAG)){
+        else if (type.equals(ATSCXmlParse.SYSTEMTIMETAG)){
             mSTData.xmlns=value;
         }
     }
@@ -142,7 +142,7 @@ public class LLSData {
         if (item>mSLTData.mServices.size()) s=mSLTData.addService(item-1); else s=mSLTData.mServices.get(item-1);
         SLTData.Service.BroadcastService b;
         if (item2>s.broadcastServices.size()) b=s.addBroadcastService(item2-1); else b=s.broadcastServices.get(item2-1);
-        b.slsDestinationIpAddress=URI.create(value);
+        b.slsDestinationIpAddress=value;
     }
 
     public void putSlsSourceIpAddress(int item, int item2, String value){
@@ -158,7 +158,7 @@ public class LLSData {
         if (item>mSLTData.mServices.size()) s=mSLTData.addService(item-1); else s=mSLTData.mServices.get(item-1);
         SLTData.Service.BroadcastService b;
         if (item2>s.broadcastServices.size()) b=s.addBroadcastService(item2-1); else b=s.broadcastServices.get(item2-1);
-        b.slsDestinationUdpPort=Short.parseShort(value);
+        b.slsDestinationUdpPort=value;
     }
 
 
@@ -197,8 +197,8 @@ public class LLSData {
                 public byte slsProtocol;
                 public byte slsMajorProtocolVersion;
                 public byte slsMinorProtocolVersion;
-                public URI slsDestinationIpAddress;
-                public short slsDestinationUdpPort;
+                public String slsDestinationIpAddress;
+                public String slsDestinationUdpPort;
                 public URI slsSourceIpAddress;
                 public BroadcastService(){
                 }

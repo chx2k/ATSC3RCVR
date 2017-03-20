@@ -15,8 +15,10 @@ import java.util.ArrayList;
 
 public class FluteDataSource implements DataSource{
     public static final int SIGNALLING=0;
-    public static final int CONTENT=1;
-    public Receiver Receiver;
+    public static final int AUDIO_CONTENT=1;
+    public static final int VIDEO_CONTENT=2;
+
+//    public Receiver Receiver;
 
     @Override
     public long open(DataSpec dataSpec) throws IOException {
@@ -38,40 +40,37 @@ public class FluteDataSource implements DataSource{
 
     }
 
-    public Receiver createReceiver(DataSpec dataSpec, int type, int fileType){
-        if (type==SIGNALLING)
-            Receiver = new SignalingReceiver(dataSpec, fileType);
-        else
-            Receiver= new ContentReceiver(dataSpec);
-        return Receiver;
-    }
-
-    private abstract class Receiver{
-        public DataSpec dataSpec;
-        public byte[] fluteOutputBuffer;
-        private UdpDataSource udpDataSource;
-        private static final int USBD=0;
-        private static final int STSID=1;
-        private static final int MPD=2;
-        public int receiverType;
-
-    }
-
-    private class SignalingReceiver extends Receiver{
-        public int fileType;
-        public SignalingReceiver(DataSpec dataSpec, int type){
-            this.dataSpec=dataSpec;
-            this.receiverType=SIGNALLING;
-            this.fileType=type;
-        }
-
-    }
-    private class ContentReceiver extends Receiver{
-        public ContentReceiver(DataSpec dataSpec){
-            this.receiverType=CONTENT;
-            this.dataSpec=dataSpec;
-        }
-    }
+//    public Receiver createReceiver(DataSpec dataSpec, int type, int fileType){
+//          Receiver = new SignalingReceiver(dataSpec, fileType);
+//        return Receiver;
+//    }
+//
+//    private abstract class Receiver{
+//        public DataSpec dataSpec;
+//        public byte[] fluteOutputBuffer;
+//        private UdpDataSource udpDataSource;
+//        private static final int USBD=0;
+//        private static final int STSID=1;
+//        private static final int MPD=2;
+//        public int receiverType;
+//
+//    }
+//
+//    private class SignalingReceiver extends Receiver{
+//        public int fileType;
+//        public SignalingReceiver(DataSpec dataSpec, int type){
+//            this.dataSpec=dataSpec;
+//            this.receiverType=SIGNALLING;
+//            this.fileType=type;
+//        }
+//
+//    }
+//    private class ContentReceiver extends Receiver{
+//        public ContentReceiver(DataSpec dataSpec, int type){
+//            this.receiverType=type;
+//            this.dataSpec=dataSpec;
+//        }
+//    }
 
 
 }

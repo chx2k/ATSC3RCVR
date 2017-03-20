@@ -18,11 +18,14 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.google.android.exoplayer2.upstream.DataSpec;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSCXmlParse;
+import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSData;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
@@ -42,6 +45,7 @@ public class MainActivity extends Activity {
 
     SampleChooserFragment sampleChooserFragment;
     LLSReceiver mLLSReceiver;
+    FluteReceiver mFluteReceiver;
     private static final String TAG="MainActivity";
     private static boolean fragmentsInitialized=false;
     @Override
@@ -73,11 +77,14 @@ public class MainActivity extends Activity {
         transaction.commit();
 
         fragmentsInitialized=true;
+        mFluteReceiver=FluteReceiver.getInstance();
     }
 
     private void initLLSReceiver(){
         mLLSReceiver=LLSReceiver.getInstance();
         startLLSReceiver();
+
+
     }
     public void stopLLSReceiver(){
         mLLSReceiver.stop();
@@ -99,7 +106,22 @@ public class MainActivity extends Activity {
     }
 
     public void startFluteSession(int type){
-
+//        if (mLLSReceiver.slt!=null){
+//            for (int i=0; i<mLLSReceiver.slt.mSLTData.mServices.size(); i++){
+//                Uri uri=Uri.parse((mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress + ":" +
+//                        mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort));
+//                String port;
+//                if (i==0) {port=":4005";}else {port=":4006";}
+//                String uriString="udp://"+
+//                        (mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress.concat(port));
+                String uriString="udp://239.255.8.1:4005";
+                Log.d(TAG,"Opening: "+uriString);
+                Uri uri=Uri.parse(uriString);
+                DataSpec d=new DataSpec(uri);
+                mFluteReceiver.start(type,d);
+//                Log.d(TAG, "Started Flute Signalling receiver: "+i);
+//            }
+//        }
     }
     public void stopFluteSession(int type){
 

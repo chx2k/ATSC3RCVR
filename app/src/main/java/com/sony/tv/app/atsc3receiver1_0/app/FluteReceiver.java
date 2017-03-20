@@ -17,7 +17,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
+
 
 /**
  * Created by xhamc on 3/18/17.
@@ -25,9 +28,9 @@ import java.util.Map;
 
 public class FluteReceiver {
 
-    private static final int MAX_MPD_BUFFERSIZE=5000;
-    private static  final int MAX_USBD_BUFFERSIZE=1000;
-    private static final int MAX_STSID_BUFFERSIZE=1000;
+    private static final int MAX_SIGNALING_BUFFERSIZE=10000;
+//    private static  final int MAX_USBD_BUFFERSIZE=1000;
+//    private static final int MAX_STSID_BUFFERSIZE=1000;
     private static final int MAX_VIDEOINIT_BUFFERSIZE=1000;
     private static final int MAX_AUDIOINIT_BUFFERSIZE=1000;
     private static final int MAX_VIDEO_BUFFERSIZE=10000000;
@@ -35,11 +38,7 @@ public class FluteReceiver {
     private static final int MAX_FILE_RETENTION_MS=10000;
 
 
-    public  FileManager mMPD=new FileManager(MAX_MPD_BUFFERSIZE);
-    public  FileManager mUSBD=new FileManager(MAX_USBD_BUFFERSIZE);
-    public  FileManager mSTSID=new FileManager(MAX_STSID_BUFFERSIZE);
-    public  FileManager mVideoInit=new FileManager(MAX_VIDEOINIT_BUFFERSIZE);
-    public  FileManager mAudioInit=new FileManager(MAX_AUDIOINIT_BUFFERSIZE);
+    public  FileManager signalingFiles=new FileManager(MAX_SIGNALING_BUFFERSIZE);
     public  FileManager mVideoPacketData=new FileManager(MAX_VIDEO_BUFFERSIZE);
     public  FileManager mAudioPacketData=new FileManager(MAX_AUDIO_BUFFERSIZE);
 
@@ -56,11 +55,13 @@ public class FluteReceiver {
     private static final int FOUND_FLUTE_PACKET=4;
     private static final int FOUND_FLUTE_INSTANCE=5;
     private static final int FOUND_FLUTE_FILE=6;
-    private static final String TAG="LLS";
+    private static final String TAG="FLUTE";
     private static FluteReceiver sInstance=new FluteReceiver();
 
     private FluteTaskManager mSignalingFluteTaskManager;
-    private FluteTaskManager mContentFluteTaskManager;
+    private FluteTaskManager mAudioContentFluteTaskManager;
+    private FluteTaskManager mVideoContentFluteTaskManager;
+
 
     boolean first=true;
 
@@ -69,7 +70,7 @@ public class FluteReceiver {
      */
     private FluteReceiver() {
 
-        dataSpec = new DataSpec(Uri.parse("udp://224.0.23.60:4937"));
+//        dataSpec = new DataSpec(Uri.parse("udp://224.0.23.60:4937"));
         mHandler=new Handler(Looper.getMainLooper()) {
             @Override
             public void handleMessage(Message inputMessage) {
@@ -84,28 +85,14 @@ public class FluteReceiver {
                         Log.d(TAG,"STARTED");
                         break;
                     case FOUND_FLUTE_PACKET:
+                        Log.d(TAG,"FOUND FLUTE PACKET");
                         break;
                     case FOUND_FLUTE_INSTANCE:
+                        Log.d(TAG,"FOUND FLUTE INSTANCE");
+
                         break;
                     case FOUND_FLUTE_FILE:
                         break;
-//                    case FOUND_SLT:
-//                        Log.d(TAG,"FOUND SLT");
-//                        long t= System.currentTimeMillis();
-//                        slt= new ATSCXmlParse(llstask.mSLTData, "SLT").LLSParse();
-//                        Log.d(TAG,"LLS xml parse time in ms: "+(System.currentTimeMillis()-t));
-//
-//                        saveLLSData(slt);
-//                        if (first) {
-//                            ((MainActivity) activityContext).callBackSLTFound(true);
-//                            first = false;
-//                        }
-//                        break;
-//                    case FOUND_ST:
-//                        Log.d(TAG,"FOUND ST");
-//                        systemTime= new ATSCXmlParse(llstask.mSTData, SYSTEMTIMETAG).LLSParse();
-//                        saveLLSData(systemTime);
-//                        break;
                     case TASK_ERROR:
                         Log.d(TAG,"FOUND ERROR: "+llstask.error);
                         break;
@@ -136,11 +123,14 @@ public class FluteReceiver {
     public void start(int type, DataSpec dataSpec) {
 
         if (type == FluteDataSource.SIGNALLING) {
-            mSignalingFluteTaskManager = new FluteTaskManager(dataSpec, mMPD, mUSBD, mSTSID);
+            mSignalingFluteTaskManager = new FluteTaskManager(dataSpec, signalingFiles);
             new Thread(mSignalingFluteTaskManager).start();
-        } else if (type == FluteDataSource.CONTENT) {
-            mContentFluteTaskManager = new FluteTaskManager(dataSpec, mMPD, mUSBD, mSTSID);
-            new Thread(mContentFluteTaskManager).start();
+        } else if (type == FluteDataSource.AUDIO_CONTENT) {
+            mAudioContentFluteTaskManager = new FluteTaskManager(dataSpec, mAudioPacketData);
+            new Thread(mAudioContentFluteTaskManager).start();
+        } else if (type == FluteDataSource.VIDEO_CONTENT) {
+            mVideoContentFluteTaskManager = new FluteTaskManager(dataSpec, mVideoPacketData);
+            new Thread(mVideoContentFluteTaskManager).start();
         }
     }
 
@@ -150,8 +140,10 @@ public class FluteReceiver {
     public void stop(int type){
         if (type == FluteDataSource.SIGNALLING) {
             mSignalingFluteTaskManager.stop();
-        }else if (type==FluteDataSource.CONTENT){
-            mContentFluteTaskManager.stop();
+        }else if (type==FluteDataSource.AUDIO_CONTENT) {
+            mAudioContentFluteTaskManager.stop();
+        }else if (type==FluteDataSource.VIDEO_CONTENT) {
+            mVideoContentFluteTaskManager.stop();
         }
     }
 
@@ -166,26 +158,8 @@ public class FluteReceiver {
         (mHandler.obtainMessage(state, task)).sendToTarget();
     }
 
-//    public boolean saveFluteData(FluteData data){
-//
-//        String fileName="/LLS/"+data.type;
-//        try {
-//            FileOutputStream f=activityContext.openFileOutput(fileName, Activity.MODE_PRIVATE);
-//            f.write(data.xmlString.getBytes());
-//            f.close();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            return false;
-//        } finally{
-//            return true;
-//
-//        }
-//
-//    }
-
     /**
-     * Class to decode the LLS message headers from  bytes receiver
-     * from LLSFetchManager, convert to string, and send to UI
+     * Class to handle getting udp flute data and decoding it
      */
     private class FluteTaskManager implements Runnable{
 
@@ -194,20 +168,13 @@ public class FluteReceiver {
         private boolean running;
         Boolean stopRequest;
         DataSpec dataSpec;
-        FileManager mpd;
+        FileManager fileManager;
 
-        FluteTaskManager (DataSpec dataSpec, FileManager mpd, FileManager usbd, FileManager stsid ){
+        FluteTaskManager (DataSpec dataSpec, FileManager f ){
             stopRequest=false;
+            this.fileManager=f;
             this.dataSpec=dataSpec;
         }
-
-        FluteTaskManager (DataSpec dataSpec, FileManager mVideoPacketData, FileManager mAudioPacketData,
-                          FileManager mVideoInit, FileManager mAudioInit,
-                          Map<Integer, ArrayList<ContentFileLocations>> mapVideoFileLocations,
-                          Map<Integer, ArrayList<ContentFileLocations>> mapAudioFileLocations) {
-            stopRequest=false;
-        }
-
 
         @Override
         public void run(){
@@ -245,7 +212,7 @@ public class FluteReceiver {
                         offset += len;
                     } catch (UdpDataSource.UdpDataSourceException e) {
                         e.printStackTrace();
-                        reportError();
+//                        reportError();
                         break mainloop;
                     }
                 } while (offset < packetSize);
@@ -256,7 +223,7 @@ public class FluteReceiver {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
-                    reportError();
+//                    reportError();
                     break;
                 }
             }
@@ -268,51 +235,26 @@ public class FluteReceiver {
             sInstance.handleTaskState(this, TASK_STOPPED);
         }
 
-        private class FluteObject{
-            String fileName;
-            int toi;
-            int length;
-            int overallLength;
-            public FluteObject(String fileName,int toi,int length, int overallLength){
-                this.fileName=fileName;
-                this.toi=toi;
-                this.length=length;
-                this.overallLength=overallLength;
-            }
-        }
 
         private void transferDataToFluteHandler(byte[] bytes, int packetSize ){
 
             sInstance.handleTaskState(this, FOUND_FLUTE_PACKET);
             String fileName="";
-            FluteObject fo=getEFDTInstance(bytes);
-            if (fo.toi==0){
-                if (fileName.toLowerCase().contains(".mpd")) {
-                    mMPD.create(fileName, fo.overallLength);
-                }else if (fileName.toLowerCase().equals("usbd.xml")){
-                    mUSBD.create(fileName, fo.overallLength);
+            RouteDecode routeDecode=new RouteDecode(bytes, packetSize);
 
-                }else if (fileName.toLowerCase().equals("s-tsid.xml")){
-                    mSTSID.create(fileName,fo.overallLength);
+            if (routeDecode.toi==0){
+                fileName=routeDecode.fileName;
+                if (fileName.toLowerCase().contains(".mpd") || fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml")) {
+                    Log.d(TAG,"Found file: "+fileName);
+                    fileManager.create(routeDecode);
+                }else{
+                    Log.d(TAG, "Unrecognized fileName: "+fileName );
                 }
+            }else{
+                fileManager.write(routeDecode.toi, bytes, RouteDecode.PAYLOAD_START_POSITION, packetSize-RouteDecode.PAYLOAD_START_POSITION);
             }
         }
 
-        public FluteObject getEFDTInstance(byte[] bytes){
-             return new FluteObject("",0,0,0);
-
-        }
-
-//        public void transferDataToUIThread(int type, byte[] data, int len){
-//
-//            if (type==SLT ) {
-//                sInstance.handleTaskState(this, FOUND_SLT);
-//                mSLTData=new String (data,4,len-4);
-//            }else if (type==ST){
-//                sInstance.handleTaskState(this, FOUND_ST);
-//                mSTData=new String (data,4,len-4);
-//            }
-//        }
 
         public void reportError(){
             stopRequest=true;
@@ -322,71 +264,160 @@ public class FluteReceiver {
 
     }
 
+    private class RouteDecode{
+        private final int HEADER_LENGTH_POSITION=2;
+        private final int TSI_POSITION=8;
+        private final int TOI_POSITION=12;
+        private final int INSTANCE_ID_POSITION=17;
+        private final int HEADER_EXTENSIONS =16;
+        private final int ARRAY_POSITION=16;
+        private final int EXPIRY_POSITION=24;
+        private final int MAX_OBJECT_SIZE_POSITION=28;
+        private final int EFDT_CONTENT_START_POSITION=40;
+        public final static int PAYLOAD_START_POSITION=20;
+        private final byte[] PREAMBLE=new byte[]{(byte) 0x10, (byte) 0xA0};
+        private final byte[] EXFT_PREAMBLE=new byte[]{(byte) 0xC0, (byte) 0x10}; // mask last byte with 0xf0
+
+        public boolean valid=false;
+        public boolean efdt=false;
+        public short tsi;
+        public short toi;
+        public short instanceId;
+        public short maxObjectSize;
+        public short arrayPosition;
+        public long expiry;
+        public String fileName;
+        public int contentLength;
+        public int efdt_toi;
+
+        public RouteDecode(byte[] data, int packetSize) {
+            if (data.length < 0x20) return;
+            if (data[0] == PREAMBLE[0] && data[1] == PREAMBLE[1]) {
+
+                toi = (short) (data[TOI_POSITION] << 24 | data[TOI_POSITION + 1] << 16 | data[TOI_POSITION + 2] << 8 | data[TOI_POSITION + 3]);
+                tsi = (short) (data[TSI_POSITION] << 24 | data[TSI_POSITION + 1] << 16 + data[TSI_POSITION + 2] << 8 | data[TSI_POSITION + 3]);
+                byte length = data[HEADER_LENGTH_POSITION];
+                if (length == 4) {
+                    arrayPosition = (short) (data[ARRAY_POSITION] * 0x1000 + data[ARRAY_POSITION + 1] * 0x100 + data[ARRAY_POSITION + 2] * 0x10 + data[ARRAY_POSITION + 3]);
+                    valid = true;
+                } else if (length==9 && toi==0) {
+                    if (data[HEADER_EXTENSIONS] == EXFT_PREAMBLE[0] && (data[HEADER_EXTENSIONS+1] & 0xF0) == EXFT_PREAMBLE[1]) {
+                        instanceId=(short) ( (data[INSTANCE_ID_POSITION] & 0x0F) << 16 + data[INSTANCE_ID_POSITION + 1] << 8 + data[INSTANCE_ID_POSITION + 2]);
+                        expiry=System.currentTimeMillis()+(data[EXPIRY_POSITION] << 24 + data[EXPIRY_POSITION + 1] << 16 + data[EXPIRY_POSITION + 2] <<8 + data[EXPIRY_POSITION + 3])*1000;
+                        maxObjectSize=(short) (data[MAX_OBJECT_SIZE_POSITION] << 24 + data[MAX_OBJECT_SIZE_POSITION + 1] << 16 + data[MAX_OBJECT_SIZE_POSITION + 2] << 8 + data[MAX_OBJECT_SIZE_POSITION + 3]);
+                        String s=new String (data, EFDT_CONTENT_START_POSITION, packetSize-EFDT_CONTENT_START_POSITION);
+                        EFDT_DATA e=(new ATSCXmlParse(s, ATSCXmlParse.EFDT_INSTANCE_TAG)).EFDTParse();
+                        fileName=e.location;
+                        contentLength=e.contentlength;
+                        efdt_toi=e.toi;
+                        efdt=true;
+                    }
+                }
+            }
+        }
+    }
+
     public static class ContentFileLocations{
         public long time;
         public long expiry;
         public int start;
         public int length;
+        public int nextWritePosition;
         public ContentFileLocations(int start, int length, long time, long expiry){
             this.time=time;
             this.expiry=expiry;
             this.start=start;
             this.length=length;
+            this.nextWritePosition=0;
         }
 
     }
-    public static class FileManager{
+
+    public class FileManager{
         HashMap<String, ContentFileLocations> locations;
+        HashMap<Integer,String> toiToFileMap =new HashMap<>();
+
         int firstAvailablePosition=0;
         int maxAvailablePosition=0;
         byte[] bytes;
+
+        ReentrantLock lock = new ReentrantLock();
+
+
         public FileManager(int size){
             locations = new HashMap<>();
             bytes=new byte[size];
             maxAvailablePosition=size-1;
         }
+
         public int read(String fileName, byte[] output, int offset,  int length){
-            ContentFileLocations f=locations.get(fileName);
-            if (f!=null){
-                int bytesToFetch=Math.min(length,f.length-offset);
-                bytesToFetch=(bytesToFetch<0)?0:bytesToFetch;
-                int startPosition = f.start + offset;
-                System.arraycopy(bytes, startPosition, output, 0, bytesToFetch);
-                return bytesToFetch;
-            }
-            return 0;
-        }
-        public boolean write(String fileName, byte[] input, int offset,  int length){
-            if (locations.containsKey(fileName)) {
-                ContentFileLocations l=locations.get(fileName);
-                if (l.length<=offset+length){
-                    System.arraycopy(input,length,bytes,l.start+offset,length);
-                    return true;
+            lock.lock();
+            try {
+                ContentFileLocations f = locations.get(fileName);
+                if (f != null) {
+                    int bytesToFetch = Math.min(length, f.length - offset);
+                    bytesToFetch = (bytesToFetch < 0) ? 0 : bytesToFetch;
+                    int startPosition = f.start + offset;
+                    System.arraycopy(bytes, startPosition, output, 0, bytesToFetch);
+                    return bytesToFetch;
                 }
+                return 0;
+            }finally{
+                lock.unlock();
             }
-            return false;
+        }
+        public boolean write(int toi, byte[] input, int offset, int length){
+            lock.lock();
+            try{
+                String fileName;
+                if (toiToFileMap.containsKey(toi)) {
+
+                    fileName=toiToFileMap.get(toi).concat(".new");
+                    if (locations.containsKey(fileName)){
+                        ContentFileLocations l = locations.get(fileName);
+                        if (l.length - l.nextWritePosition>=length){
+                            System.arraycopy(input, offset, bytes, l.start + l.nextWritePosition, length);
+                            l.nextWritePosition+=length;
+                            if (l.nextWritePosition==l.length){         //Finished so copy object to not ".new"
+                                locations.put(toiToFileMap.get(toi) , locations.get(fileName));
+                                locations.remove(fileName);
+
+                            }
+                        }
+
+                    }
+                }
+                return false;
+            } finally{
+                lock.unlock();
+            }
 
         }
-        public boolean delete(String fileName) {
-            if (locations.containsKey(fileName)) {
-                locations.remove(fileName);
-                return true;
-            }
-            return false;
-        }
-        public boolean create(String fileName, int length){
-            if (locations.containsKey(fileName)){
-                locations.remove(fileName);
-            }
-            int startPosition = (firstAvailablePosition+length)>maxAvailablePosition?0:firstAvailablePosition;
-            ContentFileLocations c= new ContentFileLocations(startPosition, length, System.currentTimeMillis(), System.currentTimeMillis()+MAX_FILE_RETENTION_MS);
-            locations.put(fileName,c);
-            firstAvailablePosition+=length;
-            for ( Map.Entry<String, ContentFileLocations> key: locations.entrySet()){
-                if (locations.get(key).start< firstAvailablePosition){
-                    locations.remove(key);
+//        public boolean delete(String fileName) {
+//            if (locations.containsKey(fileName)) {
+//                locations.remove(fileName);
+//                return true;
+//            }
+//            return false;
+//        }
+        public boolean create(RouteDecode r){
+            toiToFileMap.put(r.efdt_toi, r.fileName);           /*TODO memory leak will occur eventually, clean up expired */
+
+//            if (locations.containsKey(fileName)){
+//                locations.remove(fileName);
+//            }
+            firstAvailablePosition = (firstAvailablePosition+r.contentLength)>maxAvailablePosition?0:firstAvailablePosition;
+            ContentFileLocations c= new ContentFileLocations(firstAvailablePosition, r.contentLength, System.currentTimeMillis(), System.currentTimeMillis()+MAX_FILE_RETENTION_MS);
+            firstAvailablePosition+=r.contentLength;
+            for (Map.Entry<String, ContentFileLocations> entry : locations.entrySet()) {
+                if (entry.getValue().start<firstAvailablePosition){             //overwrite an existing entry so delete it;
+
+                    Log.d (TAG, "Deleted key at buffer position: "+entry.getValue().start+"  for key value: "+entry.getKey());
+                    locations.remove(entry.getKey());
                 }
             }
+            locations.put(r.fileName.concat(".new"),c);
+
             return true;
         }
     }
