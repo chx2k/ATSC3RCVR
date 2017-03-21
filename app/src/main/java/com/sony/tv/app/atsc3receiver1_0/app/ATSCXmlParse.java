@@ -54,7 +54,7 @@ public class ATSCXmlParse {
                 if(eventType == XmlPullParser.START_DOCUMENT) {
 
                 } else if(eventType == XmlPullParser.START_TAG) {
-                    Log.d(TAG,"Start Tag"+xpp.getName());
+//                    Log.d(TAG,"Start Tag"+xpp.getName());
                     tagLevel++;
                     if (tagLevel==1) tagLevel1++;
                     if (tagLevel==2) tagLevel2[tagLevel1-1]++;
@@ -62,7 +62,7 @@ public class ATSCXmlParse {
                     if (type.equals(xpp.getName())){
                         foundStartTag=true;
                         for (int i=0; i<xpp.getAttributeCount(); i++){
-                            Log.d(TAG,"attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
+//                            Log.d(TAG,"attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
                             try {
 
                                 llsData.hashMap.get(xpp.getAttributeName(i)).invoke(llsData, xpp.getAttributeValue(i));
@@ -74,7 +74,7 @@ public class ATSCXmlParse {
                             if (xpp.getAttributeName(i).equals("ptpPrepend")) {
                                 long senderTime = Long.parseLong(xpp.getAttributeValue(i)) / 1000;
                                 long receiverTime = System.currentTimeMillis();
-                                Log.d(TAG, "sTime: " + senderTime + "rTime: " + receiverTime + "diffTime: " + (senderTime - receiverTime));
+//                                Log.d(TAG, "sTime: " + senderTime + "rTime: " + receiverTime + "diffTime: " + (senderTime - receiverTime));
                                 long diffTime=(senderTime-receiverTime);
                                 llsData.hashMap.get("diffTime").invoke(llsData, diffTime);
                             }
@@ -84,13 +84,13 @@ public class ATSCXmlParse {
                         try {
                             if (tagLevel == 1) {
                                 for (int i = 0; i < xpp.getAttributeCount(); i++) {
-                                    Log.d(TAG,"attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
+//                                    Log.d(TAG,"attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
 
                                     llsData.hashMap.get(xpp.getAttributeName(i)).invoke(llsData, tagLevel1, xpp.getAttributeValue(i));
                                 }
                             } else if (tagLevel == 2) { //*****currently allowing for XML two levels only
                                 for (int i = 0; i < xpp.getAttributeCount(); i++) {
-                                    Log.d(TAG,"attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
+//                                    Log.d(TAG,"attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
 
                                     llsData.hashMap.get(xpp.getAttributeName(i)).invoke(llsData, tagLevel1, tagLevel2[tagLevel1-1], xpp.getAttributeValue(i));
                                 }
@@ -102,16 +102,16 @@ public class ATSCXmlParse {
                         }
                     }
                 } else if(eventType == XmlPullParser.END_TAG) {
-                    Log.d(TAG,"End tag "+xpp.getName());
+//                    Log.d(TAG,"End tag "+xpp.getName());
                     tagLevel--;
-                    Log.d(TAG,"taglevel: "+ tagLevel+ "serviceItems "+ tagLevel1 + "  broadcastItems[0]:  "+ tagLevel2[0] );
+//                    Log.d(TAG,"taglevel: "+ tagLevel+ "serviceItems "+ tagLevel1 + "  broadcastItems[0]:  "+ tagLevel2[0] );
 
 
 
                 } else if(eventType == XmlPullParser.TEXT) {
                     if (!
                             xpp.getText().trim().equals("")) {
-                        Log.d(TAG, "Text " + xpp.getText());
+//                        Log.d(TAG, "Text " + xpp.getText());
                     }
                 }else{
 

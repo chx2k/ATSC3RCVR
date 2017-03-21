@@ -114,6 +114,7 @@ public class MainActivity extends Activity {
 //                if (i==0) {port=":4005";}else {port=":4006";}
 //                String uriString="udp://"+
 //                        (mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress.concat(port));
+                stopLLSReceiver();
                 String uriString="udp://239.255.8.1:4005";
                 Log.d(TAG,"Opening: "+uriString);
                 Uri uri=Uri.parse(uriString);

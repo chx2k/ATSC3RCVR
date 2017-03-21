@@ -14,7 +14,7 @@ public class EFDT_DATA {
     private final String TSI="TSI";
     private final String IDREF="IDRef";
     private final String EXPIRES="Expires";
-    private final String FEC_ENCODING_ID="FEC-OTI-Encoding-ID";
+    private final String FEC_ENCODING_ID="FEC-OTI-FEC-Encoding-ID";
     private final String FEC_MAX_BLOCK_LENGTH="FEC-OTI-Maximum-Source-Block-Length";
     private final String FEC_SYMBOL_BLOCK_LENGTH="FEC-OTI-Encoding-Symbol-Length";
     private final String TOI="TOI";
