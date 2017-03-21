@@ -42,7 +42,7 @@ public class FluteReceiver {
     private static final int MAX_FILE_RETENTION_MS=10000;
 
 
-    private FileManager signalingFiles=new FileManager(MAX_SIGNALING_BUFFERSIZE, SIGNALLING);
+    private  FileManager signalingFiles=new FileManager(MAX_SIGNALING_BUFFERSIZE, SIGNALLING);
     private FileManager mVideoPacketData=new FileManager(MAX_VIDEO_BUFFERSIZE, VIDEO_CONTENT);
     private FileManager mAudioPacketData=new FileManager(MAX_AUDIO_BUFFERSIZE, AUDIO_CONTENT);
     private FluteTaskManager mSignalingFluteTaskManager;
@@ -444,24 +444,26 @@ public class FluteReceiver {
             int toi=r.toi; int tsi=r.tsi;
             lock.lock();
             try{
-                if (signaling_TOI_FileName_Map.containsKey(toi) && mapSignalingLocations.containsKey(signaling_TOI_FileName_Map.get(toi).concat(".new"))){
-                    ContentFileLocation l=mapSignalingLocations.get(signaling_TOI_FileName_Map.get(toi).concat(".new"));
+                if (signaling_TOI_FileName_Map.containsKey(toi) && mapSignalingLocations.containsKey(signaling_TOI_FileName_Map.get(toi))){
+                    ContentFileLocation l=mapSignalingLocations.get(signaling_TOI_FileName_Map.get(toi));
                     if (length<=(l.contentLength - l.nextWritePosition)){
                         System.arraycopy(input, offset, storage, l.start + l.nextWritePosition, length);
                         l.nextWritePosition+=length;
                         if (l.nextWritePosition==l.contentLength){
+
+
+                            String fileName=l.fileName.substring(0,l.fileName.length()-4);    //Finished so copy object to not ".new"
                             Iterator<Map.Entry<Integer, String>> it=signaling_TOI_FileName_Map.entrySet().iterator();
                             while (it.hasNext()){
                                 Map.Entry<Integer, String> entry=it.next();
-                                if (entry.getValue().equals(l.fileName)){
+                                if (entry.getValue().equals(fileName)){
                                     it.remove();
                                 }
                             }
                             mapSignalingLocations.remove(l.fileName);
-                            String fileName=l.fileName.substring(0,l.fileName.length()-4);    //Finished so copy object to not ".new"
                             mapSignalingLocations.put(fileName, l);
-
-                            signaling_TOI_FileName_Map.put(toi, l.fileName);
+                            signaling_TOI_FileName_Map.remove(toi);
+                            signaling_TOI_FileName_Map.put(toi, fileName);
 
                         }
                     }else {
@@ -514,7 +516,7 @@ public class FluteReceiver {
                 }
 
                 mapSignalingLocations.put(c.fileName, c);
-                signaling_TOI_FileName_Map.put(r.efdt_toi,r.fileName);
+                signaling_TOI_FileName_Map.put(r.efdt_toi,c.fileName);
 
                 firstAvailablePosition += r.contentLength;
 
