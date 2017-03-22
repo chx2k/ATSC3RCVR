@@ -16,7 +16,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Created by xhamc on 3/21/17.
  */
 
-public class FileManager {
+public class FluteFileManager {
     //        HashMap<String, ContentFileLocation> mapContentLocations;
     private static final String TAG="FileManager";
     private static final int MAX_SIGNALING_BUFFERSIZE=10000;
@@ -33,10 +33,8 @@ public class FileManager {
     private HashMap<Integer,String> map_TOI_FileNameAud = new HashMap<>();
     private HashMap<Integer,String> map_TOI_FileNameVid = new HashMap<>();
     private ArrayList<HashMap<Integer,String>> array_MapTOI_FileName =new ArrayList<>();
-    private HashMap<Integer, Short> mapGetTSIFromBufferNumber=new HashMap<>();             //retrieve the relevant FileMAnager from the TSI value
-    private HashMap<Short, Integer> mapGetBufferNumberFromTSI=new HashMap<>();             //retrieve the relevant FileMAnager from the TSI value
-
-
+    private HashMap<Integer, Short> mapGetTSIFromBufferNumber=new HashMap<>();             //retrieve the relevant FileManager from the TSI value
+    private HashMap<Short, Integer> mapGetBufferNumberFromTSI=new HashMap<>();             //retrieve the relevant FileManager from the TSI value
 
     private byte[] signalingStorage=new byte[MAX_SIGNALING_BUFFERSIZE];
     private byte[] videoStorage=new byte[MAX_VIDEO_BUFFERSIZE];
@@ -44,12 +42,13 @@ public class FileManager {
 
     private ArrayList<byte[]> storage=new ArrayList<>();
     private ReentrantLock lock = new ReentrantLock();
+    private byte[] patchedMPD;
     private int[] firstAvailablePosition={0,0,0};
     private int[] maxAvailablePosition={MAX_SIGNALING_BUFFERSIZE-1,  MAX_VIDEO_BUFFERSIZE-1, MAX_AUDIO_BUFFERSIZE-1,};
 
-    private static FileManager sInstance=new FileManager();
+    private static FluteFileManager sInstance=new FluteFileManager();
 
-    private FileManager(){
+    private FluteFileManager(){
         arrayMapFileLocations.add(mapFileLocationsSig);
         arrayMapFileLocations.add(mapFileLocationsVid);
         arrayMapFileLocations.add(mapFileLocationsAud);
@@ -61,7 +60,7 @@ public class FileManager {
         mapGetTSIFromBufferNumber.put(0,(short) 0);
         mapGetTSIFromBufferNumber.put(1,(short) 1);
         mapGetTSIFromBufferNumber.put(2,(short) 2);
-        mapGetBufferNumberFromTSI.put((short) 0,0);
+        mapGetBufferNumberFromTSI.put((short) 0, 0);
         mapGetBufferNumberFromTSI.put((short) 1, 1);
         mapGetBufferNumberFromTSI.put((short) 2, 2);
 
@@ -71,38 +70,71 @@ public class FileManager {
 
     }
 
-    public static FileManager getInstance(){ return sInstance; }
+    public static FluteFileManager getInstance(){ return sInstance; }
 
-    private byte[] readByteArray;
-    private int readStart;
-    private int readPosition;
-    private int readLength;
+    private static final int MPD=0;
+    private static final int SLS=1;
+    private static final int AV=2;
+
+    private byte[] mMPDbytes;
+
+    private HashMap<Integer, byte[]> threadBufferPointer=new HashMap<>();
+
+    private int[] readStart=new int[3];
+    private int[] readPosition=new int [3];
+    private int[] readLength=new int[3];
 
 
-    public int open(String fileName) throws IOException{
+    public int open(String fileName, int thread) throws IOException{
+        Log.d(TAG,"Opening new File: ***********"+fileName + "  at thread:  "+thread);
         lock.lock();
         try{
             short tsi; int index=0; ContentFileLocation f;
-            if (fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml") || fileName.toLowerCase().endsWith(".mpd")){
+            if (fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml") ){
+
                 f = arrayMapFileLocations.get(index).get(fileName);
-            }else {
+                if (f != null) {
+                    threadBufferPointer.put(thread, signalingStorage);
+                    readPosition[thread]=0;
+                    readStart[thread]=arrayMapFileLocations.get(index).get(fileName).start;
+                    readLength[thread]=f.contentLength;
+                    return readLength[thread];
+                } else{
+                    throw new IOException("Couldn't fine file while trying to open: "+fileName);
+                }
+            }else if (fileName.toLowerCase().endsWith(".mpd")){
+                f = arrayMapFileLocations.get(index).get(fileName);
+                if (f!=null) {
+                    String mpdData = new String(storage.get(0), f.start, f.contentLength);
+                    mMPDbytes = MPDParse(mpdData);
+                    readPosition[thread] = 0;
+                    readLength[thread] = mMPDbytes.length;
+                    readStart[thread] = 0;
+                    threadBufferPointer.put(thread, mMPDbytes);
+                    return readLength[thread];
+                }else{
+                    throw new IOException("Couldn't fine file while trying to open: "+fileName);
+                }
+            } else {
                 index=1;
                 f = arrayMapFileLocations.get(index).get(fileName);     //Test for audio filename
                 if (f==null){
                     index=2;
                     f=arrayMapFileLocations.get(index).get(fileName);  //test for Video filename
                 }
+                if (f != null) {
+                    readPosition[thread]=0;
+                    readStart[thread]=arrayMapFileLocations.get(index).get(fileName).start;
+                    readLength[thread]=f.contentLength;
+                    if (index==1) threadBufferPointer.put(thread,audioStorage);
+                    if (index==2) threadBufferPointer.put(thread,videoStorage);
+                    return readLength[thread];
+                }
+                else {
+                    throw new IOException("Couldn't fine file while trying to open: "+fileName);
+                }
             }
-            if (f != null) {
-                readByteArray=storage.get(index);
-                readPosition=0;
-                readStart=arrayMapFileLocations.get(index).get(fileName).start;
-                readLength=f.contentLength;
-                return readLength;
-            }
-            else {
-                throw new IOException("Couldn't fine file while trying to open: "+fileName);
-            }
+
 
         }finally{
 
@@ -110,28 +142,40 @@ public class FileManager {
         }
     }
 
-    public int read(byte[] output, int offset,  int length) throws IOException{
+    public int read(byte[] output, int offset,  int length, int thread) throws IOException{
         lock.lock();
         try {
-            if (null!=readByteArray && length>0){
-                readPosition+=offset;
-                int len=Math.min(length,readLength-(readPosition+offset));
-                if (len<=0) return 0;
 
-                if (length==1){
-                    output[0] =readByteArray[readStart+readPosition];
-                    readPosition++;
-                }else if (length<25){
-                    for (int i=0; i<length; i++){
-                        output[i]=readByteArray[readStart+readPosition];
-                        readPosition++;
-                    }
-                }else{
-                    System.arraycopy(readByteArray,readStart+readPosition,output,0,length);
-                    readPosition+=length;
+            if (null!=threadBufferPointer.get(thread) && length>0){
+
+//                readPosition[thread]+=offset;
+                int len=Math.min(length,readLength[thread]-readPosition[thread]);
+                if (len<=0){
+                    Log.d("TEST:","reading 0 bytes from readPosition: " + (readStart[thread]+readPosition[thread]) + "on thread  "+ thread);
+
+                    return -1;
                 }
 
-                return length;
+                if (len==1){
+                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " + (readStart[thread]+readPosition[thread]) + "on thread  "+ thread);
+
+                    output[offset] =threadBufferPointer.get(thread)[readStart[thread]+readPosition[thread]];
+                    readPosition[thread]++;
+                }else if (len<25){
+                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " + (readStart[thread]+readPosition[thread]) + "on thread  "+ thread);
+
+                    for (int i=0; i<len; i++){
+                        output[i+offset]=threadBufferPointer.get(thread)[readStart[thread]+readPosition[thread]];
+                        readPosition[thread]++;
+                    }
+                }else{
+                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " + (readStart[thread]+readPosition[thread]) + "on thread  "+ thread);
+
+                    System.arraycopy(threadBufferPointer.get(thread),readStart[thread]+readPosition[thread],output,offset,len);
+                    readPosition[thread]+=len;
+                }
+
+                return len;
             }
             throw new IOException("Attempt to read from no existent buffer or read zero bytes");
         }finally{
@@ -145,6 +189,7 @@ public class FileManager {
         try {
             short tsi; int index=0; ContentFileLocation f;
             if (fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml") || fileName.toLowerCase().endsWith(".mpd")){
+
                 f = arrayMapFileLocations.get(0).get(fileName);
             }else {
                 index=1;
@@ -204,10 +249,7 @@ public class FileManager {
                         t.put(toi, fileName);
                         Log.d(TAG, "Wrote file: "+ fileName +" of size "+ l.contentLength + " to buffer: "+index + "which is connected to TSI: " + mapGetTSIFromBufferNumber.get(index));
 
-                        if (fileName.endsWith(".mpd")){
-                            String mpdData=new String(storage.get(0),l.start,l.contentLength);
-                            MPDParse(mpdData);
-                        }
+
 
                     }
                 }else {
@@ -228,18 +270,22 @@ public class FileManager {
 //            return false;
 //        }
 
-    public String MPDParse(String mpdData ){
+    public byte[] MPDParse(String mpdData ){
 
-        String[] result=mpdData.split("(?<=availabilityStartTime=\")");
-        result[1].split("");
+        String[] result=mpdData.split("(?<=availabilityStartTime[\\s]?=[\\s]?\"[0-9\\-]{10}[\\s]?[\\s]?)");
+        String[] result2=result[2].split("[\"]+",2);
 
-        for (int i=0; i<result.length; i++) {
+//        for (int i=0; i<result.length; i++) {
+//            Log.d("TEST_REGEX", result[i]);
+//        }
+//        for (int i=0; i<result2.length; i++) {
+//            Log.d("TEST_REGEX2", result2[i]);
+//        }
 
-            Log.d("TEST_REGEX", result[i]);
 
-        }
-        return "";
-
+        String finalresult=result[0].trim().concat("T").concat(result2[0].concat("Z").concat("\"").concat(result2[1]));
+//        Log.d("TEST_REGEX",finalresult + "  with length: "+finalresult.length());
+        return finalresult.getBytes();
     }
 
     public boolean create(RouteDecode r) {
@@ -290,30 +336,30 @@ public class FileManager {
 
     public void snapshot_of_Filemanager(){
 
-        Log.d(TAG, "FileManager Array Sizes: Signalling "+ array_MapTOI_FileName.get(0).size()+ "  "+ arrayMapFileLocations.get(0).size());
-        Log.d(TAG, "FileManager Array Sizes: Video      "+ array_MapTOI_FileName.get(1).size()+ "  "+ arrayMapFileLocations.get(1).size());
-        Log.d(TAG, "FileManager Array Sizes: Audio      "+ array_MapTOI_FileName.get(2).size()+ "  "+ arrayMapFileLocations.get(2).size());
+//        Log.d(TAG, "FileManager Array Sizes: Signalling "+ array_MapTOI_FileName.get(0).size()+ "  "+ arrayMapFileLocations.get(0).size());
+//        Log.d(TAG, "FileManager Array Sizes: Video      "+ array_MapTOI_FileName.get(1).size()+ "  "+ arrayMapFileLocations.get(1).size());
+//        Log.d(TAG, "FileManager Array Sizes: Audio      "+ array_MapTOI_FileName.get(2).size()+ "  "+ arrayMapFileLocations.get(2).size());
 
 
 //
 //        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(0).entrySet() ){
 //            Log.d(TAG,"Signaling: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(0).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
 //        }
-        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(0).entrySet() ){
-            Log.v(TAG,"Signaling: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength+"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
-        }
-//        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(1).entrySet() ){
-//            Log.d(TAG,"Video: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(1).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
+//        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(0).entrySet() ){
+//            Log.v(TAG,"Signaling: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength+"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
 //        }
-        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(1).entrySet() ){
-            Log.v(TAG,"Video: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength+"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
-        }
-//        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(2).entrySet() ){
-//            Log.d(TAG,"Audio: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(2).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
+////        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(1).entrySet() ){
+////            Log.d(TAG,"Video: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(1).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
+////        }
+//        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(1).entrySet() ){
+//            Log.v(TAG,"Video: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength+"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
 //        }
-        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(2).entrySet() ){
-            Log.v(TAG,"Audio: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength +"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
-        }
+////        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(2).entrySet() ){
+////            Log.d(TAG,"Audio: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(2).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
+////        }
+//        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(2).entrySet() ){
+//            Log.v(TAG,"Audio: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength +"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
+//        }
     }
 }
 

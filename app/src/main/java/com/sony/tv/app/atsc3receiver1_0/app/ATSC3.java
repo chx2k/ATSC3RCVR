@@ -32,7 +32,7 @@ public class ATSC3 extends Application {
     public DataSource.Factory buildDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
         FluteReceiver sInstance=FluteReceiver.getInstance();
         sInstance.setListener(bandwidthMeter);
-        return new FluteReceiverDataSourceFactory();
+        return new FluteDataSourceFactory();
     }
 
 
