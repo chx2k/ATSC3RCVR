@@ -34,7 +34,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-import com.sony.tv.app.atsc3receiver1_0.app.FluteDataSource;
+import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
 import java.io.IOException;
@@ -168,7 +168,7 @@ public class SampleChooserFragment extends Fragment {
             String port = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort;
             String name = "MultiRateDynamic.mpd"; /* TODO detect automatically from USBD*/
             String title = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).shortServiceName;
-            ATSCSample s = new ATSCSample(title, null, null, null, false, url, port, name);
+            ATSCSample s = new ATSCSample(title, null, null, null, false, "239.255.8.1", "3000", "ManifestUpdate_Dynamic.mpd");
             g.samples.add(s);
         }
         groups.add(0,g);
@@ -197,7 +197,7 @@ public class SampleChooserFragment extends Fragment {
               public void onGroupExpand(int groupPosition){
                   if (groupPosition==0){
                       Log.d(TAG,"Started Flute Signalling receivers");
-                      ((MainActivity) activity).startFluteSession(FluteDataSource.SIGNALLING);
+                      ((MainActivity) activity).startFluteSession(FluteReceiver.SIGNALLING);
                   }
 
               }
@@ -208,7 +208,7 @@ public class SampleChooserFragment extends Fragment {
               public void onGroupCollapse(int groupPosition){
                   if (groupPosition==0){
                       Log.d(TAG,"Stopped Flute Signalling receivers");
-                      ((MainActivity) activity).stopFluteSession(FluteDataSource.SIGNALLING);
+                      ((MainActivity) activity).stopFluteSession(FluteReceiver.SIGNALLING);
                   }
 
               }
@@ -234,7 +234,7 @@ public class SampleChooserFragment extends Fragment {
         public ATSCSample(String name, UUID drmSchemeUuid, String drmLicenseUrl,
                           String[] drmKeyRequestProperties, boolean preferExtensionDecoders, String uri, String port, String fileName) {
             super(name, drmSchemeUuid, drmLicenseUrl, drmKeyRequestProperties, preferExtensionDecoders);
-            this.uri = "file:///"+port+"/"+uri+"/"+fileName;
+            this.uri = "udp://"+uri+":"+port+"/"+fileName;
     //            this.extension = extension;
         }
 

@@ -13,15 +13,14 @@ import java.util.ArrayList;
  * Created by xhamc on 3/16/17.
  */
 
-public class FluteDataSource implements DataSource{
-    public static final int SIGNALLING=0;
-    public static final int AUDIO_CONTENT=1;
-    public static final int VIDEO_CONTENT=2;
+public class FluteDataSource implements DataSource {
 
 //    public Receiver Receiver;
 
     @Override
     public long open(DataSpec dataSpec) throws IOException {
+
+
         return 0;
     }
 

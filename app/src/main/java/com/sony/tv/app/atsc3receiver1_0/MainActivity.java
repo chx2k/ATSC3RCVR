@@ -105,6 +105,14 @@ public class MainActivity extends Activity {
         }
     }
 
+    public void callBackUSBDFound(String manifest){
+
+    }
+
+    public void callBackSTSIDFound(int audioTSI, int videoTSI){
+
+    }
+
     public void startFluteSession(int type){
 //        if (mLLSReceiver.slt!=null){
 //            for (int i=0; i<mLLSReceiver.slt.mSLTData.mServices.size(); i++){
@@ -115,11 +123,17 @@ public class MainActivity extends Activity {
 //                String uriString="udp://"+
 //                        (mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress.concat(port));
                 stopLLSReceiver();
-                String uriString="udp://239.255.8.1:4005";
+//                String uriString="udp://239.255.8.1:4005";
+                String uriString="udp://".concat(mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationIpAddress).concat(":").concat(
+                        mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationUdpPort);
+
+
+//                Uri uri=Uri.parse((mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationIpAddress + ":" +
+
                 Log.d(TAG,"Opening: "+uriString);
                 Uri uri=Uri.parse(uriString);
                 DataSpec d=new DataSpec(uri);
-                mFluteReceiver.start(type,d);
+                mFluteReceiver.start(d);
 //                Log.d(TAG, "Started Flute Signalling receiver: "+i);
 //            }
 //        }

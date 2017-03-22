@@ -1,5 +1,9 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
+import android.net.Uri;
+
+import com.google.android.exoplayer2.upstream.DataSpec;
+
 import java.lang.reflect.Method;
 import java.util.HashMap;
 
@@ -69,7 +73,9 @@ public class EFDT_DATA {
             returnValue=true;
 
         }else if (key.equals(CONTENT_LOCATION)){
-            this.location=value;
+            Uri uri= Uri.parse(value);
+            DataSpec d= new DataSpec(uri);
+            this.location=d.uri.getPath();
             returnValue=true;
 
         }else if (key.equals(CONTENT_LENGTH)){
