@@ -19,9 +19,9 @@ import java.util.concurrent.locks.ReentrantLock;
 public class FluteFileManager {
     //        HashMap<String, ContentFileLocation> mapContentLocations;
     private static final String TAG="FileManager";
-    private static final int MAX_SIGNALING_BUFFERSIZE=10000;
-    private static final int MAX_VIDEO_BUFFERSIZE=10000000;
-    private static final int MAX_AUDIO_BUFFERSIZE=1000000;
+    public static final int MAX_SIGNALING_BUFFERSIZE=10000;
+    public static final int MAX_VIDEO_BUFFERSIZE=10000000;
+    public static final int MAX_AUDIO_BUFFERSIZE=1000000;
     private static final int MAX_FILE_RETENTION_MS=10000;
 
     private HashMap<String, ContentFileLocation> mapFileLocationsSig=new HashMap<>();
@@ -40,6 +40,9 @@ public class FluteFileManager {
     private byte[] videoStorage=new byte[MAX_VIDEO_BUFFERSIZE];
     private byte[] audioStorage=new byte[MAX_AUDIO_BUFFERSIZE];
 
+
+
+
     private ArrayList<byte[]> storage=new ArrayList<>();
     private ReentrantLock lock = new ReentrantLock();
     private byte[] patchedMPD;
@@ -49,12 +52,12 @@ public class FluteFileManager {
     private static FluteFileManager sInstance=new FluteFileManager();
 
     private FluteFileManager(){
-        arrayMapFileLocations.add(mapFileLocationsSig);
-        arrayMapFileLocations.add(mapFileLocationsVid);
-        arrayMapFileLocations.add(mapFileLocationsAud);
-        array_MapTOI_FileName.add(map_TOI_FileNameSig);
-        array_MapTOI_FileName.add(map_TOI_FileNameVid);
-        array_MapTOI_FileName.add(map_TOI_FileNameAud);
+        arrayMapFileLocations.add(0,mapFileLocationsSig);
+        arrayMapFileLocations.add(1,mapFileLocationsVid);
+        arrayMapFileLocations.add(2,mapFileLocationsAud);
+        array_MapTOI_FileName.add(0,map_TOI_FileNameSig);
+        array_MapTOI_FileName.add(1,map_TOI_FileNameVid);
+        array_MapTOI_FileName.add(2,map_TOI_FileNameAud);
 
             /*default mapping of TSI to buffer positions*/
         mapGetTSIFromBufferNumber.put(0,(short) 0);
@@ -64,9 +67,9 @@ public class FluteFileManager {
         mapGetBufferNumberFromTSI.put((short) 1, 1);
         mapGetBufferNumberFromTSI.put((short) 2, 2);
 
-        storage.add(signalingStorage);
-        storage.add(videoStorage);
-        storage.add(audioStorage);
+        storage.add(0,signalingStorage);
+        storage.add(1,videoStorage);
+        storage.add(2,audioStorage);
 
     }
 
@@ -80,61 +83,37 @@ public class FluteFileManager {
 
     private HashMap<Integer, byte[]> threadBufferPointer=new HashMap<>();
 
-    private int[] readStart=new int[3];
-    private int[] readPosition=new int [3];
-    private int[] readLength=new int[3];
+//    private static int[] readStart=new int[3];
+//    private static int[] readPosition=new int [3];
+//    private static int[] readLength=new int[3];
 
 
-    public int open(String fileName, int thread) throws IOException{
-        Log.d(TAG,"Opening new File: ***********"+fileName + "  at thread:  "+thread);
+    public int open(String fileName, int bytesToSkip, byte[] target, int maxBufferSize) throws IOException{
+        Log.d(TAG,"Opening new File: ***********"+fileName);
         lock.lock();
         try{
-            short tsi; int index=0; ContentFileLocation f;
-            if (fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml") ){
+            int index=0; ContentFileLocation f; int contentLength;
+            do {
+                f = arrayMapFileLocations.get(index).get(fileName);
+                index++;
+            }while (index < arrayMapFileLocations.size() && f==null) ;
 
-                f = arrayMapFileLocations.get(index).get(fileName);
-                if (f != null) {
-                    threadBufferPointer.put(thread, signalingStorage);
-                    readPosition[thread]=0;
-                    readStart[thread]=arrayMapFileLocations.get(index).get(fileName).start;
-                    readLength[thread]=f.contentLength;
-                    return readLength[thread];
-                } else{
-                    throw new IOException("Couldn't fine file while trying to open: "+fileName);
-                }
-            }else if (fileName.toLowerCase().endsWith(".mpd")){
-                f = arrayMapFileLocations.get(index).get(fileName);
-                if (f!=null) {
-                    String mpdData = new String(storage.get(0), f.start, f.contentLength);
-                    mMPDbytes = MPDParse(mpdData);
-                    readPosition[thread] = 0;
-                    readLength[thread] = mMPDbytes.length;
-                    readStart[thread] = 0;
-                    threadBufferPointer.put(thread, mMPDbytes);
-                    return readLength[thread];
-                }else{
-                    throw new IOException("Couldn't fine file while trying to open: "+fileName);
-                }
-            } else {
-                index=1;
-                f = arrayMapFileLocations.get(index).get(fileName);     //Test for audio filename
-                if (f==null){
-                    index=2;
-                    f=arrayMapFileLocations.get(index).get(fileName);  //test for Video filename
-                }
-                if (f != null) {
-                    readPosition[thread]=0;
-                    readStart[thread]=arrayMapFileLocations.get(index).get(fileName).start;
-                    readLength[thread]=f.contentLength;
-                    if (index==1) threadBufferPointer.put(thread,audioStorage);
-                    if (index==2) threadBufferPointer.put(thread,videoStorage);
-                    return readLength[thread];
-                }
-                else {
-                    throw new IOException("Couldn't fine file while trying to open: "+fileName);
-                }
+            if (f != null) {
+                index--;
+//                if (fileName.toLowerCase().endsWith(".mpd")) {
+//                    String mpdData = new String(storage.get(0), f.start, f.contentLength);
+//                    mMPDbytes = MPDParse(mpdData);
+//                    contentLength=mMPDbytes.length-bytesToSkip;
+//                    System.arraycopy(mMPDbytes,bytesToSkip,target,0,contentLength);
+//
+//                }else {
+                    contentLength=f.contentLength-bytesToSkip;
+                    System.arraycopy(storage.get(index),bytesToSkip,target,0,contentLength);
+//                }
+                return contentLength;
+            } else{
+                throw new IOException("Couldn't fine file while trying to open: "+fileName);
             }
-
 
         }finally{
 
@@ -142,46 +121,53 @@ public class FluteFileManager {
         }
     }
 
-    public int read(byte[] output, int offset,  int length, int thread) throws IOException{
-        lock.lock();
-        try {
-
-            if (null!=threadBufferPointer.get(thread) && length>0){
-
-//                readPosition[thread]+=offset;
-                int len=Math.min(length,readLength[thread]-readPosition[thread]);
-                if (len<=0){
-                    Log.d("TEST:","reading 0 bytes from readPosition: " + (readStart[thread]+readPosition[thread]) + "on thread  "+ thread);
-
-                    return -1;
-                }
-
-                if (len==1){
-                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " + (readStart[thread]+readPosition[thread]) + "on thread  "+ thread);
-
-                    output[offset] =threadBufferPointer.get(thread)[readStart[thread]+readPosition[thread]];
-                    readPosition[thread]++;
-                }else if (len<25){
-                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " + (readStart[thread]+readPosition[thread]) + "on thread  "+ thread);
-
-                    for (int i=0; i<len; i++){
-                        output[i+offset]=threadBufferPointer.get(thread)[readStart[thread]+readPosition[thread]];
-                        readPosition[thread]++;
-                    }
-                }else{
-                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " + (readStart[thread]+readPosition[thread]) + "on thread  "+ thread);
-
-                    System.arraycopy(threadBufferPointer.get(thread),readStart[thread]+readPosition[thread],output,offset,len);
-                    readPosition[thread]+=len;
-                }
-
-                return len;
-            }
-            throw new IOException("Attempt to read from no existent buffer or read zero bytes");
-        }finally{
-            lock.unlock();
-        }
-    }
+//    public int read(byte[] output, int offset,  int length, int thread) throws IOException, ArrayIndexOutOfBoundsException{
+//        lock.lock();
+//        try {
+//
+//            if (null!=threadBufferPointer.get(thread) && length>0){
+//
+////                readPosition[thread]+=offset;
+//                int len=Math.min(length,readLength[thread]-readPosition[thread]);
+//                int mReadPosition=readStart[thread]+readPosition[thread];
+//                int mReadMax=mReadPosition + len;
+//                if ( mReadMax > threadBufferPointer.get(thread).length) {
+//                    String error="Array overwrite to buffer on thread "+thread+" position: "+mReadPosition+" length: " + len + " array size: "+threadBufferPointer.get(thread).length;
+//                    throw new ArrayIndexOutOfBoundsException ( error );
+//                }
+//
+//                if (len<=0){
+//                    Log.d("TEST:","reading 0 bytes from readPosition: " + mReadPosition + "on thread  "+ thread);
+//
+//                    return -1;
+//                }
+//
+//                if (len==1){
+//                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " + mReadPosition + "on thread  "+ thread);
+//
+//                    output[offset] =threadBufferPointer.get(thread)[mReadPosition];
+//                    readPosition[thread]++;
+//                }else if (len<25){
+//                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " +mReadPosition + "on thread  "+ thread);
+//
+//                    for (int i=0; i<len; i++){
+//                        output[i+offset]=threadBufferPointer.get(thread)[mReadPosition];
+//                        readPosition[thread]++;
+//                    }
+//                }else{
+//                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " + mReadPosition + "on thread  "+ thread);
+//
+//                    System.arraycopy(threadBufferPointer.get(thread),readStart[thread]+readPosition[thread],output,offset,len);
+//                    readPosition[thread]+=len;
+//                }
+//
+//                return len;
+//            }
+//            throw new IOException("Attempt to read from no existent buffer or read zero bytes");
+//        }finally{
+//            lock.unlock();
+//        }
+//    }
 
 
     public int read(String fileName, byte[] output, int offset,  int length){

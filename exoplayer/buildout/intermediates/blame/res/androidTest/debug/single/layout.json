@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "/home/xhamc/gitProjects/ExoPlayer/library/buildout/intermediates/res/merged/androidTest/debug/layout/exo_playback_control_view.xml",
+        "source": "/home/xhamc/gitProjects/ExoPlayer/library/buildout/intermediates/bundles/debug/res/layout/exo_playback_control_view.xml"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ExoPlayer/library/buildout/intermediates/res/merged/androidTest/debug/layout/exo_simple_player_view.xml",
+        "source": "/home/xhamc/gitProjects/ExoPlayer/library/buildout/intermediates/bundles/debug/res/layout/exo_simple_player_view.xml"
+    }
+]

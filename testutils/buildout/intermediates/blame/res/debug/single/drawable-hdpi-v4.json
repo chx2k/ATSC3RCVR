@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/res/merged/debug/drawable-hdpi-v4/exo_controls_play.png",
+        "source": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/exploded-aar/ExoPlayer/library/unspecified/res/drawable-hdpi-v4/exo_controls_play.png"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/res/merged/debug/drawable-hdpi-v4/exo_controls_rewind.png",
+        "source": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/exploded-aar/ExoPlayer/library/unspecified/res/drawable-hdpi-v4/exo_controls_rewind.png"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/res/merged/debug/drawable-hdpi-v4/exo_controls_previous.png",
+        "source": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/exploded-aar/ExoPlayer/library/unspecified/res/drawable-hdpi-v4/exo_controls_previous.png"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/res/merged/debug/drawable-hdpi-v4/exo_controls_next.png",
+        "source": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/exploded-aar/ExoPlayer/library/unspecified/res/drawable-hdpi-v4/exo_controls_next.png"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/res/merged/debug/drawable-hdpi-v4/exo_controls_pause.png",
+        "source": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/exploded-aar/ExoPlayer/library/unspecified/res/drawable-hdpi-v4/exo_controls_pause.png"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/res/merged/debug/drawable-hdpi-v4/exo_controls_fastforward.png",
+        "source": "/home/xhamc/gitProjects/ExoPlayer/testutils/buildout/intermediates/exploded-aar/ExoPlayer/library/unspecified/res/drawable-hdpi-v4/exo_controls_fastforward.png"
+    }
+]

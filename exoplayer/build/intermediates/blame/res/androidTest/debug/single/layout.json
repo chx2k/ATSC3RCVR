@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/res/merged/androidTest/debug/layout/exo_simple_player_view.xml",
+        "source": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/bundles/debug/res/layout/exo_simple_player_view.xml"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/res/merged/androidTest/debug/layout/exo_playback_control_view.xml",
+        "source": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/bundles/debug/res/layout/exo_playback_control_view.xml"
+    }
+]

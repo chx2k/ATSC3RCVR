@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/res/merged/androidTest/debug/drawable-anydpi-v21/exo_controls_next.xml",
+        "source": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/bundles/debug/res/drawable-anydpi-v21/exo_controls_next.xml"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/res/merged/androidTest/debug/drawable-anydpi-v21/exo_controls_previous.xml",
+        "source": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/bundles/debug/res/drawable-anydpi-v21/exo_controls_previous.xml"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/res/merged/androidTest/debug/drawable-anydpi-v21/exo_controls_fastforward.xml",
+        "source": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/bundles/debug/res/drawable-anydpi-v21/exo_controls_fastforward.xml"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/res/merged/androidTest/debug/drawable-anydpi-v21/exo_controls_play.xml",
+        "source": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/bundles/debug/res/drawable-anydpi-v21/exo_controls_play.xml"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/res/merged/androidTest/debug/drawable-anydpi-v21/exo_controls_rewind.xml",
+        "source": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/bundles/debug/res/drawable-anydpi-v21/exo_controls_rewind.xml"
+    },
+    {
+        "merged": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/res/merged/androidTest/debug/drawable-anydpi-v21/exo_controls_pause.xml",
+        "source": "/home/xhamc/gitProjects/ATSC3Receiver1_0/exoplayer/build/intermediates/bundles/debug/res/drawable-anydpi-v21/exo_controls_pause.xml"
+    }
+]
