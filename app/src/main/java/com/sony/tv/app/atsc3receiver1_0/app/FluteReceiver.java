@@ -39,7 +39,7 @@ public class FluteReceiver  {
     private HashMap<String, Integer> mapFileContainsToTSI = new HashMap<>();                //retrieve the relevant TSI based on the name of the file
 
     public FluteTaskManager mFluteTaskManager;
-    private FluteFileManager mFileManager;
+//    private FluteFileManager mFileManager;
     private FluteTaskManager mAudioContentFluteTaskManager;
     private FluteTaskManager mVideoContentFluteTaskManager;
 
@@ -105,7 +105,7 @@ public class FluteReceiver  {
                 }
             }
         };
-        this.mFileManager=FluteFileManager.getInstance();
+//        this.mFileManager=FluteFileManager.getInstance();
     }
 
     public void setListener(TransferListener<? super DataSource> listener ){

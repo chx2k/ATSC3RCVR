@@ -53,7 +53,8 @@ public class DashManifest {
     this.duration = duration;
     this.minBufferTime = minBufferTime;
     this.dynamic = dynamic;
-    this.minUpdatePeriod = minUpdatePeriod;
+    //this.minUpdatePeriod = minUpdatePeriod;
+    this.minUpdatePeriod=1000;
     this.timeShiftBufferDepth = timeShiftBufferDepth;
     this.suggestedPresentationDelay = suggestedPresentationDelay;
     this.utcTiming = utcTiming;

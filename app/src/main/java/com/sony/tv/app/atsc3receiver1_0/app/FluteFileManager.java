@@ -2,6 +2,9 @@ package com.sony.tv.app.atsc3receiver1_0.app;
 
 import android.util.Log;
 
+import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.upstream.DataSpec;
+
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -55,6 +58,7 @@ public class FluteFileManager {
     private int[] maxAvailablePosition={MAX_SIGNALING_BUFFERSIZE-1,  MAX_VIDEO_BUFFERSIZE-1, MAX_AUDIO_BUFFERSIZE-1,};
 
     private static FluteFileManager sInstance=new FluteFileManager();
+    private FluteTaskManager mFluteTaskManager;
 
     private FluteFileManager(){
         arrayMapFileLocations.add(0,mapFileLocationsSig);
@@ -76,6 +80,7 @@ public class FluteFileManager {
         storage.add(1,videoStorage);
         storage.add(2,audioStorage);
 
+
     }
 
     public static FluteFileManager getInstance(){ return sInstance; }
@@ -88,57 +93,146 @@ public class FluteFileManager {
 
     private HashMap<Integer, byte[]> threadBufferPointer=new HashMap<>();
 
-//    private static int[] readStart=new int[3];
-//    private static int[] readPosition=new int [3];
-//    private static int[] readLength=new int[3];
+    private int[] bytesToRead=new int[100];
+    private int[] bytesRead=new int [100];
+    private int[] bytesToSkip=new int[100];
+    private int[] byteOffset=new int[100];
+    private class FileBuffer{
+        public byte[] buffer;
+        public int contentLength;
+        public int startOfContent;
+        public FileBuffer(byte[] buffer, int contentLength, int startOfContent){
+            this.buffer=buffer; this.contentLength=contentLength; this.startOfContent=startOfContent;
+        }
+    }
+    private FileBuffer[] fileBuffer=new FileBuffer[100];
 
 
-    public int open(String fileName, int bytesToSkip, byte[] target, int maxBufferSize) throws IOException{
-        Log.d(TAG,"Opening new File: ***********"+fileName);
+
+
+
+    public long open(DataSpec dataSpec, int thread) throws IOException {
         lock.lock();
+        mFluteTaskManager=FluteReceiver.getInstance().mFluteTaskManager;
+
         try{
-            int index=0; ContentFileLocation f; int contentLength=0;
-            do {
-                f = arrayMapFileLocations.get(index).get(fileName);
-                index++;
-            }while (index < arrayMapFileLocations.size() && f==null) ;
 
-            if (f != null) {
-                index--;
-                if (fileName.toLowerCase().endsWith(".mpd")) {
-                    String mpdData = new String(storage.get(0), f.start, f.contentLength);
-                    //mMPDbytes = MPDParse(mpdData);
-                    Date d=getAvailabilityStartTime( mpdData);
-                    mMPDbytes = MPDParse(mpdData);
+            bytesToRead[thread]=0;
+            bytesToSkip[thread]=0;
+            bytesRead[thread]=0;
+            byteOffset[thread]=0;
 
-                    contentLength=mMPDbytes.length-bytesToSkip;
-                    assert(f.contentLength<maxBufferSize);
-
-                    System.arraycopy(mMPDbytes,bytesToSkip,target,0,contentLength);
-
-                    Log.d(TAG, "Copying file to local buffer, skipping: "+ bytesToSkip+"  with content length: "+f.contentLength);
-
-
-                }else {
-                    assert(f.contentLength<maxBufferSize);
-                    Log.d(TAG, "Copying file to local buffer, skipping: "+ bytesToSkip+"  with content length: "+f.contentLength);
-
-                    contentLength=f.contentLength-bytesToSkip;
-                    System.arraycopy(storage.get(index),f.start+bytesToSkip,target,0,contentLength);
-
+            Log.d("TAG", "ExoPlayer trying to open :"+dataSpec.uri);
+            String host = dataSpec.uri.getHost();
+            int port = dataSpec.uri.getPort();
+            if ( mFluteTaskManager.dataSpec.uri.getHost().equals(host) && mFluteTaskManager.dataSpec.uri.getPort()==port){
+                String path=dataSpec.uri.getPath();
+                bytesToSkip[thread]=(int) dataSpec.position;
+                FileBuffer fb = openInternal(path);
+                if (fb==null){
+                    Log.d(TAG, "Couldn't fine file while trying to open: "+path);
+                    return -1;
+//                    throw new IOException;
+                }else{
+                    fileBuffer[thread]=fb;
+                    bytesToRead[thread]=fb.contentLength-bytesToSkip[thread];
+                    byteOffset[thread]=fb.startOfContent+bytesToSkip[thread];
                 }
-                return contentLength;
+                return (bytesToRead[thread]-bytesToSkip[thread]);
+
 
             } else{
-                Log.d(TAG,"Couldn't fine file while trying to open: "+fileName);
-                return -1;
+
+                throw new IOException("Attempted to open a url that is not active: ".concat(dataSpec.toString()));
             }
 
         }finally{
 
             lock.unlock();
         }
+
     }
+
+    public int read(byte[] buffer, int offset, int readLength, int thread) throws IOException {
+        lock.lock();
+        try {
+            if (readLength == 0) {
+                return 0;
+            }
+            if (bytesToRead[thread] != C.LENGTH_UNSET) {
+                long bytesRemaining = bytesToRead[thread] - bytesRead[thread];
+                if (bytesRemaining == 0) {
+                    return C.RESULT_END_OF_INPUT;
+                }
+                readLength = (int) Math.min(readLength, bytesRemaining);
+            } else {
+                return C.LENGTH_UNSET;
+            }
+            if (readLength < 0) {
+                Log.d(TAG, "BytesToRead: " + bytesToRead + "  bytesRead: " + bytesRead + " readLength:  " + readLength);
+                throw new IOException("Read Length is less than 0");
+
+            }
+            if (byteOffset[thread] + bytesRead[thread] + readLength < MAX_VIDEO_BUFFERSIZE) {
+                System.arraycopy(fileBuffer[thread].buffer, byteOffset[thread] + bytesRead[thread], buffer, offset, readLength);
+                bytesRead[thread] += readLength;
+            } else {
+                Log.e(TAG, "Error trying to read from local buffer, overrun: bytesRead: " + bytesRead[thread] + "  byteOffset: " + byteOffset[thread] + "  length:  " + readLength);
+            }
+            //            listenertener.onBytesTransferred(this, read);
+            //        }
+            return readLength;
+        }finally{
+            lock.unlock();
+        }
+
+
+    }
+
+    private FileBuffer openInternal(String fileName){
+        Log.d(TAG,"Opening new File: ***********"+fileName);
+
+        int index=0; ContentFileLocation f; int contentLength=0;
+        do {
+            f = arrayMapFileLocations.get(index).get(fileName);
+            index++;
+        }while (index < arrayMapFileLocations.size() && f==null) ;
+
+        if (f != null) {
+            index--;
+            if (fileName.toLowerCase().endsWith(".mpd")) {
+                String mpdData = new String(storage.get(0), f.start, f.contentLength);
+                //mMPDbytes = MPDParse(mpdData);
+                Date d=getAvailabilityStartTime( mpdData);
+                mMPDbytes = MPDParse(mpdData);
+                contentLength=mMPDbytes.length;
+
+                return new FileBuffer(mMPDbytes,   contentLength,   0);
+
+//                    contentLength=mMPDbytes.length-bytesToSkip;
+//                    System.arraycopy(mMPDbytes,bytesToSkip,target,0,contentLength);
+//                    Log.d(TAG, "Copying file to local buffer, skipping: "+ bytesToSkip+"  with content length: "+f.contentLength);
+
+
+            }else {
+//                    assert(f.contentLength<maxBufferSize);
+//                    Log.d(TAG, "Copying file to local buffer, skipping: "+ bytesToSkip+"  with content length: "+f.contentLength);
+//                    contentLength=f.contentLength;
+                return new FileBuffer(storage.get(index),  f.contentLength,   f.start);
+
+//                    System.arraycopy(storage.get(index),f.start+bytesToSkip,target,0,contentLength);
+
+            }
+//                return contentLength;
+
+        } else{
+            Log.d(TAG,"Couldn't fine file while trying to open: "+fileName);
+            return null;
+        }
+
+    }
+
+
 
 //    public int read(byte[] output, int offset,  int length, int thread) throws IOException, ArrayIndexOutOfBoundsException{
 //        lock.lock();

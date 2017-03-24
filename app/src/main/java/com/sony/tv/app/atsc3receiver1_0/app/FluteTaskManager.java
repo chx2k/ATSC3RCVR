@@ -18,18 +18,19 @@ public class FluteTaskManager implements Runnable{
     private boolean running;
     Boolean stopRequest;
     public DataSpec dataSpec;
-    public FluteFileManager fileManager;
+    public FluteFileManager fileManager=FluteFileManager.getInstance();
     private UdpDataSource udpDataSource;
     private byte[] bytes;
+    private static int MAX_SOCKET_TIMEOUT=20*1000;
 
 
-    private FluteReceiver sInstance;
+    private FluteReceiver sInstance=FluteReceiver.getInstance();
 
     FluteTaskManager (DataSpec dataSpec ){
         stopRequest=false;
-        this.fileManager=FluteFileManager.getInstance();
+//        this.fileManager=FluteFileManager.getInstance();
         this.dataSpec=dataSpec;
-        sInstance=FluteReceiver.getInstance();
+//        sInstance=FluteReceiver.getInstance();
     }
 
     @Override
@@ -50,7 +51,11 @@ public class FluteTaskManager implements Runnable{
             public void onTransferEnd(UdpDataSource source) {
                 running=false;
             }
-        });
+            },
+            UdpDataSource.DEFAULT_MAX_PACKET_SIZE,
+            MAX_SOCKET_TIMEOUT
+            );
+
 
         try {
             udpDataSource.open(dataSpec);
