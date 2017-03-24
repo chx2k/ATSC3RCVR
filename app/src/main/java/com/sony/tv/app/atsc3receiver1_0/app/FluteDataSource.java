@@ -7,6 +7,7 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.UdpDataSource;
+import com.sony.tv.app.atsc3receiver1_0.BuildConfig;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -34,7 +35,7 @@ public class FluteDataSource implements DataSource {
     private int bytesRead;
 
 
-    private byte[] fileCacheRead=new byte[MAX_VIDEO_BUFFERSIZE/10];
+    private byte[] fileCacheRead=new byte[MAX_VIDEO_BUFFERSIZE];
 
     public FluteDataSource(int thread){
         fluteReceiver=FluteReceiver.getInstance();
@@ -58,7 +59,7 @@ public class FluteDataSource implements DataSource {
             String path=dataSpec.uri.getPath();
             try {
                 bytesToSkip=(int) dataSpec.position;
-                bytesToRead=fileManager.open(path, bytesToSkip , fileCacheRead, MAX_VIDEO_BUFFERSIZE/10);
+                bytesToRead=fileManager.open(path, bytesToSkip , fileCacheRead, MAX_VIDEO_BUFFERSIZE);
                 return bytesToRead;
             }catch (IOException e) {
                 throw e;
@@ -81,16 +82,21 @@ public class FluteDataSource implements DataSource {
                 return C.RESULT_END_OF_INPUT;
             }
             readLength = (int) Math.min(readLength, bytesRemaining);
+        }else{
+            return C.LENGTH_UNSET;
         }
         if (readLength<0){
             Log.d(TAG,"BytesToRead: "+bytesToRead+ "  bytesRead: "+ bytesRead+ " readLength:  "+readLength);
             throw new IOException("Read Length is less than 0");
 
         }
-        System.arraycopy(fileCacheRead,bytesRead,buffer,offset,readLength);
-        bytesRead += readLength;
-//        if (listener != null) {
-//            listener.onBytesTransferred(this, read);
+        if (bytesRead+readLength<MAX_VIDEO_BUFFERSIZE){
+            System.arraycopy(fileCacheRead, bytesRead, buffer, offset, readLength);
+            bytesRead += readLength;
+        }else{
+                Log.e(TAG,"Error trying to read from local buffer");
+        }
+//            listenertener.onBytesTransferred(this, read);
 //        }
         return readLength;
 

@@ -3,7 +3,12 @@ package com.sony.tv.app.atsc3receiver1_0.app;
 import android.util.Log;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -20,8 +25,8 @@ public class FluteFileManager {
     //        HashMap<String, ContentFileLocation> mapContentLocations;
     private static final String TAG="FileManager";
     public static final int MAX_SIGNALING_BUFFERSIZE=10000;
-    public static final int MAX_VIDEO_BUFFERSIZE=10000000;
-    public static final int MAX_AUDIO_BUFFERSIZE=1000000;
+    public static final int MAX_VIDEO_BUFFERSIZE=20000000;
+    public static final int MAX_AUDIO_BUFFERSIZE=2000000;
     private static final int MAX_FILE_RETENTION_MS=10000;
 
     private HashMap<String, ContentFileLocation> mapFileLocationsSig=new HashMap<>();
@@ -92,7 +97,7 @@ public class FluteFileManager {
         Log.d(TAG,"Opening new File: ***********"+fileName);
         lock.lock();
         try{
-            int index=0; ContentFileLocation f; int contentLength;
+            int index=0; ContentFileLocation f; int contentLength=0;
             do {
                 f = arrayMapFileLocations.get(index).get(fileName);
                 index++;
@@ -100,19 +105,33 @@ public class FluteFileManager {
 
             if (f != null) {
                 index--;
-//                if (fileName.toLowerCase().endsWith(".mpd")) {
-//                    String mpdData = new String(storage.get(0), f.start, f.contentLength);
-//                    mMPDbytes = MPDParse(mpdData);
-//                    contentLength=mMPDbytes.length-bytesToSkip;
-//                    System.arraycopy(mMPDbytes,bytesToSkip,target,0,contentLength);
-//
-//                }else {
+                if (fileName.toLowerCase().endsWith(".mpd")) {
+                    String mpdData = new String(storage.get(0), f.start, f.contentLength);
+                    //mMPDbytes = MPDParse(mpdData);
+                    Date d=getAvailabilityStartTime( mpdData);
+                    mMPDbytes = MPDParse(mpdData);
+
+                    contentLength=mMPDbytes.length-bytesToSkip;
+                    assert(f.contentLength<maxBufferSize);
+
+                    System.arraycopy(mMPDbytes,bytesToSkip,target,0,contentLength);
+
+                    Log.d(TAG, "Copying file to local buffer, skipping: "+ bytesToSkip+"  with content length: "+f.contentLength);
+
+
+                }else {
+                    assert(f.contentLength<maxBufferSize);
+                    Log.d(TAG, "Copying file to local buffer, skipping: "+ bytesToSkip+"  with content length: "+f.contentLength);
+
                     contentLength=f.contentLength-bytesToSkip;
-                    System.arraycopy(storage.get(index),bytesToSkip,target,0,contentLength);
-//                }
+                    System.arraycopy(storage.get(index),f.start+bytesToSkip,target,0,contentLength);
+
+                }
                 return contentLength;
+
             } else{
-                throw new IOException("Couldn't fine file while trying to open: "+fileName);
+                Log.d(TAG,"Couldn't fine file while trying to open: "+fileName);
+                return -1;
             }
 
         }finally{
@@ -256,7 +275,24 @@ public class FluteFileManager {
 //            return false;
 //        }
 
-    public byte[] MPDParse(String mpdData ){
+    public Date getAvailabilityStartTime(String mpdData){
+        Calendar c= Calendar.getInstance();
+        Date now=c.getTime();
+        String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
+        String[] result2=result[1].split("[\"]+",2);
+        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        try{
+            Date mpd=formatter.parse(result2[0]);
+            Log.d(TAG, "Time now minus time MPD created in ms: "+ (now.getTime()-mpd.getTime()));
+            return mpd;
+
+        }catch (ParseException e){
+            Log.e(TAG, "Error parsing date from MPD");
+            return null;
+        }
+    }
+
+    public byte[] MPDParse(String mpdData){
 
         String[] result=mpdData.split("(?<=availabilityStartTime[\\s]?=[\\s]?\"[0-9\\-]{10}[\\s]?[\\s]?)");
         String[] result2=result[2].split("[\"]+",2);

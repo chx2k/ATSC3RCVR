@@ -139,21 +139,21 @@ public class ATSCXmlParse {
             int eventType = xpp.getEventType();
             while (eventType!=XmlPullParser.END_DOCUMENT) {
                 if(eventType == XmlPullParser.START_TAG) {
-                    Log.v(TAG,"Start Tag"+xpp.getName());
+//                    Log.v(TAG,"Start Tag"+xpp.getName());
                         for (int i=0; i<xpp.getAttributeCount(); i++){
                             if (efdtData.parse(xpp.getAttributeName(i), xpp.getAttributeValue(i))){
-                                Log.v(TAG,"attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
+//                                Log.v(TAG,"attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
                             }else {
-                                Log.v(TAG,"TAG NOT FOUND attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
+//                                Log.v(TAG,"TAG NOT FOUND attribute: "+xpp.getAttributeName(i)+"="+xpp.getAttributeValue(i));
                             }
                         }
 
                 } else if(eventType == XmlPullParser.END_TAG) {
-                    Log.v(TAG,"End tag "+xpp.getName());
+//                    Log.v(TAG,"End tag "+xpp.getName());
                 } else if(eventType == XmlPullParser.TEXT) {
                     if (!
                             xpp.getText().trim().equals("")) {
-                        Log.v(TAG, "Text " + xpp.getText());
+//                        Log.v(TAG, "Text " + xpp.getText());
                     }
                 }else{
 
