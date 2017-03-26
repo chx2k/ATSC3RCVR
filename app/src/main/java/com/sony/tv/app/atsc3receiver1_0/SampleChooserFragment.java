@@ -197,7 +197,7 @@ public class SampleChooserFragment extends Fragment {
               public void onGroupExpand(int groupPosition){
                   if (groupPosition==0){
                       Log.d(TAG,"Started Flute Signalling receivers");
-                      ((MainActivity) activity).startFluteSession(FluteReceiver.SIGNALLING);
+//                      ((MainActivity) activity).startFluteSession(FluteReceiver.SIGNALLING);
                   }
 
               }
@@ -208,7 +208,7 @@ public class SampleChooserFragment extends Fragment {
               public void onGroupCollapse(int groupPosition){
                   if (groupPosition==0){
                       Log.d(TAG,"Stopped Flute Signalling receivers");
-                      ((MainActivity) activity).stopFluteSession(FluteReceiver.SIGNALLING);
+//                      ((MainActivity) activity).stopFluteSession(FluteReceiver.SIGNALLING);
                   }
 
               }
@@ -219,7 +219,7 @@ public class SampleChooserFragment extends Fragment {
     }
 
     private void onSampleSelected(Sample sample) {
-        ((MainActivity)activity).stopLLSReceiver();
+//        ((MainActivity)activity).stopLLSReceiver();
         activity.startActivity(sample.buildIntent(context));
     }
 

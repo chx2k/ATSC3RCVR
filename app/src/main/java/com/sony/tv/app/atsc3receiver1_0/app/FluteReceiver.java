@@ -120,6 +120,7 @@ public class FluteReceiver  {
 
             mFluteTaskManager = new FluteTaskManager(dataSpec);
             new Thread(mFluteTaskManager).start();
+
     }
 
     /**

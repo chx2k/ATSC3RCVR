@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -31,6 +32,8 @@ public class FluteFileManager {
     public static final int MAX_VIDEO_BUFFERSIZE=20000000;
     public static final int MAX_AUDIO_BUFFERSIZE=2000000;
     private static final int MAX_FILE_RETENTION_MS=10000;
+
+    private static final int SERVER_TIME_OFFSET=7100;
 
     private HashMap<String, ContentFileLocation> mapFileLocationsSig=new HashMap<>();
     private HashMap<String, ContentFileLocation> mapFileLocationsAud=new HashMap<>();
@@ -97,6 +100,8 @@ public class FluteFileManager {
     private int[] bytesRead=new int [100];
     private int[] bytesToSkip=new int[100];
     private int[] byteOffset=new int[100];
+    private boolean[] timeOffsetFirst=new boolean[100];
+
     private class FileBuffer{
         public byte[] buffer;
         public int contentLength;
@@ -122,13 +127,14 @@ public class FluteFileManager {
             bytesRead[thread]=0;
             byteOffset[thread]=0;
 
+
             Log.d("TAG", "ExoPlayer trying to open :"+dataSpec.uri);
             String host = dataSpec.uri.getHost();
             int port = dataSpec.uri.getPort();
             if ( mFluteTaskManager.dataSpec.uri.getHost().equals(host) && mFluteTaskManager.dataSpec.uri.getPort()==port){
                 String path=dataSpec.uri.getPath();
                 bytesToSkip[thread]=(int) dataSpec.position;
-                FileBuffer fb = openInternal(path);
+                FileBuffer fb = openInternal(path, thread);
                 if (fb==null){
                     Log.d(TAG, "Couldn't fine file while trying to open: "+path);
                     return -1;
@@ -189,7 +195,7 @@ public class FluteFileManager {
 
     }
 
-    private FileBuffer openInternal(String fileName){
+    private FileBuffer openInternal(String fileName, int thread){
         Log.d(TAG,"Opening new File: ***********"+fileName);
 
         int index=0; ContentFileLocation f; int contentLength=0;
@@ -203,8 +209,11 @@ public class FluteFileManager {
             if (fileName.toLowerCase().endsWith(".mpd")) {
                 String mpdData = new String(storage.get(0), f.start, f.contentLength);
                 //mMPDbytes = MPDParse(mpdData);
-                Date d=getAvailabilityStartTime( mpdData);
-                mMPDbytes = MPDParse(mpdData);
+//                if (timeOffsetFirst[thread]==false) {
+                    Date d = getAvailabilityStartTime(mpdData);
+                    mMPDbytes = MPDParse(mpdData);
+//                    timeOffsetFirst[thread]=true;
+//                }
                 contentLength=mMPDbytes.length;
 
                 return new FileBuffer(mMPDbytes,   contentLength,   0);
@@ -370,14 +379,22 @@ public class FluteFileManager {
 //        }
 
     public Date getAvailabilityStartTime(String mpdData){
-        Calendar c= Calendar.getInstance();
+
+        TimeZone timeZone = TimeZone.getTimeZone("UTC");
+
+        Calendar c= Calendar.getInstance(timeZone);
         Date now=c.getTime();
         String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
         String[] result2=result[1].split("[\"]+",2);
         DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        formatter.setTimeZone(timeZone);
+
         try{
             Date mpd=formatter.parse(result2[0]);
-            Log.d(TAG, "Time now minus time MPD created in ms: "+ (now.getTime()-mpd.getTime()));
+            Log.d(TAG, "Time now minus time MPD created in s: "+ (double)(now.getTime()-mpd.getTime())/1000);
+
+//            formatter = new SimpleDateFormat("yyyy-MM-dd'T'H:mm:ss.SSS'Z'");
+
             return mpd;
 
         }catch (ParseException e){
@@ -390,17 +407,9 @@ public class FluteFileManager {
 
         String[] result=mpdData.split("(?<=availabilityStartTime[\\s]?=[\\s]?\"[0-9\\-]{10}[\\s]?[\\s]?)");
         String[] result2=result[2].split("[\"]+",2);
-
-//        for (int i=0; i<result.length; i++) {
-//            Log.d("TEST_REGEX", result[i]);
-//        }
-//        for (int i=0; i<result2.length; i++) {
-//            Log.d("TEST_REGEX2", result2[i]);
-//        }
-
-
         String finalresult=result[0].trim().concat("T").concat(result2[0].concat("Z").concat("\"").concat(result2[1]));
-//        Log.d("TEST_REGEX",finalresult + "  with length: "+finalresult.length());
+
+
         return finalresult.getBytes();
     }
 

@@ -52,7 +52,10 @@ public class MainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mLLSReceiver=LLSReceiver.getInstance();
+        mFluteReceiver=FluteReceiver.getInstance();
         initLLSReceiver();
+
 //        initFragments();
     }
 
@@ -77,11 +80,9 @@ public class MainActivity extends Activity {
         transaction.commit();
 
         fragmentsInitialized=true;
-        mFluteReceiver=FluteReceiver.getInstance();
     }
 
     private void initLLSReceiver(){
-        mLLSReceiver=LLSReceiver.getInstance();
         startLLSReceiver();
 
 
@@ -100,8 +101,13 @@ public class MainActivity extends Activity {
 //    }
     public void callBackSLTFound(Boolean completed){
         if (completed) {
+
+            startFluteSession(FluteReceiver.SIGNALLING);
+
             if (!fragmentsInitialized)
                 initFragments();
+
+
         }
     }
 
@@ -122,7 +128,7 @@ public class MainActivity extends Activity {
 //                if (i==0) {port=":4005";}else {port=":4006";}
 //                String uriString="udp://"+
 //                        (mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress.concat(port));
-                stopLLSReceiver();
+                // stopLLSReceiver();
 //                String uriString="udp://239.255.8.1:4005";
                 String uriString="udp://".concat(mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationIpAddress).concat(":").concat(
                         mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationUdpPort);
