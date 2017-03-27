@@ -26,16 +26,9 @@ public class FluteDataSource implements DataSource {
 //    public Receiver Receiver;
     private static final String TAG="FluteDataSource";
     private DataSpec mExoPlayerUri;
-    FluteReceiver fluteReceiver;
-    FluteFileManager fileManager;
+    private FluteReceiver fluteReceiver;
+    private FluteFileManager fileManager;
     private int thread;
-    private int bytesToSkip;
-    private int bytesToRead;
-    private int bytesSkipped;
-    private int bytesRead;
-
-
-    private byte[] fileCacheRead=new byte[MAX_VIDEO_BUFFERSIZE];
 
     public FluteDataSource(int thread){
         fluteReceiver=FluteReceiver.getInstance();
@@ -47,59 +40,13 @@ public class FluteDataSource implements DataSource {
     @Override
     public long open(DataSpec dataSpec) throws IOException {
         mExoPlayerUri=dataSpec;
-//        bytesToRead=0;
-//        bytesToSkip=0;
-//        bytesRead=0;
-//
-//        Log.d("TAG", "ExoPlayer trying to open :"+dataSpec.uri);
-//        mExoPlayerUri = dataSpec;
-//        String host = mExoPlayerUri.uri.getHost();
-//        int port = mExoPlayerUri.uri.getPort();
-//        if ( fluteReceiver.mFluteTaskManager.dataSpec.uri.getHost().equals(host) && fluteReceiver.mFluteTaskManager.dataSpec.uri.getPort()==port){
-//            String path=dataSpec.uri.getPath();
-//            try {
-//                bytesToSkip=(int) dataSpec.position;
-//                bytesToRead=fileManager.open(path, bytesToSkip , fileCacheRead, MAX_VIDEO_BUFFERSIZE);
-//                return bytesToRead;
-//            }catch (IOException e) {
-//                throw e;
-//            }
-//        } else{
-//
-//            throw new IOException("Attempted to open a url that is not active: ".concat(mExoPlayerUri.toString()));
-//        }
+
         return fileManager.open(dataSpec, thread);
 
     }
 
     @Override
     public int read(byte[] buffer, int offset, int readLength) throws IOException {
-//        if (readLength == 0) {
-//            return 0;
-//        }
-//        if (bytesToRead != C.LENGTH_UNSET) {
-//            long bytesRemaining = bytesToRead - bytesRead;
-//            if (bytesRemaining == 0) {
-//                return C.RESULT_END_OF_INPUT;
-//            }
-//            readLength = (int) Math.min(readLength, bytesRemaining);
-//        }else{
-//            return C.LENGTH_UNSET;
-//        }
-//        if (readLength<0){
-//            Log.d(TAG,"BytesToRead: "+bytesToRead+ "  bytesRead: "+ bytesRead+ " readLength:  "+readLength);
-//            throw new IOException("Read Length is less than 0");
-//
-//        }
-//        if (bytesRead+readLength<MAX_VIDEO_BUFFERSIZE){
-//            System.arraycopy(fileCacheRead, bytesRead, buffer, offset, readLength);
-//            bytesRead += readLength;
-//        }else{
-//                Log.e(TAG,"Error trying to read from local buffer");
-//        }
-////            listenertener.onBytesTransferred(this, read);
-////        }
-//        return readLength;
         return fileManager.read(buffer, offset, readLength, thread );
 
     }

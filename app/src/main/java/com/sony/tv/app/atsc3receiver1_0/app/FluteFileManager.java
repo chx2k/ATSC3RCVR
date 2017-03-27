@@ -191,8 +191,6 @@ public class FluteFileManager {
         }finally{
             lock.unlock();
         }
-
-
     }
 
     private FileBuffer openInternal(String fileName, int thread){
@@ -208,31 +206,18 @@ public class FluteFileManager {
             index--;
             if (fileName.toLowerCase().endsWith(".mpd")) {
                 String mpdData = new String(storage.get(0), f.start, f.contentLength);
-                //mMPDbytes = MPDParse(mpdData);
-//                if (timeOffsetFirst[thread]==false) {
-                    Date d = getAvailabilityStartTime(mpdData);
-                    mMPDbytes = MPDParse(mpdData);
-//                    timeOffsetFirst[thread]=true;
-//                }
+                Date d = getAvailabilityStartTime(mpdData);
+                mMPDbytes = MPDParse(mpdData);
                 contentLength=mMPDbytes.length;
 
-                return new FileBuffer(mMPDbytes,   contentLength,   0);
-
-//                    contentLength=mMPDbytes.length-bytesToSkip;
-//                    System.arraycopy(mMPDbytes,bytesToSkip,target,0,contentLength);
-//                    Log.d(TAG, "Copying file to local buffer, skipping: "+ bytesToSkip+"  with content length: "+f.contentLength);
+                return new FileBuffer(mMPDbytes, contentLength, 0);
 
 
             }else {
-//                    assert(f.contentLength<maxBufferSize);
-//                    Log.d(TAG, "Copying file to local buffer, skipping: "+ bytesToSkip+"  with content length: "+f.contentLength);
-//                    contentLength=f.contentLength;
+
                 return new FileBuffer(storage.get(index),  f.contentLength,   f.start);
 
-//                    System.arraycopy(storage.get(index),f.start+bytesToSkip,target,0,contentLength);
-
             }
-//                return contentLength;
 
         } else{
             Log.d(TAG,"Couldn't fine file while trying to open: "+fileName);
@@ -240,56 +225,6 @@ public class FluteFileManager {
         }
 
     }
-
-
-
-//    public int read(byte[] output, int offset,  int length, int thread) throws IOException, ArrayIndexOutOfBoundsException{
-//        lock.lock();
-//        try {
-//
-//            if (null!=threadBufferPointer.get(thread) && length>0){
-//
-////                readPosition[thread]+=offset;
-//                int len=Math.min(length,readLength[thread]-readPosition[thread]);
-//                int mReadPosition=readStart[thread]+readPosition[thread];
-//                int mReadMax=mReadPosition + len;
-//                if ( mReadMax > threadBufferPointer.get(thread).length) {
-//                    String error="Array overwrite to buffer on thread "+thread+" position: "+mReadPosition+" length: " + len + " array size: "+threadBufferPointer.get(thread).length;
-//                    throw new ArrayIndexOutOfBoundsException ( error );
-//                }
-//
-//                if (len<=0){
-//                    Log.d("TEST:","reading 0 bytes from readPosition: " + mReadPosition + "on thread  "+ thread);
-//
-//                    return -1;
-//                }
-//
-//                if (len==1){
-//                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " + mReadPosition + "on thread  "+ thread);
-//
-//                    output[offset] =threadBufferPointer.get(thread)[mReadPosition];
-//                    readPosition[thread]++;
-//                }else if (len<25){
-//                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " +mReadPosition + "on thread  "+ thread);
-//
-//                    for (int i=0; i<len; i++){
-//                        output[i+offset]=threadBufferPointer.get(thread)[mReadPosition];
-//                        readPosition[thread]++;
-//                    }
-//                }else{
-//                    Log.d("TEST:","reading "+ len +" bytes from readPosition: " + mReadPosition + "on thread  "+ thread);
-//
-//                    System.arraycopy(threadBufferPointer.get(thread),readStart[thread]+readPosition[thread],output,offset,len);
-//                    readPosition[thread]+=len;
-//                }
-//
-//                return len;
-//            }
-//            throw new IOException("Attempt to read from no existent buffer or read zero bytes");
-//        }finally{
-//            lock.unlock();
-//        }
-//    }
 
 
     public int read(String fileName, byte[] output, int offset,  int length){
@@ -405,11 +340,14 @@ public class FluteFileManager {
 
     public byte[] MPDParse(String mpdData){
 
+        MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
+        mpdParser.MPDParse();
+        Log.d(TAG, mpdParser.MPDgenerate().toString());
+        mpdParser.MPDdynamic();
+
         String[] result=mpdData.split("(?<=availabilityStartTime[\\s]?=[\\s]?\"[0-9\\-]{10}[\\s]?[\\s]?)");
         String[] result2=result[2].split("[\"]+",2);
         String finalresult=result[0].trim().concat("T").concat(result2[0].concat("Z").concat("\"").concat(result2[1]));
-
-
         return finalresult.getBytes();
     }
 
