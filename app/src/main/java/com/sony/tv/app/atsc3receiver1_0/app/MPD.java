@@ -7,10 +7,14 @@ import org.xmlpull.v1.XmlPullParser;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
+import static com.google.android.exoplayer2.util.Util.parseXsDateTime;
+import static com.google.android.exoplayer2.util.Util.parseXsDuration;
 
 /**
  * Created by xhamc on 3/24/17.
@@ -51,8 +55,13 @@ public final class MPD {
     private final String attr_sar="sar";
     private final String attr_startsWithSAP="startsWithSAP";
     private final String attr_bandwidth="bandwidth";
+    private final String attr_timeScale="timescale";
+    private final String attr_media="media";
+    private final String attr_startNumber="startNumber";
+    private final String attr_initialization="initialization";
     private final String tag_SegmentTemplate="SegmentTemplate";
     private final String tag_AudioChannelConfiguration="AudioChannelConfiguration";
+
 
     public String attributes;
 
@@ -163,10 +172,25 @@ public final class MPD {
             int[] oldestAudioIndex=new int[periods.size()];
             int[] earliestVideoIndex=new int[periods.size()];
             int[] earliestAudioIndex=new int[periods.size()];
-            float[] videoSegmentDuration=new float[periods.size()];
-            float[] audioSegmentDuration=new float[periods.size()];
+            long[] oldestVideoTime=new long[periods.size()];
+            long[] oldestAudioTime=new long[periods.size()];
+            long[] earliestVideoTime=new long[periods.size()];
+            long[] earliestAudioTime=new long[periods.size()];
+
+
+            int [] periodIndexStart=new int[periods.size()];
+            long[] periodStartTime=new long[periods.size()];
+            long[] periodDuration=new long[periods.size()];
+
+            double[] videoSegmentDuration=new double[periods.size()];
+            double[] audioSegmentDuration=new double[periods.size()];
             boolean[] videoIndexPresent = new boolean[periods.size()];
             boolean[] audioIndexPresent = new boolean[periods.size()];
+            int[] adapSetVideoIndex=new int[periods.size()];
+            int[] adapSetAudioIndex=new int[periods.size()];
+            boolean [] periodToRemove=new boolean[periods.size()];
+
+            long availabilityStartTime;
 
 
             for (int i=0; i<periods.size();i++){
@@ -176,6 +200,11 @@ public final class MPD {
                 earliestAudioIndex[i]=0;
                 videoIndexPresent[i]=false;
                 audioIndexPresent[i]=false;
+                periodStartTime[i]=0;
+                periodDuration[i]=0;
+                periodIndexStart[i]=0;
+                adapSetVideoIndex[i]=0;
+                adapSetAudioIndex[i]=0;
             }
 
             for (int period = 0; period < periods.size(); period++) {
@@ -185,15 +214,17 @@ public final class MPD {
                         baseUrl=baseUrl.concat(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).getAttribute(tag_BaseUrl));
 
                         if (periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).getAttribute("mimeType").contains("video")){
+                            adapSetVideoIndex[period]=adaptationSet;
                             SegmentTemplate videoTemplate =periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate;
-                            videoSegmentDuration[period]=Float.parseFloat(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute("duration"))/
-                                    Float.parseFloat(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute("timescale"));
+                            videoSegmentDuration[period]=Double.parseDouble(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute(attr_duration))/
+                                    Double.parseDouble(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute(attr_timeScale));
 
-                            String[] check=baseUrl.concat(videoTemplate.getAttribute("media")).split("\\$Number\\$");
+                            String[] check=baseUrl.concat(videoTemplate.getAttribute(attr_media)).split("\\$Number\\$");
 
                             for (Map.Entry<String,ContentFileLocation> video:videos.entrySet()){
                                 if (!video.getKey().equals(baseUrl.concat(videoTemplate.getAttribute("initialization")))) {
                                     if (video.getKey().startsWith(check[0]) && (video.getKey().endsWith(check[1]))) {
+                                        videoIndexPresent[period]=true;
                                         int result = Integer.parseInt(video.getKey().replace(check[0], "").replace(check[1], ""));
                                         oldestVideoIndex[period] = Math.min(result, oldestVideoIndex[period]);
                                         earliestVideoIndex[period] = Math.max(result, earliestVideoIndex[period]);
@@ -202,28 +233,54 @@ public final class MPD {
                                 }
                             }
                         } else {
+                            adapSetAudioIndex[period]=adaptationSet;
                             SegmentTemplate audioTemplate = periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate;
-                            audioSegmentDuration[period]=Float.parseFloat(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute("duration"))/
-                                    Float.parseFloat(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute("timescale"));
-                            for (int index=0; index<videos.size(); index++){
-                                String check=audioTemplate.getAttribute("media").replace("$Number$",String.valueOf(index));
-                                if (audios.containsKey(check)){
-                                   audioIndexPresent[period]=true;
-                                    oldestAudioIndex[period]=Math.min(index,oldestAudioIndex[period]);
-                                    earliestAudioIndex[period]=Math.max(index,earliestAudioIndex[period]);
+                            audioSegmentDuration[period] = Double.parseDouble(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute(attr_duration)) /
+                                    Double.parseDouble(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute(attr_timeScale));
+                            String[] check = baseUrl.concat(audioTemplate.getAttribute(attr_media)).split("\\$Number\\$");
+
+                            for (Map.Entry<String, ContentFileLocation> audio : audios.entrySet()) {
+                                if (!audio.getKey().equals(baseUrl.concat(audioTemplate.getAttribute(attr_initialization)))) {
+                                    if (audio.getKey().startsWith(check[0]) && (audio.getKey().endsWith(check[1]))) {
+                                        audioIndexPresent[period]=true;
+                                        int result = Integer.parseInt(audio.getKey().replace(check[0], "").replace(check[1], ""));
+                                        oldestAudioIndex[period] = Math.min(result, oldestAudioIndex[period]);
+                                        earliestAudioIndex[period] = Math.max(result, earliestAudioIndex[period]);
+                                    }
+
                                 }
                             }
                         }
                     }
-                    if (!audioIndexPresent[period] || !videoIndexPresent[period]){
-                        for (int i=period; i<periods.size(); i++){
-                            periods.remove(i);
-                        }
-                    }
+
                 }
+                availabilityStartTime=parseXsDateTime(getAttribute(attr_availabilityStartTime));  //TODO This depends on ExoPlayer library; recreate locally
+                Log.d(TAG, "Availability Start Time in ms: "+availabilityStartTime);
                 for (int period=0; period<periods.size(); period++){
+                    oldestVideoTime[period]=(long) (oldestVideoIndex[period]*videoSegmentDuration[period]*1000);
+                    oldestAudioTime[period]=(long) (oldestAudioIndex[period]*audioSegmentDuration[period]*1000);
+                    earliestVideoTime[period]=(long) (earliestVideoIndex[period]*videoSegmentDuration[period]*1000);
+                    earliestAudioTime[period]=(long) (earliestAudioIndex[period]*audioSegmentDuration[period]*1000);
+
                     Log.d(TAG, "Period No: "+period+"   videoStartTime: "+oldestVideoIndex[period]*videoSegmentDuration[period]+"   audioStartTime: "+ oldestAudioIndex[period]*audioSegmentDuration[period]);
                     Log.d(TAG, "Period No: "+period+"   videoEndTime: "+earliestVideoIndex[period]*videoSegmentDuration[period]+"   audioEndTime: "+ earliestAudioIndex[period]*audioSegmentDuration[period]);
+                    periodStartTime[period]=parseXsDuration(periods.get(period).getAttribute(attr_start));         //TODO This depends on ExoPlayer library; recreate locally
+                    periodDuration[period]=parseXsDuration(periods.get(period).getAttribute(attr_duration));
+                    if (!audioIndexPresent[period] || !videoIndexPresent[period]) {          //no content in this period available so remove
+                        periodToRemove[period]=true;
+                        periods.remove(period);
+                    }
+                    int startVideoIndex=Integer.parseInt( periods.get(period).adaptationSet.get(adapSetVideoIndex[period]).representations.get(0).segmentTemplate.getAttribute("startNumber"));
+                    int startAudioIndex=Integer.parseInt( periods.get(period).adaptationSet.get(adapSetAudioIndex[period]).representations.get(0).segmentTemplate.getAttribute("startNumber"));
+                    if (startVideoIndex>0 || startAudioIndex>0) {
+                        oldestVideoTime[period] = (long) ((oldestVideoIndex[period] - startVideoIndex) * videoSegmentDuration[period] * 1000);
+                        oldestAudioTime[period] = (long) ((oldestAudioIndex[period] - startAudioIndex) * audioSegmentDuration[period] * 1000);
+                        if (oldestVideoTime[period]>=oldestAudioTime[period]){
+
+                        }else{
+
+                        }
+                    }
 
                 }
             }catch (Exception e){
