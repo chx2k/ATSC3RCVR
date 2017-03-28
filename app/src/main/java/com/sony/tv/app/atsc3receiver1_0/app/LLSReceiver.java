@@ -56,7 +56,8 @@ public class LLSReceiver {
 
     private LLSTaskManager mLLSTaskManager;
 
-    boolean first=true;
+    boolean firstSLT=true;
+    boolean firstST=true;
 
     /**
      * LLSReceiver is singleton
@@ -79,20 +80,22 @@ public class LLSReceiver {
                         break;
                     case FOUND_SLT:
                         Log.d(TAG,"FOUND SLT");
-                        long t= System.currentTimeMillis();
                         slt= new ATSCXmlParse(llstask.mSLTData, "SLT").LLSParse();
-                        Log.d(TAG,"LLS xml parse time in ms: "+(System.currentTimeMillis()-t));
 
                         saveLLSData(slt);
-                        if (first) {
-                            ((MainActivity) activityContext).callBackSLTFound(true);
-                            first = false;
+                        if (firstSLT) {
+                            ((MainActivity) activityContext).callBackSLTFound();
+                            firstSLT = false;
                         }
                         break;
                     case FOUND_ST:
                         Log.d(TAG,"FOUND ST");
                         systemTime= new ATSCXmlParse(llstask.mSTData, ATSCXmlParse.SYSTEMTIMETAG).LLSParse();
                         saveLLSData(systemTime);
+                        if (firstST){
+                            ((MainActivity) activityContext).callBackSTFound(systemTime.getPtpPrepend());
+                            firstST = false;
+                        }
                         break;
                     case TASK_ERROR:
                         Log.d(TAG,"FOUND ERROR: "+llstask.error);
@@ -123,7 +126,8 @@ public class LLSReceiver {
     public void start(Activity m){
         this.activityContext=m;
         mLLSTaskManager=new LLSTaskManager();
-        first=true;
+        firstSLT=true;
+        firstST=true;
         if ( m!=null) {
             new Thread(mLLSTaskManager).start();
             running=true;

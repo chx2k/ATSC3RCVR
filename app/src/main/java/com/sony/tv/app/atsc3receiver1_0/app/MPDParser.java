@@ -62,13 +62,12 @@ public class MPDParser {
         return false;
     }
 
-    public StringBuilder MPDgenerate(){
+    public StringBuilder mMPDgenerate(){
         return mpd.toStringBuilder();
     }
 
-    public StringBuilder MPDdynamic(){
+    public void toMPDdynamic(){
         mpd.toDynamic(videoMap, audioMap);
-        return mpd.toStringBuilder();
     }
 
 

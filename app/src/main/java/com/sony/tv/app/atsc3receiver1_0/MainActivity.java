@@ -31,7 +31,10 @@ import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import static java.lang.Thread.sleep;
 
@@ -48,6 +51,10 @@ public class MainActivity extends Activity {
     FluteReceiver mFluteReceiver;
     private static final String TAG="MainActivity";
     private static boolean fragmentsInitialized=false;
+    public long timeOffset=0;
+    private boolean sltComplete=false;
+    private boolean stComplete=false;
+    private boolean first=true;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,7 +65,19 @@ public class MainActivity extends Activity {
 
 //        initFragments();
     }
+    @Override
+    public void onStop(){
+        super.onStop();
+        FluteReceiver.getInstance().stop();
+        LLSReceiver.getInstance().stop();
+    }
 
+    @Override
+    public void onRestart(){
+        super.onRestart();
+
+        LLSReceiver.getInstance().start(this);
+    }
     /**
      * Initialize fragments.
      * <p/>
@@ -92,22 +111,40 @@ public class MainActivity extends Activity {
 
     }
     public void startLLSReceiver(){
-        if (!mLLSReceiver.running)
+        if (!mLLSReceiver.running) {
+            first = true;
+            sltComplete = false;
+            stComplete = false;
             mLLSReceiver.start(this);
+        }
     }
 
 //    public void refreshFragments(){
 //        sampleChooserFragment.refreshFragments();
 //    }
-    public void callBackSLTFound(Boolean completed){
-        if (completed) {
 
+    public void callBackSLTFound(){
+        sltComplete=true;
+        if (stComplete && first) {
             startFluteSession(FluteReceiver.SIGNALLING);
-
+            first=false;
             if (!fragmentsInitialized)
                 initFragments();
+        }
+    }
 
+    public void callBackSTFound(long time) {
 
+        Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
+        stComplete = true;
+        long nowms=now.getTime();
+        timeOffset = nowms - time/1000;
+
+        if (sltComplete && first) {
+            startFluteSession(FluteReceiver.SIGNALLING);
+            first = false;
+            if (!fragmentsInitialized)
+                initFragments();
         }
     }
 
@@ -139,7 +176,7 @@ public class MainActivity extends Activity {
                 Log.d(TAG,"Opening: "+uriString);
                 Uri uri=Uri.parse(uriString);
                 DataSpec d=new DataSpec(uri);
-                mFluteReceiver.start(d);
+                mFluteReceiver.start(d, timeOffset);
 //                Log.d(TAG, "Started Flute Signalling receiver: "+i);
 //            }
 //        }

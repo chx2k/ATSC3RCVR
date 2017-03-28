@@ -13,9 +13,12 @@ import com.google.android.exoplayer2.upstream.UdpDataSource;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -52,7 +55,10 @@ public class FluteReceiver  {
     public final int FOUND_FLUTE_INSTANCE=5;
     public static final int FOUND_FLUTE_FILE=6;
 
+    public long timeOffset=0;
+
     private static FluteReceiver sInstance=new FluteReceiver();
+    public long getTimeOffset(){ return timeOffset;}
 
 
     /**
@@ -116,7 +122,9 @@ public class FluteReceiver  {
     /**
      * start the task manager
      */
-    public void start(DataSpec dataSpec) {
+    public void start(DataSpec dataSpec, long timeOffset) {
+
+            this.timeOffset=timeOffset;
 
             mFluteTaskManager = new FluteTaskManager(dataSpec);
             new Thread(mFluteTaskManager).start();
@@ -126,7 +134,7 @@ public class FluteReceiver  {
     /**
      * stop the task manager
      */
-    public void stop(int type){
+    public void stop(){
            mFluteTaskManager.stop();
 
     }

@@ -215,6 +215,8 @@ public class LLSData {
     public void putPrepend(String value){mSTData.ptpPrepend=Long.parseLong(value);}
     public void putLocalOffset(String value){mSTData.utcLocalOffset=value;}
     public void putDiffTime(Long value){mSTData.diffTime=value;}
+    public long getPtpPrepend(){return mSTData.ptpPrepend;}
+
 
     public class STData {
         public String xmlns;

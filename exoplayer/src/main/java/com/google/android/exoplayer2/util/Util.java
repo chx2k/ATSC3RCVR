@@ -92,15 +92,10 @@ public final class Util {
       + SDK_INT;
 
   private static final String TAG = "Util";
-//TODO remove this change. done because demo time format is wrong
-//  private static final Pattern XS_DATE_TIME_PATTERN = Pattern.compile(
-//      "(\\d\\d\\d\\d)\\-(\\d\\d)\\-(\\d\\d)[Tt]"
-//      + "(\\d\\d):(\\d\\d):(\\d\\d)(\\.(\\d+))?"
-//      + "([Zz]|((\\+|\\-)(\\d\\d):?(\\d\\d)))?");
   private static final Pattern XS_DATE_TIME_PATTERN = Pattern.compile(
-          "(\\d\\d\\d\\d)\\-(\\d\\d)\\-(\\d\\d)([Tt]|\\s)"        //Option with no T
-                  + "(\\d\\d):(\\d\\d):(\\d\\d)(\\.(\\d+))?"
-                  + "([Zz]|((\\+|\\-)(\\d\\d):?(\\d\\d)))?");
+      "(\\d\\d\\d\\d)\\-(\\d\\d)\\-(\\d\\d)[Tt]"
+      + "(\\d\\d):(\\d\\d):(\\d\\d)(\\.(\\d+))?"
+      + "([Zz]|((\\+|\\-)(\\d\\d):?(\\d\\d)))?");
   private static final Pattern XS_DURATION_PATTERN =
       Pattern.compile("^(-)?P(([0-9]*)Y)?(([0-9]*)M)?(([0-9]*)D)?"
           + "(T(([0-9]*)H)?(([0-9]*)M)?(([0-9.]*)S)?)?$");

@@ -291,9 +291,6 @@ public class FluteFileManager {
                         t.remove(toi);
                         t.put(toi, fileName);
                         Log.d(TAG, "Wrote file: "+ fileName +" of size "+ l.contentLength + " to buffer: "+index + "which is connected to TSI: " + mapGetTSIFromBufferNumber.get(index));
-
-
-
                     }
                 }else {
                     Log.e(TAG, "Attempt at buffer write overrun: "+l.fileName);
@@ -340,15 +337,19 @@ public class FluteFileManager {
 
     public byte[] MPDParse(String mpdData){
 
-        MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
-        mpdParser.MPDParse();
-        Log.d(TAG, mpdParser.MPDgenerate().toString());
-        mpdParser.MPDdynamic();
+
 
         String[] result=mpdData.split("(?<=availabilityStartTime[\\s]?=[\\s]?\"[0-9\\-]{10}[\\s]?[\\s]?)");
         String[] result2=result[2].split("[\"]+",2);
-        String finalresult=result[0].trim().concat("T").concat(result2[0].concat("Z").concat("\"").concat(result2[1]));
-        return finalresult.getBytes();
+        mpdData=result[0].trim().concat("T").concat(result2[0].concat("Z").concat("\"").concat(result2[1]));
+
+        MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
+        mpdParser.MPDParse();
+        mpdParser.toMPDdynamic();
+
+        String finalResult=mpdParser.mMPDgenerate().toString();
+        Log.d(TAG, finalResult);
+        return finalResult.getBytes();
     }
 
     public boolean create(RouteDecode r) {
@@ -360,7 +361,10 @@ public class FluteFileManager {
             HashMap<Integer,String> t=array_MapTOI_FileName.get(index);
             HashMap<String, ContentFileLocation> m=arrayMapFileLocations.get(index);
             firstAvailablePosition[index] = (firstAvailablePosition[index] + r.contentLength) > maxAvailablePosition[index] ? 0 : firstAvailablePosition[index];
-            ContentFileLocation c = new ContentFileLocation(r.fileName.concat(".new"), r.efdt_toi, firstAvailablePosition[index], r.contentLength, System.currentTimeMillis(), System.currentTimeMillis() + MAX_FILE_RETENTION_MS);
+            Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
+
+            ContentFileLocation c = new ContentFileLocation(r.fileName.concat(".new"), r.efdt_toi, firstAvailablePosition[index], r.contentLength,
+                                                                now.getTime(), now.getTime() + MAX_FILE_RETENTION_MS);
             Iterator<Map.Entry<String,ContentFileLocation>> iterator= m.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<String,ContentFileLocation> it= iterator.next();
