@@ -44,6 +44,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -470,7 +471,8 @@ public final class DashMediaSource implements MediaSource {
     if (manifest.dynamic && !lastPeriodSeekInfo.isIndexExplicit) {
       // The manifest describes an incomplete live stream. Update the start/end times to reflect the
       // live stream duration and the manifest's time shift buffer depth.
-      long liveStreamDurationUs = getNowUnixTimeUs() - C.msToUs(manifest.availabilityStartTime);
+      long timeNow=getNowUnixTimeUs();
+      long liveStreamDurationUs = timeNow - C.msToUs(manifest.availabilityStartTime);
       long liveStreamEndPositionInLastPeriodUs = liveStreamDurationUs
           - C.msToUs(manifest.getPeriod(lastPeriodIndex).startMs);
       currentEndTimeUs = Math.min(liveStreamEndPositionInLastPeriodUs, currentEndTimeUs);
@@ -558,10 +560,17 @@ public final class DashMediaSource implements MediaSource {
 
   private long getNowUnixTimeUs() {
     if (elapsedRealtimeOffsetMs != 0) {
-      return C.msToUs(SystemClock.elapsedRealtime() + elapsedRealtimeOffsetMs);
-    } else {
+      Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+      return 1000*cal.getTimeInMillis();
+        } else {
       return C.msToUs(System.currentTimeMillis());
     }
+
+//    if (elapsedRealtimeOffsetMs != 0) {
+//      return C.msToUs(SystemClock.elapsedRealtime() + elapsedRealtimeOffsetMs);
+//    } else {
+//      return C.msToUs(System.currentTimeMillis());
+//    }
   }
 
   private static final class PeriodSeekInfo {

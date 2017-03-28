@@ -3,6 +3,7 @@ package com.sony.tv.app.atsc3receiver1_0.app;
 import android.util.Log;
 
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.upstream.DataSpec;
 
 import java.io.IOException;
@@ -335,21 +336,39 @@ public class FluteFileManager {
         }
     }
 
+
+
+
+    private static boolean first=true;
+    private static String availabilityStartTime;
     public byte[] MPDParse(String mpdData){
 
+        if (first){
+            MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
+            mpdParser.MPDParse();
+            long as=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+2000;
+            TimeZone timeZone = TimeZone.getTimeZone("UTC");
+            Calendar c= Calendar.getInstance(timeZone);
+            DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            formatter.setTimeZone(timeZone);
+            availabilityStartTime= formatter.format(new Date(as));
+            first=false;
 
+//            long t=getNowUnixTimeUs();
+        }
+        String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
+        String[] result2=result[1].split("[\"]+",2);
+        mpdData=result[0].concat("availabilityStartTime=\"").concat(availabilityStartTime).concat("\"").concat(result2[1]);
+//
+//        String[] result=mpdData.split("(?<=availabilityStartTime[\\s]?=[\\s]?\"[0-9\\-]{10}[\\s]?[\\s]?)");
+//        String[] result2=result[2].split("[\"]+",2);
+//        mpdData=result[0].trim().concat("T").concat(result2[0].concat("Z").concat("\"").concat(result2[1]));
+        return mpdData.getBytes();
 
-        String[] result=mpdData.split("(?<=availabilityStartTime[\\s]?=[\\s]?\"[0-9\\-]{10}[\\s]?[\\s]?)");
-        String[] result2=result[2].split("[\"]+",2);
-        mpdData=result[0].trim().concat("T").concat(result2[0].concat("Z").concat("\"").concat(result2[1]));
-
-        MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
-        mpdParser.MPDParse();
-        mpdParser.toMPDdynamic();
-
-        String finalResult=mpdParser.mMPDgenerate().toString();
-        Log.d(TAG, finalResult);
-        return finalResult.getBytes();
+//
+//        String finalResult=mpdParser.mMPDgenerate().toString();
+////        Log.d(TAG, finalResult);
+//        return finalResult.getBytes();
     }
 
     public boolean create(RouteDecode r) {

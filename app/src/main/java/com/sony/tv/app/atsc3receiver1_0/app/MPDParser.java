@@ -1,5 +1,11 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
+import android.provider.Settings;
+import android.util.Log;
+
+import com.google.android.exoplayer2.source.hls.playlist.HlsMediaPlaylist;
+import com.google.android.exoplayer2.util.SystemClock;
+
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
@@ -15,6 +21,7 @@ public class MPDParser {
 
     private XmlPullParserFactory factory;
     private XmlPullParser xpp;
+    private static final String TAG="MPDParser)";
 
     public MPD mpd;
     public StringBuilder stringBuilder=new StringBuilder(10000);
@@ -28,7 +35,9 @@ public class MPDParser {
         this.audioMap=audioMap;
         this.data=data;
         stringBuilder.append("<?xml version=\"1.0\"?>\n");
-        mpd=new MPD(stringBuilder);
+        long now=System.currentTimeMillis();
+        this.mpd=new MPD(stringBuilder);
+        Log.d(TAG,"Time to parse MPD: "+(System.currentTimeMillis()-now));
     }
 
 

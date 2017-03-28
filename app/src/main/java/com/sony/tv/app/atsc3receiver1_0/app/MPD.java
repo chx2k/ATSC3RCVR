@@ -26,45 +26,45 @@ import static com.google.android.exoplayer2.util.Util.parseXsDuration;
 
 public final class MPD {
     private final static String TAG="MPD";
-    private final String tag_MPD="MPD";
-    private final String attr_xmlString="xmlns";
-    private final String attr_minBufferTime="monBufferTime";
-    private final String attr_minimumUpdatePeriod="minimumUpdatePeriod";
-    private final String attr_type="type";
-    private final String attr_availabilityStartTime="availabilityStartTime";
-    private final String attr_timeShiftBufferDepth="timeShiftBufferDepth";
-    private final String attr_mediaPresentationDuration="mediaPresentationDuration";
-    private final String attr_profiles="profiles";
-    private final String tag_ProgramInformation="ProgramInformation";
-    private final String attr_moreInformationURL="moreInformationURL";
-    private final String tag_Title="Title";
-    private final String tag_Period="Period";
-    private final String attr_start="start";
-    private final String attr_duration="duration";
-    private final String tag_BaseUrl="BaseUrl";
-    private final String tag_AdaptationSet="AdaptationSet";
-    private final String attr_segmentAligment="segmentAlignment";
-    private final String attr_maxWidth="maxWidth";
-    private final String attr_maxHeight="maxHeight";
-    private final String attr_maxFrameRate="maxFrameRate";
-    private final String attr_par="par";
-    private final String attr_lang="lang";
-    private final String tag_Representation="Representation";
-    private final String attr_id="id";
-    private final String attr_mimeType="mimeType";
-    private final String attr_codecs="codecs";
-    private final String attr_width="width";
-    private final String attr_height="height";
-    private final String attr_frameRate="frameRate";
-    private final String attr_sar="sar";
-    private final String attr_startsWithSAP="startsWithSAP";
-    private final String attr_bandwidth="bandwidth";
-    private final String attr_timeScale="timescale";
-    private final String attr_media="media";
-    private final String attr_startNumber="startNumber";
-    private final String attr_initialization="initialization";
-    private final String tag_SegmentTemplate="SegmentTemplate";
-    private final String tag_AudioChannelConfiguration="AudioChannelConfiguration";
+    private final static String tag_MPD="MPD";
+    private final static String attr_xmlString="xmlns";
+    private final static String attr_minBufferTime="monBufferTime";
+    private final static String attr_minimumUpdatePeriod="minimumUpdatePeriod";
+    private final static String attr_type="type";
+    private final static String attr_availabilityStartTime="availabilityStartTime";
+    private final static String attr_timeShiftBufferDepth="timeShiftBufferDepth";
+    private final static String attr_mediaPresentationDuration="mediaPresentationDuration";
+    private final static String attr_profiles="profiles";
+    private final static String tag_ProgramInformation="ProgramInformation";
+    private final static String attr_moreInformationURL="moreInformationURL";
+    private final static String tag_Title="Title";
+    private final static String tag_Period="Period";
+    private final static String attr_start="start";
+    private final static String attr_duration="duration";
+    private final static String tag_BaseUrl="BaseUrl";
+    private final static String tag_AdaptationSet="AdaptationSet";
+    private final static String attr_segmentAligment="segmentAlignment";
+    private final static String attr_maxWidth="maxWidth";
+    private final static String attr_maxHeight="maxHeight";
+    private final static String attr_maxFrameRate="maxFrameRate";
+    private final static String attr_par="par";
+    private final static String attr_lang="lang";
+    private final static String tag_Representation="Representation";
+    private final static String attr_id="id";
+    private final static String attr_mimeType="mimeType";
+    private final static String attr_codecs="codecs";
+    private final static String attr_width="width";
+    private final static String attr_height="height";
+    private final static String attr_frameRate="frameRate";
+    private final static String attr_sar="sar";
+    private final static String attr_startsWithSAP="startsWithSAP";
+    private final static String attr_bandwidth="bandwidth";
+    private final static String attr_timeScale="timescale";
+    private final static String attr_media="media";
+    private final static String attr_startNumber="startNumber";
+    private final static String attr_initialization="initialization";
+    private final static String tag_SegmentTemplate="SegmentTemplate";
+    private final static String tag_AudioChannelConfiguration="AudioChannelConfiguration";
 
 
     public String attributes;
@@ -172,6 +172,8 @@ public final class MPD {
         return sb;
     }
 
+    private static boolean first=true;
+    private static long calculatedAvailableStartTime;
     public boolean toDynamic(@NonNull HashMap<String, ContentFileLocation> videos, @NonNull HashMap<String, ContentFileLocation> audios){
         try {
 
@@ -213,13 +215,16 @@ public final class MPD {
                 adapSetVideoIndex[i]=0;
                 adapSetAudioIndex[i]=0;
             }
+            if (first) {
+                calculatedAvailableStartTime = getAvailabilityStartTimeFromVideos(videos);
+                first = false;
+            }
+            availabilityStartTime=calculatedAvailableStartTime;
 
-            getAvailabilityStartTimeFromVideos(videos);
 
 
 
-
-                availabilityStartTime=parseXsDateTime(getAttribute(attr_availabilityStartTime));  //TODO We want the real startTime calculated by the receiving of packets.
+//                availabilityStartTime=parseXsDateTime(getAttribute(attr_availabilityStartTime));  //TODO We want the real startTime calculated by the receiving of packets.
                 Log.d(TAG, "Availability Start Time in ms: "+availabilityStartTime);
 //                for (int period=0; period<periods.size(); period++){
 //                    oldestVideoTime[period]=(long) (oldestVideoIndex[period]*videoSegmentDuration[period]*1000);
@@ -246,8 +251,8 @@ public final class MPD {
 //                        }
 //                    }
 //                }
-                availabilityStartTime+=FluteReceiver.getInstance().getTimeOffset();
-                Log.d(TAG, "Availability adjusted Start Time in ms: "+availabilityStartTime);
+//                availabilityStartTime+=FluteReceiver.getInstance().getTimeOffset();
+//                Log.d(TAG, "Availability adjusted Start Time in ms: "+availabilityStartTime);
 
             SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
             formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -255,10 +260,9 @@ public final class MPD {
 
             Log.d(TAG, "Availability adjusted Start Time: "+date);
 
-            setAttribute(attr_availabilityStartTime,date);
-
-            setAttribute(attr_timeShiftBufferDepth,"PT5S");
-                setAttribute("suggestedPresentationDelay","PT1.5S");
+//            setAttribute(attr_availabilityStartTime,date);
+//            setAttribute(attr_timeShiftBufferDepth,"PT0S");
+//            setAttribute("suggestedPresentationDelay","PT0S");
 
 
 
@@ -272,9 +276,9 @@ public final class MPD {
 
     public long getAvailabilityStartTimeFromVideos(HashMap<String,ContentFileLocation> videos){
 
-        long timeOffset=0;
-        try {
-            long availabilityStartTime=parseXsDateTime(getAttribute(attr_availabilityStartTime));  //TODO We want the real startTime calculated by the receiving of packets.
+//        long timeOffset=0;
+//        try {
+//            long availabilityStartTime=parseXsDateTime(getAttribute(attr_availabilityStartTime));  //TODO We want the real startTime calculated by the receiving of packets.
             loop:for (int period = 0; period < periods.size(); period++) {
                 String baseUrl=periods.get(period).getAttribute(tag_BaseUrl)!=""?periods.get(period).getAttribute(tag_BaseUrl):"/";
                 for (int adaptationSet = 0; adaptationSet < 2; adaptationSet++) {
@@ -289,17 +293,17 @@ public final class MPD {
                                 if (video.getKey().startsWith(check[0]) && (video.getKey().endsWith(check[1]))) {
                                     int videoSegmentNumber = Integer.parseInt(video.getKey().replace(check[0], "").replace(check[1], ""));
                                     int periodStartNumber=Integer.parseInt(videoTemplate.getAttribute(attr_startNumber));
-                                    double videoSegmentDuration=Double.parseDouble(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute(attr_duration))/
+                                    double videoSegmentDuration=(long)1000*Double.parseDouble(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute(attr_duration))/
                                             Double.parseDouble(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute(attr_timeScale));
                                     long periodStartTime=parseXsDuration(periods.get(period).getAttribute(attr_start));
                                     long periodDuration=parseXsDuration(periods.get(period).getAttribute(attr_duration));
                                     long videoStartTime=video.getValue().time;
-                                    long periodEndNumber=periodStartNumber+(long)(periodDuration/(videoSegmentDuration*1000));
+                                    long periodEndNumber=periodStartNumber+(long)(periodDuration/videoSegmentDuration);
                                     if (videoSegmentNumber>=periodStartNumber && videoSegmentNumber<periodEndNumber) {
-                                        long videoSegmentOffset = (long) ((videoSegmentNumber - periodStartNumber) * videoSegmentDuration) + periodStartTime+availabilityStartTime;
-                                        long availabilityTimeCalculated = videoStartTime - videoSegmentOffset;
-                                        Log.d(TAG, "Difference in availability Times calc_from_videos - manifest: " + (availabilityTimeCalculated - availabilityStartTime));
-                                        return availabilityTimeCalculated;
+                                        long videoSegmentOffset =  (long) ((videoSegmentNumber - periodStartNumber) * videoSegmentDuration) + periodStartTime;
+                                        long availabilityTime = videoStartTime - videoSegmentOffset;
+//                                        Log.d(TAG, "Difference in availability Times calc_from_videos - manifest: "  + (availabilityTime-availabilityStartTime));
+                                        return availabilityTime;
                                     }
 
                                 }
@@ -312,9 +316,9 @@ public final class MPD {
             }
 
 
-        } catch (ParserException e) {
-            e.printStackTrace();
-        }
+//        } catch (ParserException e) {
+//            e.printStackTrace();
+//        }
         return -1;
     }
 
