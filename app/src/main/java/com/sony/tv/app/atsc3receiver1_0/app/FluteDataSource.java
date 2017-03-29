@@ -37,8 +37,14 @@ public class FluteDataSource implements DataSource {
         indexToFileManager=ATSC3.dataSourceIndex;
         fluteReceiver=FluteReceiver.getInstance();
         fileManager=fluteReceiver.mFluteTaskManager[indexToFileManager].fileManager;
+        if (thread>2){
+            Log.d(TAG,"Created new FluteDataSource >2: "+thread);
+        }
+
         this.thread=thread;
-        Log.d(TAG, "Created new FluteDataSource at thread: "+thread);
+
+
+        Log.d(TAG, "Created new FluteDataSource at thread: "+thread+ "  that points to filemanager at index: "+indexToFileManager);
 
     }
     @Override

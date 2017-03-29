@@ -193,9 +193,9 @@ public class DefaultDashChunkSource implements DashChunkSource {
 
     long nowUs = getNowUnixTimeUs();
     int firstAvailableSegmentNum = representationHolder.getFirstSegmentNum();
-    //int lastAvailableSegmentNum = representationHolder.getLastSegmentNum();
+    int lastAvailableSegmentNum = representationHolder.getLastSegmentNum();
     //***********************Graham Experimental************************
-    int lastAvailableSegmentNum = DashSegmentIndex.INDEX_UNBOUNDED;
+//    int lastAvailableSegmentNum = DashSegmentIndex.INDEX_UNBOUNDED;
     //********************************************************************
     boolean indexUnbounded = lastAvailableSegmentNum == DashSegmentIndex.INDEX_UNBOUNDED;
     if (indexUnbounded) {
@@ -231,6 +231,7 @@ public class DefaultDashChunkSource implements DashChunkSource {
         || (missingLastSegment && segmentNum >= lastAvailableSegmentNum)) {
       // This is beyond the last chunk in the current manifest.
       out.endOfStream = !manifest.dynamic || (periodIndex < manifest.getPeriodCount() - 1);
+
       return;
     }
 

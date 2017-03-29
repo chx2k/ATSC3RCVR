@@ -28,6 +28,9 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 
 public class FluteFileManager {
+
+    private static final long AVAILABILITY_TIME_OFFSET=2500;
+
     //        HashMap<String, ContentFileLocation> mapContentLocations;
     private static final String TAG="FileManager";
     public static final int MAX_SIGNALING_BUFFERSIZE=10000;
@@ -37,21 +40,21 @@ public class FluteFileManager {
 
     private static final int SERVER_TIME_OFFSET=7100;
 
-    private HashMap<String, ContentFileLocation> mapFileLocationsSig=new HashMap<>();
-    private HashMap<String, ContentFileLocation> mapFileLocationsAud=new HashMap<>();
-    private HashMap<String, ContentFileLocation> mapFileLocationsVid=new HashMap<>();
+    private HashMap<String, ContentFileLocation> mapFileLocationsSig;
+    private HashMap<String, ContentFileLocation> mapFileLocationsAud;
+    private HashMap<String, ContentFileLocation> mapFileLocationsVid;
 
-    private ArrayList<HashMap<String, ContentFileLocation>> arrayMapFileLocations = new ArrayList<>();
-    private HashMap<Integer,String> map_TOI_FileNameSig = new HashMap<>();
-    private HashMap<Integer,String> map_TOI_FileNameAud = new HashMap<>();
-    private HashMap<Integer,String> map_TOI_FileNameVid = new HashMap<>();
+    private ArrayList<HashMap<String, ContentFileLocation>> arrayMapFileLocations;
+    private HashMap<Integer,String> map_TOI_FileNameSig;
+    private HashMap<Integer,String> map_TOI_FileNameAud;
+    private HashMap<Integer,String> map_TOI_FileNameVid;
     private ArrayList<HashMap<Integer,String>> array_MapTOI_FileName =new ArrayList<>();
-    private HashMap<Integer, Short> mapGetTSIFromBufferNumber=new HashMap<>();             //retrieve the relevant FileManager from the TSI value
-    private HashMap<Short, Integer> mapGetBufferNumberFromTSI=new HashMap<>();             //retrieve the relevant FileManager from the TSI value
+    private HashMap<Integer, Short> mapGetTSIFromBufferNumber;             //retrieve the relevant FileManager from the TSI value
+    private HashMap<Short, Integer> mapGetBufferNumberFromTSI;             //retrieve the relevant FileManager from the TSI value
 
-    private byte[] signalingStorage=new byte[MAX_SIGNALING_BUFFERSIZE];
-    private byte[] videoStorage=new byte[MAX_VIDEO_BUFFERSIZE];
-    private byte[] audioStorage=new byte[MAX_AUDIO_BUFFERSIZE];
+    private byte[] signalingStorage;
+    private byte[] videoStorage;
+    private byte[] audioStorage;
 
 
 
@@ -67,7 +70,35 @@ public class FluteFileManager {
     private static FluteFileManager sInstance;
     public DataSpec baseDataSpec;
 
+
+
+    private static boolean first;
+    private static long availabilityStartTime;
+
     public FluteFileManager(DataSpec dataSpec){
+        sInstance=this;
+        baseDataSpec=dataSpec;
+
+    }
+
+    public void reset(){
+
+        mapFileLocationsSig=new HashMap<>();
+        mapFileLocationsAud=new HashMap<>();
+        mapFileLocationsVid=new HashMap<>();
+
+        arrayMapFileLocations = new ArrayList<>();
+        map_TOI_FileNameSig = new HashMap<>();
+        map_TOI_FileNameAud = new HashMap<>();
+        map_TOI_FileNameVid = new HashMap<>();
+        array_MapTOI_FileName =new ArrayList<>();
+        mapGetTSIFromBufferNumber=new HashMap<>();             //retrieve the relevant FileManager from the TSI value
+        mapGetBufferNumberFromTSI=new HashMap<>();             //retrieve the relevant FileManager from the TSI value
+
+        signalingStorage=new byte[MAX_SIGNALING_BUFFERSIZE];
+        videoStorage=new byte[MAX_VIDEO_BUFFERSIZE];
+        audioStorage=new byte[MAX_AUDIO_BUFFERSIZE];
+
         arrayMapFileLocations.add(0,mapFileLocationsSig);
         arrayMapFileLocations.add(1,mapFileLocationsVid);
         arrayMapFileLocations.add(2,mapFileLocationsAud);
@@ -86,10 +117,11 @@ public class FluteFileManager {
         storage.add(0,signalingStorage);
         storage.add(1,videoStorage);
         storage.add(2,audioStorage);
-        sInstance=this;
-        baseDataSpec=dataSpec;
+
+        first=true;
 
     }
+
 
     public FluteFileManager getInstance(){ return sInstance; }
 //    public static FluteFileManager getInstance(){ return sInstance; }
@@ -350,15 +382,13 @@ public class FluteFileManager {
 
 
 
-
-    private static boolean first=true;
-    private static long availabilityStartTime;
     public byte[] MPDParse(String mpdData){
 
         if (first){
             MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
             mpdParser.MPDParse();
-            availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+2000;
+            availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+AVAILABILITY_TIME_OFFSET;
+            Log.d(TAG,"AvailabilityStartTime set to "+availabilityStartTime);
 
             first=false;
         }
@@ -370,14 +400,15 @@ public class FluteFileManager {
         String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
         String[] result2=result[1].split("[\"]+",2);
         mpdData=result[0].concat("availabilityStartTime=\"").concat(availabilityStartTimeString).concat("\"").concat(result2[1]);
+        Log.d(TAG,"AvailabilityStartTime= "+availabilityStartTimeString);
 
-        double durationUs=(c.getTime().getTime()- (availabilityStartTime)+2000 )/1000;
-        String duration=String.format("PT%1.2fS", durationUs);
-        result=mpdData.split("mediaPresentationDuration[\\s]?=[\\s]?\"");
-        result2=result[1].split("[\"]+",2);
-
-        mpdData=result[0].concat("mediaPresentationDuration=\"").concat(duration).concat("\"").concat(result2[1]);
+//        double durationUs=(c.getTime().getTime()- (availabilityStartTime)+2500 )/1000;
+//        String duration=String.format("PT%1.2fS", durationUs);
+//        result=mpdData.split("mediaPresentationDuration[\\s]?=[\\s]?\"");
+//        result2=result[1].split("[\"]+",2);
 //
+//        mpdData=result[0].concat("mediaPresentationDuration=\"").concat(duration).concat("\"").concat(result2[1]);
+////
 //        String[] result=mpdData.split("(?<=availabilityStartTime[\\s]?=[\\s]?\"[0-9\\-]{10}[\\s]?[\\s]?)");
 //        String[] result2=result[2].split("[\"]+",2);
 //        mpdData=result[0].trim().concat("T").concat(result2[0].concat("Z").concat("\"").concat(result2[1]));

@@ -40,6 +40,7 @@ public class FluteTaskManager implements Runnable{
     @Override
     public void run(){
         Log.d(TAG, "New thread running FluteTaskManager created");
+        fileManager.reset();
 
         udpDataSource = new UdpDataSource(new TransferListener<UdpDataSource>() {
             @Override
