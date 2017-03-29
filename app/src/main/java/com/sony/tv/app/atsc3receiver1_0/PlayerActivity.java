@@ -22,6 +22,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -202,6 +203,17 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
 
   @Override
   public boolean dispatchKeyEvent(KeyEvent event) {
+
+    Log.d("KEY","Key Pressed: "+event.getKeyCode());
+    boolean channelChange=false;
+    if (event.getKeyCode()==166){
+      channelChange=ATSC3.channelUp(this);
+    }else if(event.getKeyCode()==167){
+      channelChange=ATSC3.channelDown(this);
+    }
+    if (channelChange){
+
+    }
     // Show the controls on any key event.
     simpleExoPlayerView.showController();
     // If the event was not handled then see if the player view can handle it as a media key event.
@@ -359,7 +371,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         FrameworkMediaDrm.newInstance(uuid), drmCallback, null, mainHandler, eventLogger);
   }
 
-  private void releasePlayer() {
+  public void releasePlayer() {
     if (player != null) {
       debugViewHelper.stop();
       debugViewHelper = null;

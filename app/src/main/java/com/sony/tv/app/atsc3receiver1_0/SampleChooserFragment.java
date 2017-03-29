@@ -35,6 +35,7 @@ import android.widget.Toast;
 
 
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
+import com.sony.tv.app.atsc3receiver1_0.app.ATSCSample;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
@@ -229,27 +230,7 @@ public class SampleChooserFragment extends Fragment {
   }
 
 
-    public final class ATSCSample extends Sample {
 
-        public final String uri;
-    //        public final String extension;
-
-        public ATSCSample(String name, UUID drmSchemeUuid, String drmLicenseUrl,
-                          String[] drmKeyRequestProperties, boolean preferExtensionDecoders, String uri, String port, String fileName) {
-            super(name, drmSchemeUuid, drmLicenseUrl, drmKeyRequestProperties, preferExtensionDecoders);
-            this.uri = "udp://"+uri+":"+port+"/"+fileName;
-    //            this.extension = extension;
-        }
-
-        @Override
-        public Intent buildIntent(Context context) {
-            return super.buildIntent(context)
-                    .setData(Uri.parse(uri))
-    //                    .putExtra(PlayerActivity.EXTENSION_EXTRA, extension)
-                    .setAction(PlayerActivity.ACTION_VIEW);
-        }
-
-    }
 
     private final class SampleAdapter extends BaseExpandableListAdapter {
 

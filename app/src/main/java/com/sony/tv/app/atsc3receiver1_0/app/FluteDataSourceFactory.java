@@ -10,10 +10,10 @@ import com.google.android.exoplayer2.upstream.FileDataSource;
  */
 
 public class FluteDataSourceFactory implements DataSource.Factory{
-    public static int thread;
+    public static int thread=-1;
 
     public FluteDataSourceFactory(){
-        thread=-1;
+//        thread=-1;
     }
     @Override
     public DataSource createDataSource() {
