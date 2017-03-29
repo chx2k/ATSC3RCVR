@@ -62,10 +62,12 @@ public class FluteFileManager {
     private int[] firstAvailablePosition={0,0,0};
     private int[] maxAvailablePosition={MAX_SIGNALING_BUFFERSIZE-1,  MAX_VIDEO_BUFFERSIZE-1, MAX_AUDIO_BUFFERSIZE-1,};
 
-    private static FluteFileManager sInstance=new FluteFileManager();
+//    private static FluteFileManager sInstance=new FluteFileManager();
     private FluteTaskManager mFluteTaskManager;
+    private static FluteFileManager sInstance;
+    public DataSpec baseDataSpec;
 
-    private FluteFileManager(){
+    public FluteFileManager(DataSpec dataSpec){
         arrayMapFileLocations.add(0,mapFileLocationsSig);
         arrayMapFileLocations.add(1,mapFileLocationsVid);
         arrayMapFileLocations.add(2,mapFileLocationsAud);
@@ -84,11 +86,14 @@ public class FluteFileManager {
         storage.add(0,signalingStorage);
         storage.add(1,videoStorage);
         storage.add(2,audioStorage);
-
+        sInstance=this;
+        baseDataSpec=dataSpec;
 
     }
 
-    public static FluteFileManager getInstance(){ return sInstance; }
+    public FluteFileManager getInstance(){ return sInstance; }
+//    public static FluteFileManager getInstance(){ return sInstance; }
+
 
     private static final int MPD=0;
     private static final int SLS=1;
@@ -120,7 +125,7 @@ public class FluteFileManager {
 
     public long open(DataSpec dataSpec, int thread) throws IOException {
         lock.lock();
-        mFluteTaskManager=FluteReceiver.getInstance().mFluteTaskManager;
+//        mFluteTaskManager=FluteReceiver.getInstance().mFluteTaskManager;
 
         try{
 
@@ -133,8 +138,10 @@ public class FluteFileManager {
             Log.d("TAG", "ExoPlayer trying to open :"+dataSpec.uri);
             String host = dataSpec.uri.getHost();
             int port = dataSpec.uri.getPort();
-            if ( mFluteTaskManager.dataSpec.uri.getHost().equals(host) && mFluteTaskManager.dataSpec.uri.getPort()==port){
-                String path=dataSpec.uri.getPath();
+//            if ( mFluteTaskManager.dataSpec.uri.getHost().equals(host) && mFluteTaskManager.dataSpec.uri.getPort()==port){
+            if (baseDataSpec.uri.getHost().equals(host) && baseDataSpec.uri.getPort()==port){
+
+            String path=dataSpec.uri.getPath();
                 bytesToSkip[thread]=(int) dataSpec.position;
                 FileBuffer fb = openInternal(path, thread);
                 if (fb==null){

@@ -56,6 +56,7 @@ public class MainActivity extends Activity {
     private static boolean stComplete=false;
     private static boolean first=true;
     public static boolean ExoPlayerStarted=false;
+    public static int exoPlayerDataSourceIndex=0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -180,7 +181,7 @@ public class MainActivity extends Activity {
 
     public void startFluteSession(int type){
 //        if (mLLSReceiver.slt!=null){
-//            for (int i=0; i<mLLSReceiver.slt.mSLTData.mServices.size(); i++){
+            for (int i=0; i<mLLSReceiver.slt.mSLTData.mServices.size(); i++){
 //                Uri uri=Uri.parse((mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress + ":" +
 //                        mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort));
 //                String port;
@@ -191,18 +192,20 @@ public class MainActivity extends Activity {
 //                String uriString="udp://239.255.8.1:4005";
 //                String uriString="udp://".concat(mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationIpAddress).concat(":").concat(
 //                        mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationUdpPort);
-                String uriString="udp://".concat(mLLSReceiver.slt.mSLTData.mServices.get(1).broadcastServices.get(0).slsDestinationIpAddress).concat(":").concat(
-                mLLSReceiver.slt.mSLTData.mServices.get(1).broadcastServices.get(0).slsDestinationUdpPort);
+                String host="239.255.8."+String.format("%d",i+1);
+
+                String uriString="udp://".concat(host).concat(":").concat(
+                mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort);
 
 //                Uri uri=Uri.parse((mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationIpAddress + ":" +
 
                 Log.d(TAG,"Opening: "+uriString);
                 Uri uri=Uri.parse(uriString);
                 DataSpec d=new DataSpec(uri);
-                mFluteReceiver.start(d, timeOffset);
+                mFluteReceiver.start(d, i);
 //                Log.d(TAG, "Started Flute Signalling receiver: "+i);
 //            }
-//        }
+        }
     }
     public void stopFluteSession(int type){
 

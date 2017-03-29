@@ -2,12 +2,14 @@ package com.sony.tv.app.atsc3receiver1_0.app;
 
 import android.net.Uri;
 import android.util.Log;
+import android.widget.ActionMenuView;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.UdpDataSource;
 import com.sony.tv.app.atsc3receiver1_0.BuildConfig;
+import com.sony.tv.app.atsc3receiver1_0.MainActivity;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -29,10 +31,12 @@ public class FluteDataSource implements DataSource {
     private FluteReceiver fluteReceiver;
     private FluteFileManager fileManager;
     private int thread;
+    private int indexToFileManager=0;
 
     public FluteDataSource(int thread){
+        indexToFileManager=ATSC3.dataSourceIndex;
         fluteReceiver=FluteReceiver.getInstance();
-        fileManager=FluteFileManager.getInstance();
+        fileManager=fluteReceiver.mFluteTaskManager[indexToFileManager].fileManager;
         this.thread=thread;
         Log.d(TAG, "Created new FluteDataSource at thread: "+thread);
 
@@ -40,7 +44,6 @@ public class FluteDataSource implements DataSource {
     @Override
     public long open(DataSpec dataSpec) throws IOException {
         mExoPlayerUri=dataSpec;
-
         return fileManager.open(dataSpec, thread);
 
     }

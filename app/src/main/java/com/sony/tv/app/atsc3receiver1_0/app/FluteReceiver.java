@@ -41,7 +41,7 @@ public class FluteReceiver  {
 
     private HashMap<String, Integer> mapFileContainsToTSI = new HashMap<>();                //retrieve the relevant TSI based on the name of the file
 
-    public FluteTaskManager mFluteTaskManager;
+    public static FluteTaskManager[] mFluteTaskManager=new FluteTaskManager[2];
 //    private FluteFileManager mFileManager;
     private FluteTaskManager mAudioContentFluteTaskManager;
     private FluteTaskManager mVideoContentFluteTaskManager;
@@ -122,12 +122,11 @@ public class FluteReceiver  {
     /**
      * start the task manager
      */
-    public void start(DataSpec dataSpec, long timeOffset) {
+    public void start(DataSpec dataSpec, int index) {
 
-            this.timeOffset=timeOffset;
 
-            mFluteTaskManager = new FluteTaskManager(dataSpec);
-            new Thread(mFluteTaskManager).start();
+            mFluteTaskManager[index] = new FluteTaskManager(dataSpec);
+            new Thread(mFluteTaskManager[index]).start();
 
     }
 
@@ -135,9 +134,10 @@ public class FluteReceiver  {
      * stop the task manager
      */
     public void stop(){
-        if (null!=mFluteTaskManager)
-           mFluteTaskManager.stop();
-
+        if (null!=mFluteTaskManager[0])
+           mFluteTaskManager[0].stop();
+        if (null!=mFluteTaskManager[1])
+            mFluteTaskManager[1].stop();
     }
 
     /**

@@ -22,6 +22,7 @@ public class ATSC3 extends Application {
 
     protected String userAgent;
     private String TAG="ATSC3";
+    public static int dataSourceIndex;
     @Override
     public void onCreate() {
         super.onCreate();

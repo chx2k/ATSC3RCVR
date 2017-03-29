@@ -34,6 +34,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
@@ -187,7 +188,7 @@ public class SampleChooserFragment extends Fragment {
           @Override
           public boolean onChildClick(ExpandableListView parent, View view, int groupPosition,
                                       int childPosition, long id) {
-            onSampleSelected(groups.get(groupPosition).samples.get(childPosition));
+            onSampleSelected(groups.get(groupPosition).samples.get(childPosition), childPosition);
             return true;
           }
         });
@@ -218,9 +219,10 @@ public class SampleChooserFragment extends Fragment {
 
     }
 
-    private void onSampleSelected(Sample sample) {
+    private void onSampleSelected(Sample sample, int childPosition) {
 //        ((MainActivity)activity).stopLLSReceiver();
         ((MainActivity) activity).ExoPlayerStarted=true;
+        ATSC3.dataSourceIndex=childPosition;
         activity.startActivity(sample.buildIntent(context));
     }
 
