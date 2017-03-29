@@ -74,6 +74,7 @@ public class FluteFileManager {
 
     private static boolean first;
     private static long availabilityStartTime;
+    private static long availabilityStartTimeOffset;
 
     public FluteFileManager(DataSpec dataSpec){
         sInstance=this;
@@ -120,6 +121,10 @@ public class FluteFileManager {
 
         first=true;
 
+    }
+
+    public void resetTimeStamp(){
+        first=true;
     }
 
 
@@ -387,8 +392,15 @@ public class FluteFileManager {
         if (first){
             MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
             mpdParser.MPDParse();
-            availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+AVAILABILITY_TIME_OFFSET;
+            if (!"".equals(mpdParser.mpd.getAttribute("availabilityStartTimeOffset")))
+
+                availabilityStartTimeOffset=Long.parseLong(mpdParser.mpd.getAttribute("availabilityStartTimeOffset"));
+            else
+                availabilityStartTimeOffset=AVAILABILITY_TIME_OFFSET;
+            Log.d(TAG,"AvailabilityStartTimeOffset set to "+availabilityStartTimeOffset);
+            availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+availabilityStartTimeOffset;
             Log.d(TAG,"AvailabilityStartTime set to "+availabilityStartTime);
+
 
             first=false;
         }

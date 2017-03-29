@@ -49,12 +49,26 @@ public class ATSC3 extends Application {
         return new DefaultHttpDataSourceFactory(userAgent, bandwidthMeter);
     }
 
-    public static boolean channelUp(Activity activity){
+    public static boolean channelUp(final Activity activity){
         if (dataSourceIndex==1){
-            ATSCSample sample=getSampleFromIndex(dataSourceIndex);
-            activity.startActivity(sample.buildIntent(activity));
-            dataSourceIndex=0;
+//            final
+//            ((PlayerActivity) activity).releasePlayer();
 
+            new Thread(){
+                public void run(){
+//                    try {
+//                        Thread.sleep(100);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+                    dataSourceIndex=0;
+                    resetTimeStamp(dataSourceIndex);
+                    ATSCSample sample=getSampleFromIndex(dataSourceIndex);
+                    activity.startActivity(sample.buildIntent(activity));
+
+
+                }}.start();
+//            activity.startActivity(sample.buildIntent(activity));
             return true;
         }
         return false;
@@ -63,19 +77,21 @@ public class ATSC3 extends Application {
     public static boolean channelDown(final Activity activity){
 
         if (dataSourceIndex==0){
-            final ATSCSample sample=getSampleFromIndex(dataSourceIndex);
-            ((PlayerActivity) activity).releasePlayer();
+//            final
+//            ((PlayerActivity) activity).releasePlayer();
 
             new Thread(){
                 public void run(){
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+//                    try {
+//                        Thread.sleep(100);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
                     dataSourceIndex=1;
-
+                    resetTimeStamp(dataSourceIndex);
+                    ATSCSample sample=getSampleFromIndex(dataSourceIndex);
                     activity.startActivity(sample.buildIntent(activity));
+
 
 
                 }}.start();
@@ -94,6 +110,11 @@ public class ATSC3 extends Application {
         String name = "ManifestUpdate_Dynamic.mpd"; /* TODO detect automatically from USBD*/
         ATSCSample s = new ATSCSample(title, null, null, null, false, url, port, name);
         return s;
+    }
+
+    private static void resetTimeStamp(int index){
+
+        FluteReceiver.mFluteTaskManager[index].fileManager.resetTimeStamp();
     }
 
 }

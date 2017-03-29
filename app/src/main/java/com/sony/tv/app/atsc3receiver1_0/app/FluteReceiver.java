@@ -130,6 +130,13 @@ public class FluteReceiver  {
 
     }
 
+    public void resetTimeStamp(int index) {
+
+        mFluteTaskManager[index].fileManager.resetTimeStamp();
+
+
+    }
+
     /**
      * stop the task manager
      */
