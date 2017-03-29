@@ -58,7 +58,7 @@ public class FluteDataSource implements DataSource {
 
     @Override
     public void close() throws IOException {
-
+        Log.e(TAG, "Closed socket");
     }
 
 }

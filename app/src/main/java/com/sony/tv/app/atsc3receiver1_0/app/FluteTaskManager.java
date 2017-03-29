@@ -87,6 +87,7 @@ public class FluteTaskManager implements Runnable{
 
     public void stop(){
         stopRequest=true;
+        udpDataSource.close();
         sInstance.handleTaskState(this, FluteReceiver.TASK_STOPPED);
     }
 

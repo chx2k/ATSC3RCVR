@@ -168,7 +168,7 @@ public class SampleChooserFragment extends Fragment {
             String port = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort;
             String name = "ManifestUpdate_Dynamic.mpd"; /* TODO detect automatically from USBD*/
             String title = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).shortServiceName;
-            ATSCSample s = new ATSCSample(title, null, null, null, false, "239.255.8.1", "3000", name);
+            ATSCSample s = new ATSCSample(title, null, null, null, false, url, port, name);
             g.samples.add(s);
         }
         groups.add(0,g);
@@ -220,6 +220,7 @@ public class SampleChooserFragment extends Fragment {
 
     private void onSampleSelected(Sample sample) {
 //        ((MainActivity)activity).stopLLSReceiver();
+        ((MainActivity) activity).ExoPlayerStarted=true;
         activity.startActivity(sample.buildIntent(context));
     }
 

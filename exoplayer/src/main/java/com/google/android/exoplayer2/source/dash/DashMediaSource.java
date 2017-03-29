@@ -559,18 +559,18 @@ public final class DashMediaSource implements MediaSource {
   }
 
   private long getNowUnixTimeUs() {
-    if (elapsedRealtimeOffsetMs != 0) {
-      Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-      return 1000*cal.getTimeInMillis();
-        } else {
-      return C.msToUs(System.currentTimeMillis());
-    }
-
 //    if (elapsedRealtimeOffsetMs != 0) {
-//      return C.msToUs(SystemClock.elapsedRealtime() + elapsedRealtimeOffsetMs);
-//    } else {
+//      Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+//      return 1000*cal.getTimeInMillis();
+//        } else {
 //      return C.msToUs(System.currentTimeMillis());
 //    }
+
+    if (elapsedRealtimeOffsetMs != 0) {
+      return C.msToUs(SystemClock.elapsedRealtime() + elapsedRealtimeOffsetMs);
+    } else {
+      return C.msToUs(System.currentTimeMillis());
+    }
   }
 
   private static final class PeriodSeekInfo {

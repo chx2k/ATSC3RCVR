@@ -83,19 +83,15 @@ public class LLSReceiver {
                         slt= new ATSCXmlParse(llstask.mSLTData, "SLT").LLSParse();
 
                         saveLLSData(slt);
-                        if (firstSLT) {
-                            ((MainActivity) activityContext).callBackSLTFound();
-                            firstSLT = false;
-                        }
+                        ((MainActivity) activityContext).callBackSLTFound();
+
                         break;
                     case FOUND_ST:
                         Log.d(TAG,"FOUND ST");
                         systemTime= new ATSCXmlParse(llstask.mSTData, ATSCXmlParse.SYSTEMTIMETAG).LLSParse();
                         saveLLSData(systemTime);
-                        if (firstST){
-                            ((MainActivity) activityContext).callBackSTFound(systemTime.getPtpPrepend());
-                            firstST = false;
-                        }
+                        ((MainActivity) activityContext).callBackSTFound(systemTime.getPtpPrepend());
+
                         break;
                     case TASK_ERROR:
                         Log.d(TAG,"FOUND ERROR: "+llstask.error);
@@ -138,7 +134,8 @@ public class LLSReceiver {
      * stop the task manager
      */
     public void stop(){
-        mLLSTaskManager.stop();
+        if (null!=mLLSTaskManager)
+            mLLSTaskManager.stop();
         running=false;
     }
 
@@ -245,6 +242,7 @@ public class LLSReceiver {
 
         public void stop(){
             stopRequest=true;
+            udpDataSource.close();
             sInstance.handleTaskState(this, TASK_STOPPED);
         }
 

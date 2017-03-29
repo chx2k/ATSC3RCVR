@@ -5,6 +5,7 @@ import android.util.Log;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.upstream.DataSpec;
+import com.google.android.exoplayer2.util.Util;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -138,8 +139,9 @@ public class FluteFileManager {
                 FileBuffer fb = openInternal(path, thread);
                 if (fb==null){
                     Log.d(TAG, "Couldn't fine file while trying to open: "+path);
+
+                    //throw new IOException("Couldn't fine file while trying to open: "+path);
                     return -1;
-//                    throw new IOException;
                 }else{
                     fileBuffer[thread]=fb;
                     bytesToRead[thread]=fb.contentLength-bytesToSkip[thread];
@@ -288,6 +290,9 @@ public class FluteFileManager {
                             }
                         }
                         m.remove(l.fileName);
+                        l.fileName=fileName;
+                        Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
+                        l.time=now.getTime();
                         m.put(fileName, l);
                         t.remove(toi);
                         t.put(toi, fileName);
@@ -340,25 +345,31 @@ public class FluteFileManager {
 
 
     private static boolean first=true;
-    private static String availabilityStartTime;
+    private static long availabilityStartTime;
     public byte[] MPDParse(String mpdData){
 
         if (first){
             MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
             mpdParser.MPDParse();
-            long as=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+2000;
-            TimeZone timeZone = TimeZone.getTimeZone("UTC");
-            Calendar c= Calendar.getInstance(timeZone);
-            DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-            formatter.setTimeZone(timeZone);
-            availabilityStartTime= formatter.format(new Date(as));
-            first=false;
+            availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+2000;
 
-//            long t=getNowUnixTimeUs();
+            first=false;
         }
+        TimeZone timeZone = TimeZone.getTimeZone("UTC");
+        Calendar c= Calendar.getInstance(timeZone);
+        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        formatter.setTimeZone(timeZone);
+        String availabilityStartTimeString= formatter.format(new Date(availabilityStartTime));
         String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
         String[] result2=result[1].split("[\"]+",2);
-        mpdData=result[0].concat("availabilityStartTime=\"").concat(availabilityStartTime).concat("\"").concat(result2[1]);
+        mpdData=result[0].concat("availabilityStartTime=\"").concat(availabilityStartTimeString).concat("\"").concat(result2[1]);
+
+        double durationUs=(c.getTime().getTime()- (availabilityStartTime)+2000 )/1000;
+        String duration=String.format("PT%1.2fS", durationUs);
+        result=mpdData.split("mediaPresentationDuration[\\s]?=[\\s]?\"");
+        result2=result[1].split("[\"]+",2);
+
+        mpdData=result[0].concat("mediaPresentationDuration=\"").concat(duration).concat("\"").concat(result2[1]);
 //
 //        String[] result=mpdData.split("(?<=availabilityStartTime[\\s]?=[\\s]?\"[0-9\\-]{10}[\\s]?[\\s]?)");
 //        String[] result2=result[2].split("[\"]+",2);

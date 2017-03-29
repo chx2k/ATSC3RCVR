@@ -52,15 +52,26 @@ public class MainActivity extends Activity {
     private static final String TAG="MainActivity";
     private static boolean fragmentsInitialized=false;
     public long timeOffset=0;
-    private boolean sltComplete=false;
-    private boolean stComplete=false;
-    private boolean first=true;
+    private static boolean sltComplete=false;
+    private static boolean stComplete=false;
+    private static boolean first=true;
+    public static boolean ExoPlayerStarted=false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG,"Initializing ATSC MainActivity");
         setContentView(R.layout.activity_main);
+        ExoPlayerStarted=false;
+
         mLLSReceiver=LLSReceiver.getInstance();
         mFluteReceiver=FluteReceiver.getInstance();
+        mFluteReceiver.stop();
+        mLLSReceiver.stop();
+        sltComplete=false;
+        stComplete=false;
+        ExoPlayerStarted=false;
+        fragmentsInitialized=false;
         initLLSReceiver();
 
 //        initFragments();
@@ -68,15 +79,23 @@ public class MainActivity extends Activity {
     @Override
     public void onStop(){
         super.onStop();
+        if (!ExoPlayerStarted) {
+            FluteReceiver.getInstance().stop();
+            LLSReceiver.getInstance().stop();
+        }
+    }
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
         FluteReceiver.getInstance().stop();
         LLSReceiver.getInstance().stop();
     }
 
     @Override
-    public void onRestart(){
-        super.onRestart();
+    public void onStart(){
+        super.onStart();
 
-        LLSReceiver.getInstance().start(this);
+//        LLSReceiver.getInstance().start(this);
     }
     /**
      * Initialize fragments.
@@ -85,6 +104,7 @@ public class MainActivity extends Activity {
      * In this case we need to attach and configure existing Fragments instead of making new ones.
      */
     private void initFragments() {
+        Log.d(TAG,"Initializing Fragment");
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction transaction = fragmentManager.beginTransaction();
 
@@ -148,6 +168,8 @@ public class MainActivity extends Activity {
         }
     }
 
+
+
     public void callBackUSBDFound(String manifest){
 
     }
@@ -167,9 +189,10 @@ public class MainActivity extends Activity {
 //                        (mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress.concat(port));
                 // stopLLSReceiver();
 //                String uriString="udp://239.255.8.1:4005";
-                String uriString="udp://".concat(mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationIpAddress).concat(":").concat(
-                        mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationUdpPort);
-
+//                String uriString="udp://".concat(mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationIpAddress).concat(":").concat(
+//                        mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationUdpPort);
+                String uriString="udp://".concat(mLLSReceiver.slt.mSLTData.mServices.get(1).broadcastServices.get(0).slsDestinationIpAddress).concat(":").concat(
+                mLLSReceiver.slt.mSLTData.mServices.get(1).broadcastServices.get(0).slsDestinationUdpPort);
 
 //                Uri uri=Uri.parse((mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationIpAddress + ":" +
 

@@ -193,7 +193,10 @@ public class DefaultDashChunkSource implements DashChunkSource {
 
     long nowUs = getNowUnixTimeUs();
     int firstAvailableSegmentNum = representationHolder.getFirstSegmentNum();
-    int lastAvailableSegmentNum = representationHolder.getLastSegmentNum();
+    //int lastAvailableSegmentNum = representationHolder.getLastSegmentNum();
+    //***********************Graham Experimental************************
+    int lastAvailableSegmentNum = DashSegmentIndex.INDEX_UNBOUNDED;
+    //********************************************************************
     boolean indexUnbounded = lastAvailableSegmentNum == DashSegmentIndex.INDEX_UNBOUNDED;
     if (indexUnbounded) {
       // The index is itself unbounded. We need to use the current time to calculate the range of

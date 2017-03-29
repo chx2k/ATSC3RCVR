@@ -135,6 +135,7 @@ public class FluteReceiver  {
      * stop the task manager
      */
     public void stop(){
+        if (null!=mFluteTaskManager)
            mFluteTaskManager.stop();
 
     }
