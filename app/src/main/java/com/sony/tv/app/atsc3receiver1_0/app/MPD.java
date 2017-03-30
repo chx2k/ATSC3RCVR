@@ -28,7 +28,7 @@ public final class MPD {
     private final static String TAG="MPD";
     private final static String tag_MPD="MPD";
     private final static String attr_xmlString="xmlns";
-    private final static String attr_minBufferTime="monBufferTime";
+    private final static String attr_minBufferTime="minBufferTime";
     private final static String attr_minimumUpdatePeriod="minimumUpdatePeriod";
     private final static String attr_type="type";
     private final static String attr_availabilityStartTime="availabilityStartTime";
@@ -67,11 +67,11 @@ public final class MPD {
     private final static String tag_AudioChannelConfiguration="AudioChannelConfiguration";
 
 
-    public String attributes;
+//    public String attributes;
 
     private ProgramInformation programInformation;
     private StringBuilder sb;
-    public String getAttributes(){return attributes;}
+//    public String getAttributes(){return attributes;}
 
     private HashMap<String, String> attrs=new HashMap<>();
 
@@ -145,7 +145,9 @@ public final class MPD {
             e.printStackTrace();
         }
     }
-
+    public HashMap<String,String> getAttributes(){
+        return attrs;
+    }
     public String getAttribute(String attribute){
         return getAttribute(this.attrs, attribute);
     }

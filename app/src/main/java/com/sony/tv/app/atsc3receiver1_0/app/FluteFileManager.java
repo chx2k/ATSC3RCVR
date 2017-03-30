@@ -29,7 +29,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class FluteFileManager {
 
-    private static final long AVAILABILITY_TIME_OFFSET=2500;
+    private static final long AVAILABILITY_TIME_OFFSET=3500;
+    private static final String MIN_BUFFER_TIME="PT1.0S";
+    private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
+    private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";
+    private static final String SUGGESTED_PRESENTATION_DELAY="PT0S";
 
     //        HashMap<String, ContentFileLocation> mapContentLocations;
     private static final String TAG="FileManager";
@@ -389,30 +393,46 @@ public class FluteFileManager {
 
     public byte[] MPDParse(String mpdData){
 
+
+
+
         if (first){
             MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
             mpdParser.MPDParse();
-            if (!"".equals(mpdParser.mpd.getAttribute("availabilityStartTimeOffset")))
-
-                availabilityStartTimeOffset=Long.parseLong(mpdParser.mpd.getAttribute("availabilityStartTimeOffset"));
-            else
+//            if (!"".equals(mpdParser.mpd.getAttribute("availabilityStartTimeOffset")))
+//                availabilityStartTimeOffset=Long.parseLong(mpdParser.mpd.getAttribute("availabilityStartTimeOffset"));
+//            else
                 availabilityStartTimeOffset=AVAILABILITY_TIME_OFFSET;
-            Log.d(TAG,"AvailabilityStartTimeOffset set to "+availabilityStartTimeOffset);
+//            Log.d(TAG,"AvailabilityStartTimeOffset set to "+availabilityStartTimeOffset);
             availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+availabilityStartTimeOffset;
             Log.d(TAG,"AvailabilityStartTime set to "+availabilityStartTime);
-
-
             first=false;
         }
+        String[] mpdSplit=mpdData.split("\\?>",2);
+        String mpdHeaderStart=mpdSplit[1];
+        String[] mpdDataSplit=mpdHeaderStart.split(">",2);
+        String mpdHeader=mpdDataSplit[0].concat(">");
+
         TimeZone timeZone = TimeZone.getTimeZone("UTC");
         Calendar c= Calendar.getInstance(timeZone);
         DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         formatter.setTimeZone(timeZone);
         String availabilityStartTimeString= formatter.format(new Date(availabilityStartTime));
-        String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
-        String[] result2=result[1].split("[\"]+",2);
-        mpdData=result[0].concat("availabilityStartTime=\"").concat(availabilityStartTimeString).concat("\"").concat(result2[1]);
-        Log.d(TAG,"AvailabilityStartTime= "+availabilityStartTimeString);
+
+        MPDParser mpdParser=new MPDParser(mpdHeader, mapFileLocationsVid, mapFileLocationsAud);
+        mpdParser.MPDParse();
+        mpdParser.mpd.getAttributes().put("minBufferTime",MIN_BUFFER_TIME);
+        mpdParser.mpd.getAttributes().put("timeShiftBufferOffset",TIME_SHIFT_BUFFER_OFFSET);
+        mpdParser.mpd.getAttributes().put("minimumUpdatePeriod",MINIMUM_UPDATE_PERIOD);
+        mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
+        mpdParser.mpd.getAttributes().put("availabilityStartTime",availabilityStartTimeString);
+        mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(mpdDataSplit[1]);
+
+
+//        String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
+//        String[] result2=result[1].split("[\"]+",2);
+//        mpdData=result[0].concat("availabilityStartTime=\"").concat(availabilityStartTimeString).concat("\"").concat(result2[1]);
+//        Log.d(TAG,"AvailabilityStartTime= "+availabilityStartTimeString);
 
 //        double durationUs=(c.getTime().getTime()- (availabilityStartTime)+2500 )/1000;
 //        String duration=String.format("PT%1.2fS", durationUs);
