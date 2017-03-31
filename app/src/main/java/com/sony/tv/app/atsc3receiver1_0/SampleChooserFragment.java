@@ -168,7 +168,7 @@ public class SampleChooserFragment extends Fragment {
         for (int i=0; i< LLSReceiver.getInstance().slt.mSLTData.mServices.size(); i++) {
             String url = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress;
             String port = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort;
-            String name = "ManifestUpdate_Dynamic.mpd"; /* TODO detect automatically from USBD*/
+            String name = ATSC3.manifest; /* TODO detect automatically from USBD*/
             String title = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).shortServiceName;
             ATSCSample s = new ATSCSample(title, null, null, null, false, url, port, name);
             g.samples.add(s);

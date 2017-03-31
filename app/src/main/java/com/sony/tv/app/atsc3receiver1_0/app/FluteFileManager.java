@@ -30,7 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class FluteFileManager {
 
     private static final long AVAILABILITY_TIME_OFFSET=3500;
-    private static final String MIN_BUFFER_TIME="PT1.0S";
+    private static final String MIN_BUFFER_TIME="PT1S";
     private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
     private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";
     private static final String SUGGESTED_PRESENTATION_DELAY="PT0S";
@@ -452,12 +452,15 @@ public class FluteFileManager {
 //        return finalResult.getBytes();
     }
 
-    public boolean create(RouteDecode r) {
+    public boolean create(RouteDecode r) throws Exception {
         lock.lock();
         try {
             short tsi=r.tsi;
             int index=mapGetBufferNumberFromTSI.get(tsi);
-
+            if (tsi>2){
+                Log.e(TAG,"Asking for tsi> 2: :"+tsi);
+                throw new Exception("Asking for tsi> 2: :"+tsi);
+            }
             HashMap<Integer,String> t=array_MapTOI_FileName.get(index);
             HashMap<String, ContentFileLocation> m=arrayMapFileLocations.get(index);
             firstAvailablePosition[index] = (firstAvailablePosition[index] + r.contentLength) > maxAvailablePosition[index] ? 0 : firstAvailablePosition[index];

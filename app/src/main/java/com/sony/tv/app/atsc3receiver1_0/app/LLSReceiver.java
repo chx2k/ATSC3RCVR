@@ -21,6 +21,10 @@ import com.sony.tv.app.atsc3receiver1_0.MainActivity;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.zip.DataFormatException;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.Inflater;
 
 import static android.R.attr.type;
 
@@ -250,7 +254,22 @@ public class LLSReceiver {
 
             if (type==SLT ) {
                 sInstance.handleTaskState(this, FOUND_SLT);
-                mSLTData=new String (data,4,len-4);
+                InputStream in = new InputStream() {
+                    @Override
+                    public int read() throws IOException {
+                        return 0;
+                    }
+                };
+                byte[] dataout=new byte[len*10];
+                Inflater i=new Inflater();
+                i.setInput(data,4,len-4);
+                try {
+                    len=i.inflate(dataout);
+                    mSLTData=new String (data,0,len);
+                } catch (DataFormatException e) {
+                    mSLTData=new String (data,4,len-4);
+                }
+
             }else if (type==ST){
                 sInstance.handleTaskState(this, FOUND_ST);
                 mSTData=new String (data,4,len-4);

@@ -101,23 +101,24 @@ public class FluteTaskManager implements Runnable{
         sInstance.handleTaskState(this, FluteReceiver.FOUND_FLUTE_PACKET);
         String fileName;
         RouteDecode routeDecode=new RouteDecode(bytes, packetSize);
+        try {
+            if (routeDecode.toi == 0 && routeDecode.tsi == 0) {
+                fileName = routeDecode.fileName;
+                if (fileName.toLowerCase().contains(".mpd") || fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml")) {
+                    Log.d(TAG, "Found file: " + fileName);
 
-        if (routeDecode.toi==0 && routeDecode.tsi==0){
-            fileName=routeDecode.fileName;
-            if (fileName.toLowerCase().contains(".mpd") || fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml")) {
-                Log.d(TAG,"Found file: "+fileName);
-
+                    fileManager.create(routeDecode);
+                } else {
+                    Log.e(TAG, "Unrecognized fileName: " + fileName);
+                }
+            } else if (routeDecode.toi == 0) {
                 fileManager.create(routeDecode);
-            }else{
-                Log.e(TAG, "Unrecognized fileName: "+fileName );
+            } else {
+                fileManager.write(routeDecode, bytes, RouteDecode.PAYLOAD_START_POSITION, packetSize - RouteDecode.PAYLOAD_START_POSITION);
             }
-        }else if (routeDecode.toi==0) {
-            fileManager.create(routeDecode);
+        }catch (Exception e){
+            Log.e(TAG,e.getMessage());
         }
-        else {
-            fileManager.write(routeDecode, bytes, RouteDecode.PAYLOAD_START_POSITION, packetSize-RouteDecode.PAYLOAD_START_POSITION);
-        }
-
     }
 
 

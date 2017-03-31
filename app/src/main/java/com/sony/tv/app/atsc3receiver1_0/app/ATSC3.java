@@ -28,6 +28,7 @@ public class ATSC3 extends Application {
     protected String userAgent;
     private String TAG="ATSC3";
     public static int dataSourceIndex;
+    public static String manifest="ManifestUpdate_Dynamic.mpd";
     @Override
     public void onCreate() {
         super.onCreate();
@@ -107,9 +108,10 @@ public class ATSC3 extends Application {
         String url=host;
         String title = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).shortServiceName;
         String port = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort;
-        String name = "ManifestUpdate_Dynamic.mpd"; /* TODO detect automatically from USBD*/
+        String name = manifest; /* TODO detect automatically from USBD*/
         ATSCSample s = new ATSCSample(title, null, null, null, false, url, port, name);
         return s;
+
     }
 
     private static void resetTimeStamp(int index){
