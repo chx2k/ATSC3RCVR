@@ -3,9 +3,7 @@ package com.sony.tv.app.atsc3receiver1_0.app;
 import android.util.Log;
 
 import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.upstream.DataSpec;
-import com.google.android.exoplayer2.util.Util;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -20,14 +18,12 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
-
-
-
 /**
- * Created by xhamc on 3/21/17.
+ * Created by xhamc on 4/2/17.
  */
 
-public class FluteFileManager  implements FluteFileManagerBase {
+public class FluteFileManagerNAB implements FluteFileManagerBase {
+
 
     private static final long AVAILABILITY_TIME_OFFSET=3500;
     private static final String MIN_BUFFER_TIME="PT1S";
@@ -37,9 +33,9 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
     //        HashMap<String, ContentFileLocation> mapContentLocations;
     private static final String TAG="FileManager";
-    private static final int MAX_SIGNALING_BUFFERSIZE=10000;
-    private static final int MAX_VIDEO_BUFFERSIZE=20000000;
-    private static final int MAX_AUDIO_BUFFERSIZE=2000000;
+    public static final int MAX_SIGNALING_BUFFERSIZE=10000;
+    public static final int MAX_VIDEO_BUFFERSIZE=20000000;
+    public static final int MAX_AUDIO_BUFFERSIZE=2000000;
     private static final int MAX_FILE_RETENTION_MS=10000;
 
     private static final int SERVER_TIME_OFFSET=7100;
@@ -69,11 +65,10 @@ public class FluteFileManager  implements FluteFileManagerBase {
     private int[] firstAvailablePosition={0,0,0};
     private int[] maxAvailablePosition={MAX_SIGNALING_BUFFERSIZE-1,  MAX_VIDEO_BUFFERSIZE-1, MAX_AUDIO_BUFFERSIZE-1,};
 
-//    private static FluteFileManager sInstance=new FluteFileManager();
-    private FluteTaskManager mFluteTaskManager;
-    private static FluteFileManager sInstance;
-    private DataSpec signalingDataSpec;
-    private DataSpec avDataSpec;
+    //    private static FluteFileManager sInstance=new FluteFileManager();
+    private FluteTaskManagerNAB mFluteTaskManager;
+    private static FluteFileManagerNAB sInstance;
+    public DataSpec baseDataSpec;
 
 
 
@@ -81,16 +76,10 @@ public class FluteFileManager  implements FluteFileManagerBase {
     private static long availabilityStartTime;
     private static long availabilityStartTimeOffset;
 
-    public FluteFileManager(DataSpec dataSpec){
+    public FluteFileManagerNAB(DataSpec dataSpec){
         sInstance=this;
-        signalingDataSpec=dataSpec;
+        baseDataSpec=dataSpec;
 
-    }
-
-    public FluteFileManager(DataSpec signallingDataSpec, DataSpec av){
-        sInstance=this;
-        this.signalingDataSpec=signallingDataSpec;
-        this.avDataSpec=av;
     }
 
     public void reset(){
@@ -139,7 +128,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
     }
 
 
-    public FluteFileManager getInstance(){ return sInstance; }
+    public FluteFileManagerNAB getInstance(){ return sInstance; }
 //    public static FluteFileManager getInstance(){ return sInstance; }
 
 
@@ -168,6 +157,9 @@ public class FluteFileManager  implements FluteFileManagerBase {
     private FileBuffer[] fileBuffer=new FileBuffer[100];
 
 
+
+
+
     public long open(DataSpec dataSpec, int thread) throws IOException {
         lock.lock();
 //        mFluteTaskManager=FluteReceiver.getInstance().mFluteTaskManager;
@@ -184,10 +176,9 @@ public class FluteFileManager  implements FluteFileManagerBase {
             String host = dataSpec.uri.getHost();
             int port = dataSpec.uri.getPort();
 //            if ( mFluteTaskManager.dataSpec.uri.getHost().equals(host) && mFluteTaskManager.dataSpec.uri.getPort()==port){
-            if (signalingDataSpec.uri.getHost().equals(host) && signalingDataSpec.uri.getPort()==port ||
-                    avDataSpec.uri.getHost().equals(host) && avDataSpec.uri.getPort()==port){
+            if (baseDataSpec.uri.getHost().equals(host) && baseDataSpec.uri.getPort()==port){
 
-            String path=dataSpec.uri.getPath();
+                String path=dataSpec.uri.getPath();
                 bytesToSkip[thread]=(int) dataSpec.position;
                 FileBuffer fb = openInternal(path, thread);
                 if (fb==null){
@@ -282,39 +273,39 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
     }
 
-//
-//    public int read(String fileName, byte[] output, int offset,  int length){
-//        lock.lock();
-//        try {
-//            short tsi; int index=0; ContentFileLocation f;
-//            if (fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml") || fileName.toLowerCase().endsWith(".mpd")){
-//
-//                f = arrayMapFileLocations.get(0).get(fileName);
-//            }else {
-//                index=1;
-//                tsi=mapGetTSIFromBufferNumber.get(index);          //Audio tsi
-//                f = arrayMapFileLocations.get(tsi).get(fileName);     //Test for audio filename
-//                if (f==null){
-//                    index=2;
-//                    tsi=mapGetTSIFromBufferNumber.get(index);          //Video tsi
-//                    f=arrayMapFileLocations.get(tsi).get(fileName);  //test for Video filename
-//                }
-//            }
-//            if (f != null) {
-//                int bytesToFetch = Math.min(length, f.contentLength - offset);
-//                bytesToFetch = (bytesToFetch < 0) ? 0 : bytesToFetch;
-//                int startPosition = f.start + offset;
-//                System.arraycopy(storage.get(index), startPosition, output, 0, bytesToFetch);
-//                return bytesToFetch;
-//            }
-//            else {
-//                Log.d(TAG,"File not found whilst reading: "+fileName);
-//            }
-//            return 0;
-//        }finally{
-//            lock.unlock();
-//        }
-//    }
+
+    public int read(String fileName, byte[] output, int offset,  int length){
+        lock.lock();
+        try {
+            short tsi; int index=0; ContentFileLocation f;
+            if (fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml") || fileName.toLowerCase().endsWith(".mpd")){
+
+                f = arrayMapFileLocations.get(0).get(fileName);
+            }else {
+                index=1;
+                tsi=mapGetTSIFromBufferNumber.get(index);          //Audio tsi
+                f = arrayMapFileLocations.get(tsi).get(fileName);     //Test for audio filename
+                if (f==null){
+                    index=2;
+                    tsi=mapGetTSIFromBufferNumber.get(index);          //Video tsi
+                    f=arrayMapFileLocations.get(tsi).get(fileName);  //test for Video filename
+                }
+            }
+            if (f != null) {
+                int bytesToFetch = Math.min(length, f.contentLength - offset);
+                bytesToFetch = (bytesToFetch < 0) ? 0 : bytesToFetch;
+                int startPosition = f.start + offset;
+                System.arraycopy(storage.get(index), startPosition, output, 0, bytesToFetch);
+                return bytesToFetch;
+            }
+            else {
+                Log.d(TAG,"File not found whilst reading: "+fileName);
+            }
+            return 0;
+        }finally{
+            lock.unlock();
+        }
+    }
 
 
 
@@ -344,13 +335,13 @@ public class FluteFileManager  implements FluteFileManagerBase {
                         }
                         m.remove(l.fileName);
                         l.fileName=fileName;
-                        Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
+                        Date now= Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
                         l.time=now.getTime();
                         m.put(fileName, l);
                         t.remove(toi);
                         t.put(toi, fileName);
                         Log.d(TAG, "Wrote file: "+ fileName +" of size "+ l.contentLength + " to buffer: "+index + "which is connected to TSI: " + mapGetTSIFromBufferNumber.get(index));
-                        return fileName;  //complete
+                        return fileName;
                     }
                 }else {
                     Log.e(TAG, "Attempt at buffer write overrun: "+l.fileName);
@@ -408,7 +399,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
 //            if (!"".equals(mpdParser.mpd.getAttribute("availabilityStartTimeOffset")))
 //                availabilityStartTimeOffset=Long.parseLong(mpdParser.mpd.getAttribute("availabilityStartTimeOffset"));
 //            else
-                availabilityStartTimeOffset=AVAILABILITY_TIME_OFFSET;
+            availabilityStartTimeOffset=AVAILABILITY_TIME_OFFSET;
 
 //            Log.d(TAG,"AvailabilityStartTimeOffset set to "+availabilityStartTimeOffset);
             availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+availabilityStartTimeOffset;
@@ -474,7 +465,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
             Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
 
             ContentFileLocation c = new ContentFileLocation(r.fileName.concat(".new"), r.efdt_toi, firstAvailablePosition[index], r.contentLength,
-                                                                now.getTime(), now.getTime() + MAX_FILE_RETENTION_MS);
+                    now.getTime(), now.getTime() + MAX_FILE_RETENTION_MS);
             Iterator<Map.Entry<String,ContentFileLocation>> iterator= m.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<String,ContentFileLocation> it= iterator.next();
@@ -539,4 +530,3 @@ public class FluteFileManager  implements FluteFileManagerBase {
 //        }
     }
 }
-

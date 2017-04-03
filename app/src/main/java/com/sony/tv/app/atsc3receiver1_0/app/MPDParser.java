@@ -55,7 +55,7 @@ public class MPDParser {
                 } else if(eventType == XmlPullParser.START_TAG) {
                     mpd.addTag(xpp);
                 } else if(eventType == XmlPullParser.END_TAG) {
-
+                    mpd.endTag(xpp);
                 } else if(eventType == XmlPullParser.TEXT) {
                     mpd.addText(xpp);
                 }else{

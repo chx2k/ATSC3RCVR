@@ -6,26 +6,26 @@ import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.TransferListener;
 import com.google.android.exoplayer2.upstream.UdpDataSource;
 
-
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3.*;
 
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by xhamc on 3/22/17.
  */
 
-public class FluteTaskManager implements FluteTaskManagerBase{
+public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
+
+
 
     private static final String TAG="FluteTaskManager";
 
-    private FluteTaskManager mFluteTaskManager;
+    private FluteTaskManagerNAB mFluteTaskManager;
     public String error;
     Boolean stopRequest;
     public DataSpec signalingDataSpec;
     public DataSpec avDataSpec;
-//    public FluteFileManager fileManager=FluteFileManager.getInstance();
+    //    public FluteFileManager fileManager=FluteFileManager.getInstance();
     public FluteFileManagerBase fileManager;
 
     private UdpDataSource udpDataSource;
@@ -45,7 +45,7 @@ public class FluteTaskManager implements FluteTaskManagerBase{
 
 
 
-    public FluteTaskManager (DataSpec signalingDataSpec, CallBackInterface callBackInterface,  int index){      //Run for signalling
+    public FluteTaskManagerNAB (DataSpec signalingDataSpec, CallBackInterface callBackInterface,  int index){      //Run for signalling
         mFluteTaskManager=this;
         this.index=index;
         this.callBackInterface=callBackInterface;
@@ -56,7 +56,7 @@ public class FluteTaskManager implements FluteTaskManagerBase{
         new Thread(new RunUpdonThread(signalingDataSpec)).start();
     }
 
-    public FluteTaskManager (DataSpec signalingDataSpec, DataSpec avDataSpec, CallBackInterface callBackInterface, int index){
+    public FluteTaskManagerNAB (DataSpec signalingDataSpec, DataSpec avDataSpec, CallBackInterface callBackInterface, int index){
         mFluteTaskManager=this;
         this.index=index;
         first=false;
@@ -216,7 +216,6 @@ public class FluteTaskManager implements FluteTaskManagerBase{
         stopRequest=true;
         sInstance.handleTaskState(this, FluteReceiver.TASK_ERROR);
     }
-
 
 
 

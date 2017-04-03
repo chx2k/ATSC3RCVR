@@ -17,6 +17,8 @@ import com.google.android.exoplayer2.upstream.Loader;
 import com.google.android.exoplayer2.upstream.TransferListener;
 import com.google.android.exoplayer2.upstream.UdpDataSource;
 import com.sony.tv.app.atsc3receiver1_0.MainActivity;
+import com.sony.tv.app.atsc3receiver1_0.app.ATSC3.*;
+
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
@@ -59,6 +61,7 @@ public class LLSReceiver {
     private static final String TAG="LLS";
     private static LLSReceiver sInstance=new LLSReceiver();
     private static Activity activityContext;
+    private CallBackInterface callBackInterface;
 
     private LLSTaskManager mLLSTaskManager;
 
@@ -89,14 +92,14 @@ public class LLSReceiver {
                         slt= new ATSCXmlParse(llstask.mSLTData, "SLT").LLSParse();
 
                         saveLLSData(slt);
-                        ((MainActivity) activityContext).callBackSLTFound();
+                        callBackInterface.callBackSLTFound();
 
                         break;
                     case FOUND_ST:
                         Log.d(TAG,"FOUND ST");
                         systemTime= new ATSCXmlParse(llstask.mSTData, ATSCXmlParse.SYSTEMTIMETAG).LLSParse();
                         saveLLSData(systemTime);
-                        ((MainActivity) activityContext).callBackSTFound(systemTime.getPtpPrepend());
+                        callBackInterface.callBackSTFound();
 
                         break;
                     case TASK_ERROR:
@@ -125,8 +128,9 @@ public class LLSReceiver {
     /**
      * start the task manager
      */
-    public void start(Activity m){
+    public void start(Activity m, CallBackInterface callBackInterface){
         this.activityContext=m;
+        this.callBackInterface=callBackInterface;
         mLLSTaskManager=new LLSTaskManager();
         firstSLT=true;
         firstST=true;
@@ -256,42 +260,42 @@ public class LLSReceiver {
         public void transferDataToUIThread(int type, byte[] data, int len){
 
             if (type==SLT ) {
-                try{
-                GZIPInputStream gzipInputStream;
-                    gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data, 4, data.length - 4));
-                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
-                    gzipInputStream.close();
-                    mSLTData=new String (buffer,0,unziplen);
-                    sInstance.handleTaskState(this, FOUND_SLT);
-
-                }
-                catch(ZipException e){
+//                try{
+//                GZIPInputStream gzipInputStream;
+//                    gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data, 4, data.length - 4));
+//                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
+//                    gzipInputStream.close();
+//                    mSLTData=new String (buffer,0,unziplen);
+//                    sInstance.handleTaskState(this, FOUND_SLT);
+//
+//                }
+//                catch(ZipException e){
                     mSLTData=new String (data,4,len-4);
                     sInstance.handleTaskState(this, FOUND_SLT);
 
-                }
-                catch(IOException e2){
-                    e2.printStackTrace();
-                }
+//                }
+//                catch(IOException e2){
+//                    e2.printStackTrace();
+//                }
 
             }else if (type==ST){
-                try{
-                    GZIPInputStream gzipInputStream;
-                    gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data, 4, data.length - 4));
-                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
-                    gzipInputStream.close();
-                    mSTData=new String (buffer,0,unziplen);
-                    sInstance.handleTaskState(this, FOUND_ST);
-
-                }
-                catch(ZipException e){
+//                try{
+//                    GZIPInputStream gzipInputStream;
+//                    gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data, 4, data.length - 4));
+//                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
+//                    gzipInputStream.close();
+//                    mSTData=new String (buffer,0,unziplen);
+//                    sInstance.handleTaskState(this, FOUND_ST);
+//
+//                }
+//                catch(ZipException e){
                     mSTData=new String (data,4,len-4);
                     sInstance.handleTaskState(this, FOUND_ST);
-
-                }
-                catch(IOException e2){
-                    e2.printStackTrace();
-                }
+//
+//                }
+//                catch(IOException e2){
+//                    e2.printStackTrace();
+//                }
 
             }
         }

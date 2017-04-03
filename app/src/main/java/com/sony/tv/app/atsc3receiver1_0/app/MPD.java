@@ -64,6 +64,9 @@ public final class MPD {
     private final static String attr_startNumber="startNumber";
     private final static String attr_initialization="initialization";
     private final static String tag_SegmentTemplate="SegmentTemplate";
+    private final static String tag_S="S";
+    private final static String tag_SegmentTimeline="SegmentTimeline";
+
     private final static String tag_AudioChannelConfiguration="AudioChannelConfiguration";
 
 
@@ -84,12 +87,16 @@ public final class MPD {
     private int currentPeriodCount=0;
     private int currentAdaptationSetCount=0;
     private int currentRepresentationsCount=0;
+    private String currentStartTag="";
+    private String lastStartTag="";
+    private String lastEndTag="";
     private Object textObject;
     private boolean titleText=false;
     private BaseUrl currentbaseUrl;
 
     public void addTag(XmlPullParser xpp) {
         String tag=xpp.getName();
+
         if (tag.equals(tag_MPD)) {
             for (int i = 0; i < xpp.getAttributeCount(); i++) {
                 attrs.put(xpp.getAttributeName(i), xpp.getAttributeValue(i));
@@ -104,18 +111,21 @@ public final class MPD {
         }else if (tag.equals(tag_AdaptationSet)){
             periods.get(currentPeriodCount-1).addTag(new AdaptationSet(xpp));
             currentAdaptationSetCount++;
-            currentRepresentationsCount=0;
         }else if (tag.equals(tag_Representation)){
             periods.get(currentPeriodCount-1).adaptationSet.get(currentAdaptationSetCount-1).addTag (new Representation(xpp));
             currentRepresentationsCount++;
         }else if (tag.equals(tag_SegmentTemplate)) {
-            periods.get(currentPeriodCount - 1).adaptationSet.get(currentAdaptationSetCount - 1).representations.get(currentRepresentationsCount - 1).addTag(new SegmentTemplate(xpp));
+            periods.get(currentPeriodCount - 1).adaptationSet.get(currentAdaptationSetCount - 1).addTag(new SegmentTemplate(xpp));
+        } else if (tag.equals(tag_SegmentTimeline)) {
+            periods.get(currentPeriodCount - 1).adaptationSet.get(currentAdaptationSetCount - 1).segmentTemplate.addTag(new SegmentTimeline(xpp));
+        }else if (tag.equals(tag_S)){
+            periods.get(currentPeriodCount - 1).adaptationSet.get(currentAdaptationSetCount - 1).segmentTemplate.segmentTimeline.addTag(new TagS(xpp));
         }else if (tag.equals(tag_AudioChannelConfiguration)){
-            periods.get(currentPeriodCount - 1).adaptationSet.get(currentAdaptationSetCount - 1).representations.get(currentRepresentationsCount - 1).addTag(new AudioChannelConfiguration(xpp));
+            periods.get(currentPeriodCount - 1).adaptationSet.get(currentAdaptationSetCount - 1).addTag(new AudioChannelConfiguration(xpp));
         }else if (tag.equals(tag_BaseUrl)){
             currentbaseUrl=new BaseUrl();
             if (currentRepresentationsCount>0){
-                textObject=periods.get(currentPeriodCount-1).adaptationSet.get(currentAdaptationSetCount-1).representations.get(currentRepresentationsCount-1).addTag(currentbaseUrl);
+                textObject=periods.get(currentPeriodCount-1).adaptationSet.get(currentAdaptationSetCount-1).representation.addTag(currentbaseUrl);
             } else if (currentAdaptationSetCount>0){
                 textObject=periods.get(currentPeriodCount-1).adaptationSet.get(currentAdaptationSetCount-1).addTag(currentbaseUrl);
             } else if (currentPeriodCount>0){
@@ -127,8 +137,12 @@ public final class MPD {
             programInformation.title=new Title();
             textObject=programInformation.title;
         }
-   }
 
+    }
+
+    public void endTag(XmlPullParser xpp) {
+        //****Nothing to do here
+    }
     public void addText(XmlPullParser xpp){
         if (null==textObject){
             return;
@@ -285,18 +299,25 @@ public final class MPD {
                 String baseUrl=periods.get(period).getAttribute(tag_BaseUrl)!=""?periods.get(period).getAttribute(tag_BaseUrl):"/";
                 for (int adaptationSet = 0; adaptationSet < 2; adaptationSet++) {
                     baseUrl=baseUrl.concat(periods.get(period).adaptationSet.get(adaptationSet).getAttribute(tag_BaseUrl));
-                    baseUrl=baseUrl.concat(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).getAttribute(tag_BaseUrl));
+                    baseUrl=baseUrl.concat(periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute(tag_BaseUrl));
 
-                    if (periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).getAttribute("mimeType").contains("video")){
-                        SegmentTemplate videoTemplate =periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate;
+                    if (periods.get(period).adaptationSet.get(adaptationSet).getAttribute("mimeType").contains("video") ||
+                            periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute("mimeType").contains("video")){
+                        SegmentTemplate videoTemplate =periods.get(period).adaptationSet.get(adaptationSet).segmentTemplate;
                         String[] check=baseUrl.concat(videoTemplate.getAttribute(attr_media)).split("\\$Number\\$");
                         for (Map.Entry<String,ContentFileLocation> video:videos.entrySet()){
                             if (!video.getKey().equals(baseUrl.concat(videoTemplate.getAttribute("initialization")))) {
                                 if (video.getKey().startsWith(check[0]) && (video.getKey().endsWith(check[1]))) {
                                     int videoSegmentNumber = Integer.parseInt(video.getKey().replace(check[0], "").replace(check[1], ""));
                                     int periodStartNumber=Integer.parseInt(videoTemplate.getAttribute(attr_startNumber));
-                                    double videoSegmentDuration=(long)1000*Double.parseDouble(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute(attr_duration))/
-                                            Double.parseDouble(periods.get(period).adaptationSet.get(adaptationSet).representations.get(0).segmentTemplate.getAttribute(attr_timeScale));
+                                    double videoSegmentDuration;
+                                    if (null==videoTemplate.segmentTimeline) {
+                                        videoSegmentDuration = (long) 1000 * Double.parseDouble(videoTemplate.getAttribute(attr_duration)) /
+                                                Double.parseDouble(videoTemplate.getAttribute(attr_timeScale));
+                                    } else {
+                                        videoSegmentDuration = (long) 1000 * Double.parseDouble(videoTemplate.segmentTimeline.tagS.get(0).getAttribute("d")) /
+                                                Double.parseDouble(videoTemplate.getAttribute(attr_timeScale));
+                                    }
                                     long periodStartTime=parseXsDuration(periods.get(period).getAttribute(attr_start));
                                     long periodDuration=parseXsDuration(periods.get(period).getAttribute(attr_duration));
                                     long videoStartTime=video.getValue().time;
@@ -437,19 +458,33 @@ public final class MPD {
     public class AdaptationSet{
 
         private BaseUrl baseUrl;
-        public ArrayList<Representation> representations=new ArrayList<>();
+        public  Representation representation;
+        public SegmentTemplate segmentTemplate;
+        private AudioChannelConfiguration audioChannelConfiguration;
+
         private HashMap<String, String> attrs=new HashMap<>();
         public AdaptationSet(XmlPullParser xpp){
             for (int i=0; i<xpp.getAttributeCount(); i++){
                 attrs.put(xpp.getAttributeName(i),xpp.getAttributeValue(i));
             }
         }
+
         public Object addTag (BaseUrl bu){
             this.baseUrl=bu;
             return this;
         }
+
         public void addTag (Representation r){
-            representations.add(r);
+            representation=r;
+        }
+
+        public void addTag(SegmentTemplate st){
+            segmentTemplate=st;
+        }
+
+
+        public void addTag(AudioChannelConfiguration acc){
+            audioChannelConfiguration=acc;
         }
 
         public String getAttribute(String attribute){
@@ -466,16 +501,19 @@ public final class MPD {
             for (Map.Entry<String, String> it : attrs.entrySet()) {
                 sb.append(" ").append(it.getKey()).append("=").append("\"").append(it.getValue()).append("\"");
             }
-            if (null==baseUrl && null==representations){
+            if (null==baseUrl && null==segmentTemplate && null==audioChannelConfiguration ){
                 sb.append(" />\n");
                 return;
             }
             sb.append(">\n");
-            if (null!=baseUrl){
-                baseUrl.addToStringBuffer();
+            if (null!=representation) {
+                representation.addToStringBuffer();
             }
-            for (int i=0; i<representations.size();i++){
-                representations.get(i).addToStringBuffer();
+            if (null!=audioChannelConfiguration){
+                audioChannelConfiguration.addToStringBuffer();
+            }
+            if (null!=segmentTemplate){
+                segmentTemplate.addToStringBuffer();
             }
             sb.append("</AdaptationSet>\n");
         }
@@ -484,7 +522,6 @@ public final class MPD {
     public class Representation{
 
         private BaseUrl baseUrl;
-        private AudioChannelConfiguration audioChannelConfiguration;
         private SegmentTemplate segmentTemplate;
         private HashMap<String, String> attrs=new HashMap<>();
         public Representation(XmlPullParser xpp){
@@ -496,13 +533,7 @@ public final class MPD {
             this.baseUrl=bu;
             return this;
         }
-        public void addTag(SegmentTemplate st){
-            segmentTemplate=st;
-        }
 
-        public void addTag(AudioChannelConfiguration acc){
-            audioChannelConfiguration=acc;
-        }
 
         public String getAttribute(String attribute){
             return MPD.getAttribute(attrs,attribute);
@@ -521,21 +552,11 @@ public final class MPD {
                 Map.Entry<String,String> it=iterator.next();
                 sb.append(" ").append( it.getKey()).append("=").append("\"").append(it.getValue()).append("\"");
             }
-            if (null==baseUrl && null==segmentTemplate && null==audioChannelConfiguration ){
-                sb.append(" />\n");
-                return;
-            }
+
             sb.append(">\n");
             if (null!=baseUrl){
                 baseUrl.addToStringBuffer();
             }
-            if (null!=audioChannelConfiguration){
-                audioChannelConfiguration.addToStringBuffer();
-            }
-            if (null!=segmentTemplate){
-                segmentTemplate.addToStringBuffer();
-            }
-
             sb.append("</Representation>\n");
         }
 
@@ -544,13 +565,20 @@ public final class MPD {
 
 
     public class SegmentTemplate {
+
+        private SegmentTimeline segmentTimeline;
         private HashMap<String, String> attrs=new HashMap<>();
+
 
         public SegmentTemplate(XmlPullParser xpp) {
             for (int i = 0; i < xpp.getAttributeCount(); i++) {
                 attrs.put(xpp.getAttributeName(i), xpp.getAttributeValue(i));
             }
         }
+        public void addTag(SegmentTimeline st){
+            segmentTimeline=st;
+        }
+
 
         public String getAttribute(String attribute){
             return MPD.getAttribute(attrs,attribute);
@@ -568,6 +596,54 @@ public final class MPD {
                 }
                 sb.append(" />\n");
         }
+    }
+
+    public class SegmentTimeline {
+        private HashMap<String, String> attrs=new HashMap<>();
+        private ArrayList<TagS> tagS=new ArrayList<>();
+
+        public SegmentTimeline(XmlPullParser xpp){
+            for (int i = 0; i < xpp.getAttributeCount(); i++) {
+                attrs.put(xpp.getAttributeName(i), xpp.getAttributeValue(i));
+            }
+        }
+
+        public String getAttribute(String attribute){
+            return MPD.getAttribute(attrs,attribute);
+        }
+
+
+        public void addTag(TagS s){
+            tagS.add(s);
+        }
+
+        public void addToStringBuffer() {
+            sb.append("<S");
+            Iterator<Map.Entry<String,String>> iterator=attrs.entrySet().iterator();
+            while (iterator.hasNext()){
+                Map.Entry<String,String> it=iterator.next();
+                sb.append(" ").append( it.getKey()).append("=").append("\"").append(it.getValue()).append("\"");
+            }
+            sb.append(" />\n");
+        }
+
+
+    }
+    public class TagS {
+
+        private HashMap<String, String> attrs=new HashMap<>();
+
+
+        public TagS(XmlPullParser xpp){
+            for (int i = 0; i < xpp.getAttributeCount(); i++) {
+                attrs.put(xpp.getAttributeName(i), xpp.getAttributeValue(i));
+            }
+        }
+
+        public String getAttribute(String attribute){
+            return MPD.getAttribute(attrs,attribute);
+        }
+
     }
 
     public class AudioChannelConfiguration {

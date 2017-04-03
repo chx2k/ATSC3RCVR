@@ -25,10 +25,24 @@ import com.sony.tv.app.atsc3receiver1_0.SampleChooserFragment;
 public class ATSC3 extends Application {
 
 
+
     protected String userAgent;
     private String TAG="ATSC3";
     public static int dataSourceIndex;
     public static String manifest="ManifestUpdate_Dynamic.mpd";
+    public static int NAB=1;
+    public static int QUALCOMM=2;
+
+    public interface CallBackInterface{
+        void callBackSLTFound();
+        void callBackSTFound();
+        void callBackUSBDFound(FluteTaskManagerBase fluteTaskManagerBase);
+        void callBackSTSIDFound(FluteTaskManagerBase fluteTaskManagerBase );
+        void callBackManifestFound(FluteTaskManagerBase fluteTaskManagerBase);
+        void callBackFluteStopped(FluteTaskManagerBase fluteTaskManagerBase);
+    }
+
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -52,24 +66,10 @@ public class ATSC3 extends Application {
 
     public static boolean channelUp(final Activity activity){
         if (dataSourceIndex==1){
-//            final
-//            ((PlayerActivity) activity).releasePlayer();
-
-            new Thread(){
-                public void run(){
-//                    try {
-//                        Thread.sleep(100);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-                    dataSourceIndex=0;
-                    resetTimeStamp(dataSourceIndex);
-                    ATSCSample sample=getSampleFromIndex(dataSourceIndex);
-                    activity.startActivity(sample.buildIntent(activity));
-
-
-                }}.start();
-//            activity.startActivity(sample.buildIntent(activity));
+            dataSourceIndex=0;
+            resetTimeStamp(dataSourceIndex);
+            ATSCSample sample=getSampleFromIndex(dataSourceIndex);
+            activity.startActivity(sample.buildIntent(activity));
             return true;
         }
         return false;
@@ -78,25 +78,10 @@ public class ATSC3 extends Application {
     public static boolean channelDown(final Activity activity){
 
         if (dataSourceIndex==0){
-//            final
-//            ((PlayerActivity) activity).releasePlayer();
-
-            new Thread(){
-                public void run(){
-//                    try {
-//                        Thread.sleep(100);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-                    dataSourceIndex=1;
-                    resetTimeStamp(dataSourceIndex);
-                    ATSCSample sample=getSampleFromIndex(dataSourceIndex);
-                    activity.startActivity(sample.buildIntent(activity));
-
-
-
-                }}.start();
-//            activity.startActivity(sample.buildIntent(activity));
+            dataSourceIndex=1;
+            resetTimeStamp(dataSourceIndex);
+            ATSCSample sample=getSampleFromIndex(dataSourceIndex);
+            activity.startActivity(sample.buildIntent(activity));
             return true;
         }
         return false;
@@ -116,7 +101,7 @@ public class ATSC3 extends Application {
 
     private static void resetTimeStamp(int index){
 
-        FluteReceiver.mFluteTaskManager[index].fileManager.resetTimeStamp();
+        FluteReceiver.mFluteTaskManager[index].fileManager().resetTimeStamp();
     }
 
 }

@@ -1,6 +1,5 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
-import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -9,17 +8,10 @@ import android.util.Log;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.TransferListener;
-import com.google.android.exoplayer2.upstream.UdpDataSource;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
+import com.sony.tv.app.atsc3receiver1_0.app.ATSC3.*;
+
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.TimeZone;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -41,10 +33,7 @@ public class FluteReceiver  {
 
     private HashMap<String, Integer> mapFileContainsToTSI = new HashMap<>();                //retrieve the relevant TSI based on the name of the file
 
-    public static FluteTaskManager[] mFluteTaskManager=new FluteTaskManager[2];
-//    private FluteFileManager mFileManager;
-    private FluteTaskManager mAudioContentFluteTaskManager;
-    private FluteTaskManager mVideoContentFluteTaskManager;
+    public static FluteTaskManagerBase[] mFluteTaskManager;
 
     private Handler mHandler;
     public static final int TASK_ERROR=-1;
@@ -122,17 +111,37 @@ public class FluteReceiver  {
     /**
      * start the task manager
      */
-    public void start(DataSpec dataSpec, int index) {
+    public void start(DataSpec signalingDataSpec, DataSpec avDataSpec, int index, int type, CallBackInterface callBackInterface) {
+            if (null==avDataSpec) {
+                if (type == ATSC3.QUALCOMM) {
+                    if (null == mFluteTaskManager)
+                        mFluteTaskManager = new FluteTaskManager[2];
+                    mFluteTaskManager[index] = new FluteTaskManager(signalingDataSpec, callBackInterface,index);
+                } else {
+                    if (null == mFluteTaskManager)
+                        mFluteTaskManager = new FluteTaskManagerNAB[2];
+                    mFluteTaskManager[index] = new FluteTaskManagerNAB(signalingDataSpec, callBackInterface,index);
+                }
+                //new Thread(mFluteTaskManager[index]).start();
+            }else{
+                if (type == ATSC3.QUALCOMM) {
+                    if (null == mFluteTaskManager)
+                        mFluteTaskManager = new FluteTaskManager[2];
+                    mFluteTaskManager[index] = new FluteTaskManager(signalingDataSpec,avDataSpec, callBackInterface,index);
+                } else {
+                    if (null == mFluteTaskManager)
+                        mFluteTaskManager = new FluteTaskManagerNAB[2];
+                    mFluteTaskManager[index] = new FluteTaskManagerNAB(signalingDataSpec, avDataSpec, callBackInterface,index);
+                }
+                //new Thread(mFluteTaskManager[index]).start();
 
-
-            mFluteTaskManager[index] = new FluteTaskManager(dataSpec);
-            new Thread(mFluteTaskManager[index]).start();
+            }
 
     }
 
     public void resetTimeStamp(int index) {
 
-        mFluteTaskManager[index].fileManager.resetTimeStamp();
+        mFluteTaskManager[index].fileManager().resetTimeStamp();
 
 
     }
@@ -141,10 +150,13 @@ public class FluteReceiver  {
      * stop the task manager
      */
     public void stop(){
-        if (null!=mFluteTaskManager[0])
-           mFluteTaskManager[0].stop();
-        if (null!=mFluteTaskManager[1])
-            mFluteTaskManager[1].stop();
+        if (null!=mFluteTaskManager){
+            for (int i=0; i<mFluteTaskManager.length; i++){
+                mFluteTaskManager[0].stop();
+
+            }
+        }
+
     }
 
     /**
@@ -152,7 +164,7 @@ public class FluteReceiver  {
      * @param task  The FluteTaskManager holding the data
      * @param state The state of the task manager (error, completed ...)
      */
-    public void handleTaskState(FluteTaskManager task, int state){
+    public void handleTaskState(FluteTaskManagerBase task, int state){
 //        Log.d(TAG,"Message to send: "+state);
 
         (mHandler.obtainMessage(state, task)).sendToTarget();

@@ -24,8 +24,12 @@ import android.util.Log;
 
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
+import com.sony.tv.app.atsc3receiver1_0.app.ATSC3.*;
+
 import com.sony.tv.app.atsc3receiver1_0.app.ATSCXmlParse;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
+import com.sony.tv.app.atsc3receiver1_0.app.FluteTaskManager;
+import com.sony.tv.app.atsc3receiver1_0.app.FluteTaskManagerBase;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSData;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
@@ -35,6 +39,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
+
 
 import static java.lang.Thread.sleep;
 
@@ -54,9 +59,12 @@ public class MainActivity extends Activity {
     public long timeOffset=0;
     private static boolean sltComplete=false;
     private static boolean stComplete=false;
-    private static boolean first=true;
+    private static boolean firstLLS =true;
     public static boolean ExoPlayerStarted=false;
     public static int exoPlayerDataSourceIndex=0;
+
+    CallBackInterface callBackInterface;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -64,7 +72,6 @@ public class MainActivity extends Activity {
         Log.d(TAG,"Initializing ATSC MainActivity");
         setContentView(R.layout.activity_main);
         ExoPlayerStarted=false;
-
         mLLSReceiver=LLSReceiver.getInstance();
         mFluteReceiver=FluteReceiver.getInstance();
         mFluteReceiver.stop();
@@ -73,6 +80,86 @@ public class MainActivity extends Activity {
         stComplete=false;
         ExoPlayerStarted=false;
         fragmentsInitialized=false;
+
+        callBackInterface=new CallBackInterface() {
+            @Override
+            public void callBackSLTFound() {
+                sltComplete=true;
+                if (stComplete && firstLLS ) {
+                    int type;
+                    if (LLSReceiver.getInstance().systemTime.getPtpPrepend()!=0){
+                        type=ATSC3.QUALCOMM;
+                    }else{
+                        type=ATSC3.NAB;
+                    }
+                    startSignalingFluteSession(type);
+                    firstLLS =false;
+                    if (!fragmentsInitialized)
+                        initFragments();
+                }
+            }
+
+            @Override
+            public void callBackSTFound() {
+
+                if (sltComplete && firstLLS ) {
+                    int type;
+                    if (LLSReceiver.getInstance().systemTime.getPtpPrepend()!=0){
+                        type=ATSC3.QUALCOMM;
+                    }else{
+                        type=ATSC3.NAB;
+                    }
+                    startSignalingFluteSession(type);
+                    firstLLS  = false;
+                    if (!fragmentsInitialized)
+                        initFragments();
+                }
+            }
+
+            @Override
+            public void callBackUSBDFound(FluteTaskManagerBase fluteTaskManager) {
+                if (fluteTaskManager.isFirst() &&
+                        fluteTaskManager.isManifestFound() &&
+                        fluteTaskManager.isSTSIDFound()){
+                        fluteTaskManager.stop();
+                }
+            }
+
+            @Override
+            public void callBackSTSIDFound(FluteTaskManagerBase fluteTaskManager) {
+                if (fluteTaskManager.isFirst() &&
+                        fluteTaskManager.isManifestFound() &&
+                        fluteTaskManager.isUsbdFound()){
+                        fluteTaskManager.stop();
+                }
+            }
+
+            @Override
+            public void callBackManifestFound(FluteTaskManagerBase fluteTaskManager) {
+                if (fluteTaskManager.isFirst() &&
+                        fluteTaskManager.isUsbdFound() &&
+                        fluteTaskManager.isSTSIDFound()){
+                        fluteTaskManager.stop();
+                }
+            }
+
+            @Override
+            public void callBackFluteStopped(FluteTaskManagerBase fluteTaskManager){
+                if (fluteTaskManager.isFirst() &&
+                        fluteTaskManager.isUsbdFound() &&
+                        fluteTaskManager.isSTSIDFound() &&
+                        fluteTaskManager.isManifestFound()){
+                    int type;
+                    if (LLSReceiver.getInstance().systemTime.getPtpPrepend()!=0){
+                        type=ATSC3.QUALCOMM;
+                    }else{
+                        type=ATSC3.NAB;
+                    }
+                    startCompleteFluteSession(type, fluteTaskManager);
+                }
+            }
+        };
+
         initLLSReceiver();
 
 //        initFragments();
@@ -133,10 +220,10 @@ public class MainActivity extends Activity {
     }
     public void startLLSReceiver(){
         if (!mLLSReceiver.running) {
-            first = true;
+            firstLLS  = true;
             sltComplete = false;
             stComplete = false;
-            mLLSReceiver.start(this);
+            mLLSReceiver.start(this, callBackInterface);
         }
     }
 
@@ -144,69 +231,84 @@ public class MainActivity extends Activity {
 //        sampleChooserFragment.refreshFragments();
 //    }
 
-    public void callBackSLTFound(){
-        sltComplete=true;
-        if (stComplete && first) {
-            startFluteSession(FluteReceiver.SIGNALLING);
-            first=false;
-            if (!fragmentsInitialized)
-                initFragments();
-        }
-    }
+//    public void callBackSLTFound(){
+//        sltComplete=true;
+//        if (stComplete && first) {
+//            int type;
+//            if (LLSReceiver.getInstance().systemTime.getPtpPrepend()!=0){
+//                type=ATSC3.QUALCOMM;
+//            }else{
+//                type=ATSC3.NAB;
+//            }
+//            startFluteSession(type);
+//            first=false;
+//            if (!fragmentsInitialized)
+//                initFragments();
+//        }
+//    }
 
-    public void callBackSTFound(long time) {
+//    public void callBackSTFound(long time) {
+//
+//        Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
+//        stComplete = true;
+//        long nowms=now.getTime();
+//        timeOffset = nowms - time/1000;
+//
+//        if (sltComplete && first) {
+//            int type;
+//            if (LLSReceiver.getInstance().systemTime.getPtpPrepend()!=0){
+//                type=ATSC3.QUALCOMM;
+//            }else{
+//                type=ATSC3.NAB;
+//            }
+//            startFluteSession(type);
+//            first = false;
+//            if (!fragmentsInitialized)
+//                initFragments();
+//        }
+//    }
 
-        Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
-        stComplete = true;
-        long nowms=now.getTime();
-        timeOffset = nowms - time/1000;
-
-        if (sltComplete && first) {
-            startFluteSession(FluteReceiver.SIGNALLING);
-            first = false;
-            if (!fragmentsInitialized)
-                initFragments();
-        }
-    }
 
 
 
-    public void callBackUSBDFound(String manifest){
+    public void startSignalingFluteSession(int type){
+            int i=0;
 
-    }
+//            for (int i=0; i<mLLSReceiver.slt.mSLTData.mServices.size(); i++){
 
-    public void callBackSTSIDFound(int audioTSI, int videoTSI){
-
-    }
-
-    public void startFluteSession(int type){
-//        if (mLLSReceiver.slt!=null){
-            for (int i=0; i<mLLSReceiver.slt.mSLTData.mServices.size(); i++){
-//                Uri uri=Uri.parse((mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress + ":" +
-//                        mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort));
-//                String port;
-//                if (i==0) {port=":4005";}else {port=":4006";}
-//                String uriString="udp://"+
-//                        (mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress.concat(port));
-                // stopLLSReceiver();
-//                String uriString="udp://239.255.8.1:4005";
-//                String uriString="udp://".concat(mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationIpAddress).concat(":").concat(
-//                        mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationUdpPort);
-                String host="239.255.8."+String.format("%d",i+1);
-
+                String host=mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress;
                 String uriString="udp://".concat(host).concat(":").concat(
                 mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort);
-
-//                Uri uri=Uri.parse((mLLSReceiver.slt.mSLTData.mServices.get(0).broadcastServices.get(0).slsDestinationIpAddress + ":" +
-
                 Log.d(TAG,"Opening: "+uriString);
                 Uri uri=Uri.parse(uriString);
                 DataSpec d=new DataSpec(uri);
-                mFluteReceiver.start(d, i);
-//                Log.d(TAG, "Started Flute Signalling receiver: "+i);
-//            }
-        }
+                mFluteReceiver.start(d, null, i, type, callBackInterface);
+//        }
     }
+
+
+    public void startCompleteFluteSession(int type, FluteTaskManagerBase fluteTaskManager){
+
+            int i=fluteTaskManager.index();
+            String host=mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress;
+            String uriString="udp://".concat(host).concat(":").concat(
+                    mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort);
+            Log.d(TAG,"Opening: "+uriString);
+            Uri uri=Uri.parse(uriString);
+            DataSpec d=new DataSpec(uri);
+            String port="3001";
+            host="239.255.8.3";
+            uriString="udp://".concat(host).concat(":").concat(port);
+            uri=Uri.parse(uriString);
+            DataSpec d2=new DataSpec(uri);
+            Log.d(TAG,"Opening: "+uriString);
+//            mFluteReceiver.start(d, d2, i, type, callBackInterface);
+            mFluteReceiver.start(d, d, i, type, callBackInterface);
+
+    }
+
+
+
     public void stopFluteSession(int type){
 
     }
