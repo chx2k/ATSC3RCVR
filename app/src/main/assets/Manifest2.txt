@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" availabilityStartTime="2017-04-01T00:00:00Z" id="Config part of url maybe?" maxSegmentDuration="PT1S" timeShiftBufferDepth="PT5M" minBufferTime="PT1.500S" minimumUpdatePeriod="PT1S" profiles="urn:mpeg:dash:profile:full:2011" timeShiftBufferDepth="PT3S" type="dynamic">
+ <Period duration="PT20S" id="p38" start="PT45H6M45S">
+  <AdaptationSet lang="und" par="16:9" segmentAlignment="true">
+   <Representation bandwidth="4798751" codecs="hev1.1.6.L123.90" frameRate="60" height="1080" id="1" mimeType="video/mp4" sar="1:1" startWithSAP="1" width="1920">
+      <SegmentTemplate initialization="video/video_init.mp4" media="video/$Number$.m4s" startNumber="162405" timescale="15360" duration="15360"></SegmentTemplate>
+   </Representation>
+  </AdaptationSet>
+ </Period><Period duration="PT10S" id="p39" start="PT45H7M5S">
+  <AdaptationSet lang="und" par="16:9" segmentAlignment="true">
+   <Representation bandwidth="4798751" codecs="hev1.1.6.L123.90" frameRate="60" height="1080" id="1" mimeType="video/mp4" sar="1:1" startWithSAP="1" width="1920">
+   <SegmentTemplate initialization="video/video_init.mp4" media="video/$Number$.m4s" startNumber="162425" timescale="15360" duration="15360">
+   </SegmentTemplate>
+   </Representation>
+  </AdaptationSet>
+ </Period>
+</MPD>

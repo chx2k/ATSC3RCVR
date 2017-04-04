@@ -230,54 +230,13 @@ public class MainActivity extends Activity {
         }
     }
 
-//    public void refreshFragments(){
-//        sampleChooserFragment.refreshFragments();
-//    }
-
-//    public void callBackSLTFound(){
-//        sltComplete=true;
-//        if (stComplete && first) {
-//            int type;
-//            if (LLSReceiver.getInstance().systemTime.getPtpPrepend()!=0){
-//                type=ATSC3.QUALCOMM;
-//            }else{
-//                type=ATSC3.NAB;
-//            }
-//            startFluteSession(type);
-//            first=false;
-//            if (!fragmentsInitialized)
-//                initFragments();
-//        }
-//    }
-
-//    public void callBackSTFound(long time) {
-//
-//        Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
-//        stComplete = true;
-//        long nowms=now.getTime();
-//        timeOffset = nowms - time/1000;
-//
-//        if (sltComplete && first) {
-//            int type;
-//            if (LLSReceiver.getInstance().systemTime.getPtpPrepend()!=0){
-//                type=ATSC3.QUALCOMM;
-//            }else{
-//                type=ATSC3.NAB;
-//            }
-//            startFluteSession(type);
-//            first = false;
-//            if (!fragmentsInitialized)
-//                initFragments();
-//        }
-//    }
-
 
 
 
     public void startSignalingFluteSession(int type){
-            int i=0;
+//            int i=0;
 
-//            for (int i=0; i<mLLSReceiver.slt.mSLTData.mServices.size(); i++){
+            for (int i=0; i<mLLSReceiver.slt.mSLTData.mServices.size(); i++){
 
                 String host=mLLSReceiver.slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress;
                 String uriString="udp://".concat(host).concat(":").concat(
@@ -286,7 +245,7 @@ public class MainActivity extends Activity {
                 Uri uri=Uri.parse(uriString);
                 DataSpec d=new DataSpec(uri);
                 mFluteReceiver.start(d, null, i, type, callBackInterface);
-//        }
+        }
     }
 
 
@@ -299,11 +258,6 @@ public class MainActivity extends Activity {
             Log.d(TAG,"Opening: "+uriString);
             Uri uri=Uri.parse(uriString);
             DataSpec d=new DataSpec(uri);
-            String port="3001";
-            host="239.255.8.3";
-            uriString="udp://".concat(host).concat(":").concat(port);
-            uri=Uri.parse(uriString);
-            DataSpec d2=new DataSpec(uri);
             Log.d(TAG,"Opening: "+uriString);
 //            mFluteReceiver.start(d, d2, i, type, callBackInterface);
             mFluteReceiver.start(d, d, i, type, callBackInterface);
@@ -311,9 +265,5 @@ public class MainActivity extends Activity {
     }
 
 
-
-    public void stopFluteSession(int type){
-
-    }
 
 }

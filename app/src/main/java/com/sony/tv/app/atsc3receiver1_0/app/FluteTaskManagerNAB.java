@@ -29,7 +29,6 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
     //    public FluteFileManager fileManager=FluteFileManager.getInstance();
     public FluteFileManagerNAB fileManager;
 
-    private FakeUdpDataSource udpDataSource;
     private UdpDataSource udpDataSourceAv;
     private byte[] bytes;
     private static int MAX_SOCKET_TIMEOUT=20*1000;
@@ -104,58 +103,119 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
         }
 
         @Override
-        public void run(){
-            FakeUdpDataSource udpDataSource;
-            int len,offset;
+        public void run() {
+
+            if (ATSC3.FAKEUDPSOURCE) {
+
+
+                FakeUdpDataSource udpDataSource;
+                int len, offset;
 //            udpDataSource = new FakeUdpDataSource( new TransferListener<FakeUdpDataSource>() {
 
-                            udpDataSource = new FakeUdpDataSource(new TransferListener<FakeUdpDataSource>() {
-                @Override
-                public void onTransferStart(FakeUdpDataSource source, DataSpec dataSpec) {
-                    running=true;
-                }
+                udpDataSource = new FakeUdpDataSource(new TransferListener<FakeUdpDataSource>() {
+                    @Override
+                    public void onTransferStart(FakeUdpDataSource source, DataSpec dataSpec) {
+                        running = true;
+                    }
 
-                @Override
-                public void onBytesTransferred(FakeUdpDataSource source, int bytesTransferred) {
-                    packetSize=bytesTransferred;
-                }
-                @Override
-                public void onTransferEnd(FakeUdpDataSource source) {
-                    running=false;
-                }
-            }, true
+                    @Override
+                    public void onBytesTransferred(FakeUdpDataSource source, int bytesTransferred) {
+                        packetSize = bytesTransferred;
+                    }
+
+                    @Override
+                    public void onTransferEnd(FakeUdpDataSource source) {
+                        running = false;
+                    }
+                }, true
 
 //                    UdpDataSource.DEFAULT_MAX_PACKET_SIZE,
 //                    MAX_SOCKET_TIMEOUT
-            );
+                );
 
-            try {
-                udpDataSource.open(dataSpec);
-            } catch (UdpDataSource.UdpDataSourceException e) {
-                e.printStackTrace();
-                return;
-            }
-            mainloop:while (!stopRequest && running) {
+                try {
+                    udpDataSource.open(dataSpec);
+                } catch (UdpDataSource.UdpDataSourceException e) {
+                    e.printStackTrace();
+                    return;
+                }
+                mainloop:
+                while (!stopRequest && running) {
 
-                offset = 0;
-                bytes = new byte[UdpDataSource.DEFAULT_MAX_PACKET_SIZE];
-                do {
-                    try {
-                        len = udpDataSource.read(bytes, offset, UdpDataSource.DEFAULT_MAX_PACKET_SIZE);
-                        offset += len;
-                    } catch (UdpDataSource.UdpDataSourceException e) {
-                        e.printStackTrace();
+                    offset = 0;
+                    bytes = new byte[UdpDataSource.DEFAULT_MAX_PACKET_SIZE];
+                    do {
+                        try {
+                            len = udpDataSource.read(bytes, offset, UdpDataSource.DEFAULT_MAX_PACKET_SIZE);
+                            offset += len;
+                        } catch (UdpDataSource.UdpDataSourceException e) {
+                            e.printStackTrace();
 //                        reportError();
-                        break mainloop;
-                    }
-                } while (offset < packetSize);
-                transferDataToFluteHandler(bytes, packetSize);
+                            break mainloop;
+                        }
+                    } while (offset < packetSize);
+                    transferDataToFluteHandler(bytes, packetSize);
 
+                }
+                udpDataSource.close();
+                callBackInterface.callBackFluteStopped(mFluteTaskManager);
+
+
+            }else {  //NOT FAKE, REAL
+
+                UdpDataSource udpDataSource;
+                int len, offset;
+
+                udpDataSource = new UdpDataSource(new TransferListener<UdpDataSource>() {
+                    @Override
+                    public void onTransferStart(UdpDataSource source, DataSpec dataSpec) {
+                        running = true;
+                    }
+
+                    @Override
+                    public void onBytesTransferred(UdpDataSource source, int bytesTransferred) {
+                        packetSize = bytesTransferred;
+                    }
+
+                    @Override
+                    public void onTransferEnd(UdpDataSource source) {
+                        running = false;
+                    }
+                },
+                        UdpDataSource.DEFAULT_MAX_PACKET_SIZE,
+                        MAX_SOCKET_TIMEOUT
+                );
+
+                try {
+                    udpDataSource.open(dataSpec);
+                } catch (UdpDataSource.UdpDataSourceException e) {
+                    e.printStackTrace();
+                    return;
+                }
+                mainloop:
+                while (!stopRequest && running) {
+
+                    offset = 0;
+                    bytes = new byte[UdpDataSource.DEFAULT_MAX_PACKET_SIZE];
+                    do {
+                        try {
+                            len = udpDataSource.read(bytes, offset, UdpDataSource.DEFAULT_MAX_PACKET_SIZE);
+                            offset += len;
+                        } catch (UdpDataSource.UdpDataSourceException e) {
+                            e.printStackTrace();
+//                        reportError();
+                            break mainloop;
+                        }
+                    } while (offset < packetSize);
+                    transferDataToFluteHandler(bytes, packetSize);
+
+                }
+                udpDataSource.close();
+                callBackInterface.callBackFluteStopped(mFluteTaskManager);
             }
-            udpDataSource.close();
-            callBackInterface.callBackFluteStopped(mFluteTaskManager);
         }
-        private void transferDataToFluteHandler(byte[] bytes, int packetSize ) {
+
+        private void transferDataToFluteHandler(byte[] bytes, int packetSize) {
             try {
                 sInstance.handleTaskState(mFluteTaskManager, FluteReceiver.FOUND_FLUTE_PACKET);
                 String fileName;
@@ -166,14 +226,15 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
                         fileName = fileManager.write(routeDecode, bytes, RouteDecodeNAB.PAYLOAD_START_POSITION, packetSize - RouteDecodeNAB.PAYLOAD_START_POSITION);
 
                     else
-                        Log.d(TAG,"Invalid Route decode");
+                        Log.d(TAG, "Invalid Route decode");
 
                 } catch (Exception e) {
                     Log.e(TAG, e.getMessage());
                 }
-            }finally {
+            } finally {
             }
         }
+
 
     }
 

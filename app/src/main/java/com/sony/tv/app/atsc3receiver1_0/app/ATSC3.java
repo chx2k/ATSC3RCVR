@@ -28,6 +28,8 @@ import java.io.InputStream;
 public class ATSC3 extends Application {
 
 
+    public final static boolean FAKEUDPSOURCE=true;
+    public final static boolean FAKEMANIFEST=true;
 
     protected String userAgent;
     private String TAG="ATSC3";

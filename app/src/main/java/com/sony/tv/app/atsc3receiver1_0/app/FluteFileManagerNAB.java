@@ -76,9 +76,6 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
     public FluteFileManagerNAB(DataSpec dataSpec){
         sInstance=this;
         baseDataSpec=dataSpec;
-
-
-
     }
 
 
@@ -157,6 +154,13 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
     }
     private FileBuffer[] fileBuffer=new FileBuffer[100];
 
+    /**
+     * Open a file to read from buffer
+     * @param dataSpec  path
+     * @param thread    which exoplayer thread is accessing
+     * @return          How many bytes can be read
+     * @throws IOException
+     */
     public long open(DataSpec dataSpec, int thread) throws IOException {
         lock.lock();
 //        mFluteTaskManager=FluteReceiver.getInstance().mFluteTaskManager;
@@ -203,6 +207,15 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
 
     }
 
+    /**
+     * Player reads from buffers. Emulate the action of a stream
+     * @param buffer        destination buffer
+     * @param offset        offset into the buffer
+     * @param readLength    max length to write into the buffer
+     * @param thread        tags the Exoplayer DataSource to allow multithreading
+     * @return              actual bytes written
+     * @throws IOException
+     */
     public int read(byte[] buffer, int offset, int readLength, int thread) throws IOException {
         lock.lock();
         try {
@@ -237,99 +250,74 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
         }
     }
 
-    private FileBuffer openInternal(String fileName, int thread){
-        Log.d(TAG,"Opening new File: ***********"+fileName);
 
-        int index=0; ContentFileLocation f; int contentLength=0;
-
-        if (fileName.toLowerCase().endsWith(".mpd")) {
-
-//            String mpdData=sls.getManifest();
-            //String mpdData = new String(storage.get(0), f.start, f.contentLength);
-            String mpdData=ATSC3.manifestContents;
-            mMPDbytes = MPDParse(mpdData);
-            contentLength=mMPDbytes.length;
-
-            return new FileBuffer(mMPDbytes, contentLength, 0);
-
-
-        }else{
-
-            do {
-                f = arrayMapFileLocations.get(index).get(fileName);
-                index++;
-            }while (index < arrayMapFileLocations.size() && f==null) ;
-
-            if (f != null) {
-                index--;
-                return new FileBuffer(storage.get(index), f.contentLength, f.start);
-            }else{
-                Log.d(TAG,"Couldn't fine file while trying to open: "+fileName);
-                return null;
-
+    /**
+     * Create the mapping for the buffer storage locations based on filename
+     * @param r     Route header
+     * @return      return true if the buffer has been allocated to the relevant TSI
+     * @throws Exception
+     */
+    public boolean create(RouteDecodeBase r) throws Exception {
+        int tsi=r.tsi();
+        Integer index=mapGetBufferNumberFromTSI.get(tsi);
+        if (null==index){
+            Log.e(TAG,"Asking for tsi that isn't there: :"+tsi);
+            return false;
+        }
+        HashMap<Integer,String> t=array_MapTOI_FileName.get(index);                                       //TOI maps to a filename
+        HashMap<String, ContentFileLocation> m=arrayMapFileLocations.get(index);
+        firstAvailablePosition[index] = (firstAvailablePosition[index] + r.contentLength()) > maxAvailablePosition[index] ? 0 : firstAvailablePosition[index];
+        Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
+        ContentFileLocation c = new ContentFileLocation(r.fileName(), r.toi(), firstAvailablePosition[index], r.contentLength(),
+                now.getTime(), now.getTime() + MAX_FILE_RETENTION_MS);
+        Iterator<Map.Entry<String,ContentFileLocation>> iterator= m.entrySet().iterator();
+        while (iterator.hasNext()) {                                                                      //remove any content from the map that will get overwritten by this file
+            Map.Entry<String,ContentFileLocation> it= iterator.next();
+            int itStart=it.getValue().start;
+            int itEnd=it.getValue().start+it.getValue().contentLength-1;
+            int cStart=c.start;
+            int cEnd=c.start+c.contentLength-1;
+            if ( (itStart<=cStart && itEnd>=cStart) || (itStart>=cStart && itStart<=cEnd) ) {             //the new content will overwrite this entry so remove from list;
+                t.remove(it.getValue().toi);
+                iterator.remove();
             }
         }
+        m.put(c.fileName, c);
+        t.put(r.toi(),c.fileName);
+        firstAvailablePosition[index] += r.contentLength();
 
+        snapshot_of_Filemanager();
+        return true;
     }
 
-
-    public int read(String fileName, byte[] output, int offset,  int length){
-        lock.lock();
-        try {
-            int tsi; int index=0; ContentFileLocation f;
-            if (fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml") || fileName.toLowerCase().endsWith(".mpd")){
-
-                f = arrayMapFileLocations.get(0).get(fileName);
-            }else {
-                index=1;
-                tsi=mapGetTSIFromBufferNumber.get(index);          //Audio tsi
-                f = arrayMapFileLocations.get(tsi).get(fileName);     //Test for audio filename
-                if (f==null){
-                    index=2;
-                    tsi=mapGetTSIFromBufferNumber.get(index);          //Video tsi
-                    f=arrayMapFileLocations.get(tsi).get(fileName);  //test for Video filename
-                }
-            }
-            if (f != null) {
-                int bytesToFetch = Math.min(length, f.contentLength - offset);
-                bytesToFetch = (bytesToFetch < 0) ? 0 : bytesToFetch;
-                int startPosition = f.start + offset;
-                System.arraycopy(storage.get(index), startPosition, output, 0, bytesToFetch);
-                return bytesToFetch;
-            }
-            else {
-                Log.d(TAG,"File not found whilst reading: "+fileName);
-            }
-            return 0;
-        }finally{
-            lock.unlock();
-        }
-    }
-
-
-    public String write(RouteDecode r, byte[] input, int offset, int length){
-        return "";
-    }
-
+    /**
+     * write the contents received into required buffer.
+     *
+     * @param r         The decoded header information
+     * @param input     data received
+     * @param offset    header offset to get to real payload
+     * @param length    length of rela payload
+     * @return          return the filename is the write is complete else empty string;
+     */
     public String write(RouteDecodeBase r, byte[] input, int offset, int length){
         int toi=r.toi();
         lock.lock();
         try{
 //            Log.d(TAG,"TSI: "+r.tsi()+"  TOI: "+r.toi()+ " POS: "+r.arrayPosition()+"  Length: "+r.contentLength());
             if (r.tsi() == 0  && r.arrayPosition()==0) {
-                if (r.toi()!=0) {
+                if (r.toi()!=0) {                                                            //signaling
                     r.fileName("sls.xml.new");
                     create(r);
                 }else{
-                    return  "";     //EFDT instance, do nothing for now as not needed!!!!
+                    return  "";                                                              //EFDT instance, do nothing for now as not needed!!!!
                 }
-            }else if (r.toi() == 0xFFFFFFFF && r.tsi() != 0 && r.arrayPosition()==0) {  //init file
+            }else if (r.toi() == 0xFFFFFFFF && r.tsi() != 0 && r.arrayPosition()==0) {       //init file
                 r.fileName(generateInitFileName(r.tsi()));
                 if (!("").equals(r.fileName())) {
                     r.fileName(r.fileName().concat(".new"));
                     create(r);
                 }
-            } else if (r.arrayPosition()==0) {
+            } else if (r.arrayPosition()==0) {                                               //media file
                 r.fileName(generateFileName(r.toi(), r.tsi()));
                 if (!("").equals(r.fileName())) {
                     r.fileName (r.fileName().concat(".new"));
@@ -341,12 +329,12 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
                 return "";
             }
 
-            int index=mapGetBufferNumberFromTSI.get(r.tsi());
+            int index=mapGetBufferNumberFromTSI.get(r.tsi());                               //maps to the storage buffer assigned this tsi
 
             String fileName;
 
-            HashMap<Integer,String> t=array_MapTOI_FileName.get(index);
-            HashMap<String, ContentFileLocation> m=arrayMapFileLocations.get(index);
+            HashMap<Integer,String> t=array_MapTOI_FileName.get(index);                     //TOI maps to a filename
+            HashMap<String, ContentFileLocation> m=arrayMapFileLocations.get(index);        //and the fileName maps to the COntent location in buffer info
             if (t.containsKey(toi) && m.containsKey(t.get(toi))){
                 ContentFileLocation l= m.get(t.get(toi));
                 if (length<=(l.contentLength - l.nextWritePosition)){
@@ -368,13 +356,10 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
                         m.put(fileName, l);
                         t.remove(toi);
                         t.put(toi, fileName);
-
                         if (r.tsi() == 0){
                             sls.create(l,storage.get(index));
-
                             mapGetBufferNumberFromTSI.put(sls.stsidParser.getTSI(0),1); //TODO: Use bw to determine video if there is both audio and video
                             mapGetTSIFromBufferNumber.put(1,sls.stsidParser.getTSI(0));
-
 
                         }
 
@@ -396,35 +381,45 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
 
     }
 
+    private FileBuffer openInternal(String fileName, int thread){
+        Log.d(TAG,"Opening new File: ***********"+fileName);
 
-    public Date getAvailabilityStartTime(String mpdData){
+        int index=0; ContentFileLocation f; int contentLength=0;
 
-        TimeZone timeZone = TimeZone.getTimeZone("UTC");
+        if (fileName.toLowerCase().endsWith(".mpd")) {
+            String mpdData;
+            if (ATSC3.FAKEMANIFEST) {
+                mpdData = ATSC3.manifestContents;
+            }else{
+                mpdData=sls.getManifest();
+            }
 
-        Calendar c= Calendar.getInstance(timeZone);
-        Date now=c.getTime();
-        String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
-        String[] result2=result[1].split("[\"]+",2);
-        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        formatter.setTimeZone(timeZone);
+            mMPDbytes = parseManifest(mpdData);
+            contentLength=mMPDbytes.length;
 
-        try{
-            Date mpd=formatter.parse(result2[0]);
-            Log.d(TAG, "Time now minus time MPD created in s: "+ (double)(now.getTime()-mpd.getTime())/1000);
+            return new FileBuffer(mMPDbytes, contentLength, 0);
 
-//            formatter = new SimpleDateFormat("yyyy-MM-dd'T'H:mm:ss.SSS'Z'");
+        }else{
 
-            return mpd;
+            do {
+                f = arrayMapFileLocations.get(index).get(fileName);
+                index++;
+            }while (index < arrayMapFileLocations.size() && f==null) ;
 
-        }catch (ParseException e){
-            Log.e(TAG, "Error parsing date from MPD");
-            return null;
+            if (f != null) {
+                index--;
+                return new FileBuffer(storage.get(index), f.contentLength, f.start);
+            }else{
+                Log.d(TAG,"Couldn't fine file while trying to open: "+fileName);
+                return null;
+
+            }
         }
+
     }
 
 
-
-    public byte[] MPDParse(String mpdData){
+    private byte[] parseManifest(String mpdData){
 
         if (first){
             MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
@@ -470,82 +465,8 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
 //        return finalResult.getBytes();
     }
 
-
-
-    public boolean create(RouteDecodeBase r) throws Exception {
-            int tsi=r.tsi();
-            Integer index=mapGetBufferNumberFromTSI.get(tsi);
-            if (null==index){
-                Log.e(TAG,"Asking for tsi that isn't there: :"+tsi);
-                return false;
-            }
-            HashMap<Integer,String> t=array_MapTOI_FileName.get(index);
-            HashMap<String, ContentFileLocation> m=arrayMapFileLocations.get(index);
-            firstAvailablePosition[index] = (firstAvailablePosition[index] + r.contentLength()) > maxAvailablePosition[index] ? 0 : firstAvailablePosition[index];
-            Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
-
-            ContentFileLocation c = new ContentFileLocation(r.fileName(), r.toi(), firstAvailablePosition[index], r.contentLength(),
-                    now.getTime(), now.getTime() + MAX_FILE_RETENTION_MS);
-            Iterator<Map.Entry<String,ContentFileLocation>> iterator= m.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<String,ContentFileLocation> it= iterator.next();
-//                    if(it.getKey().endsWith(".new")){
-//                        Log.e(TAG, "Creating new file but one already in play: ");
-//                        Log.e(TAG,"fileName: "+it.getValue().fileName);
-//                        Log.e(TAG,"ContentLength: "+it.getValue().contentLength);
-//                        Log.e(TAG,"Start: "+it.getValue().start);
-//                        Log.e(TAG,"Next Write position: "+it.getValue().nextWritePosition);
-//                        Log.e(TAG,"Toi: "+it.getKey());
-//                    }
-                int itStart=it.getValue().start;
-                int itEnd=it.getValue().start+it.getValue().contentLength-1;
-                int cStart=c.start;
-                int cEnd=c.start+c.contentLength-1;
-                if ( (itStart<=cStart && itEnd>=cStart) || (itStart>=cStart && itStart<=cEnd) ) {             //the new content will overwrite this entry so remove from list;
-
-                    t.remove(it.getValue().toi);
-                    iterator.remove();
-
-                }
-            }
-
-            m.put(c.fileName, c);
-            t.put(r.toi(),c.fileName);
-
-            firstAvailablePosition[index] += r.contentLength();
-
-            snapshot_of_Filemanager();
-            return true;
-    }
-
-
-
     private void snapshot_of_Filemanager(){
 
-//        Log.d(TAG, "FileManager Array Sizes: Signalling "+ array_MapTOI_FileName.get(0).size()+ "  "+ arrayMapFileLocations.get(0).size());
-//        Log.d(TAG, "FileManager Array Sizes: Video      "+ array_MapTOI_FileName.get(1).size()+ "  "+ arrayMapFileLocations.get(1).size());
-//        Log.d(TAG, "FileManager Array Sizes: Audio      "+ array_MapTOI_FileName.get(2).size()+ "  "+ arrayMapFileLocations.get(2).size());
-
-
-//
-//        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(0).entrySet() ){
-//            Log.d(TAG,"Signaling: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(0).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
-//        }
-//        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(0).entrySet() ){
-//            Log.v(TAG,"Signaling: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength+"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
-//        }
-////        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(1).entrySet() ){
-////            Log.d(TAG,"Video: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(1).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
-////        }
-//        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(1).entrySet() ){
-//            Log.v(TAG,"Video: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength+"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
-//        }
-////        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(2).entrySet() ){
-////            Log.d(TAG,"Audio: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(2).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
-////        }
-//        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(2).entrySet() ){
-//            Log.v(TAG,"Audio: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength +"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
-//        }
     }
 
 
