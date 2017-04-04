@@ -8,6 +8,7 @@ import com.google.android.exoplayer2.upstream.UdpDataSource;
 
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3.*;
 
+import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -26,9 +27,9 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
     public DataSpec signalingDataSpec;
     public DataSpec avDataSpec;
     //    public FluteFileManager fileManager=FluteFileManager.getInstance();
-    public FluteFileManagerBase fileManager;
+    public FluteFileManagerNAB fileManager;
 
-    private UdpDataSource udpDataSource;
+    private FakeUdpDataSource udpDataSource;
     private UdpDataSource udpDataSourceAv;
     private byte[] bytes;
     private static int MAX_SOCKET_TIMEOUT=20*1000;
@@ -51,7 +52,7 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
         this.callBackInterface=callBackInterface;
         stopRequest=false;
         this.signalingDataSpec=signalingDataSpec;
-        fileManager=new FluteFileManager(signalingDataSpec);
+        fileManager=new FluteFileManagerNAB(signalingDataSpec);
         fileManager.reset();
         new Thread(new RunUpdonThread(signalingDataSpec)).start();
     }
@@ -69,17 +70,18 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
         stopRequest=false;
         if (signalingDataSpec.uri.toString().equals(avDataSpec.uri.toString())){
 
-            fileManager=new FluteFileManager(signalingDataSpec);
+            fileManager=new FluteFileManagerNAB(signalingDataSpec);
             fileManager.reset();
 
             new Thread(new RunUpdonThread(signalingDataSpec)).start();
 
         }else {
-            fileManager = new FluteFileManager(signalingDataSpec, avDataSpec);
-            fileManager.reset();
-
-            new Thread(new RunUpdonThread(signalingDataSpec)).start();
-            new Thread(new RunUpdonThread(avDataSpec)).start();
+//            fileManager = new FluteFileManagerNAB(signalingDataSpec, avDataSpec);
+//            fileManager.reset();
+//
+//            new Thread(new RunUpdonThread(signalingDataSpec)).start();
+//            new Thread(new RunUpdonThread(avDataSpec)).start();
+            Log.e(TAG, "Cannot handle different ip addresses between signaling and av");
 
         }
 
@@ -103,26 +105,28 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
 
         @Override
         public void run(){
-            UdpDataSource udpDataSource;
+            FakeUdpDataSource udpDataSource;
             int len,offset;
+//            udpDataSource = new FakeUdpDataSource( new TransferListener<FakeUdpDataSource>() {
 
-            udpDataSource = new UdpDataSource(new TransferListener<UdpDataSource>() {
+                            udpDataSource = new FakeUdpDataSource(new TransferListener<FakeUdpDataSource>() {
                 @Override
-                public void onTransferStart(UdpDataSource source, DataSpec dataSpec) {
+                public void onTransferStart(FakeUdpDataSource source, DataSpec dataSpec) {
                     running=true;
                 }
 
                 @Override
-                public void onBytesTransferred(UdpDataSource source, int bytesTransferred) {
+                public void onBytesTransferred(FakeUdpDataSource source, int bytesTransferred) {
                     packetSize=bytesTransferred;
                 }
                 @Override
-                public void onTransferEnd(UdpDataSource source) {
+                public void onTransferEnd(FakeUdpDataSource source) {
                     running=false;
                 }
-            },
-                    UdpDataSource.DEFAULT_MAX_PACKET_SIZE,
-                    MAX_SOCKET_TIMEOUT
+            }, true
+
+//                    UdpDataSource.DEFAULT_MAX_PACKET_SIZE,
+//                    MAX_SOCKET_TIMEOUT
             );
 
             try {
@@ -155,34 +159,15 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
             try {
                 sInstance.handleTaskState(mFluteTaskManager, FluteReceiver.FOUND_FLUTE_PACKET);
                 String fileName;
-                RouteDecode routeDecode = new RouteDecode(bytes, packetSize);
+                RouteDecodeNAB routeDecode = new RouteDecodeNAB(bytes, packetSize);
                 try {
-                    if (routeDecode.toi == 0 && routeDecode.tsi == 0) {
-                        fileName = routeDecode.fileName;
-                        if (fileName.toLowerCase().contains(".mpd") || fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml")) {
-                            Log.d(TAG, "Found file: " + fileName);
+                    if (routeDecode.valid())
 
-                            fileManager.create(routeDecode);
-                        } else {
-                            Log.e(TAG, "Unrecognized fileName: " + fileName);
-                        }
-                    } else if (routeDecode.toi == 0) {
-                        fileManager.create(routeDecode);
-                    } else {
-                        fileName = fileManager.write(routeDecode, bytes, RouteDecode.PAYLOAD_START_POSITION, packetSize - RouteDecode.PAYLOAD_START_POSITION);
-                        if (!fileName.equals("")) {
-                            if (fileName.toLowerCase().contains(".mpd")) {
-                                manifestFound = true;
-                                callBackInterface.callBackManifestFound(mFluteTaskManager);
-                            } else if (fileName.toLowerCase().contains("usbd.xml")) {
-                                usbdFound = true;
-                                callBackInterface.callBackUSBDFound(mFluteTaskManager);
-                            } else if (fileName.toLowerCase().contains("s-tsid.xml")) {
-                                stsidFound = true;
-                                callBackInterface.callBackSTSIDFound(mFluteTaskManager);
-                            }
-                        }
-                    }
+                        fileName = fileManager.write(routeDecode, bytes, RouteDecodeNAB.PAYLOAD_START_POSITION, packetSize - RouteDecodeNAB.PAYLOAD_START_POSITION);
+
+                    else
+                        Log.d(TAG,"Invalid Route decode");
+
                 } catch (Exception e) {
                     Log.e(TAG, e.getMessage());
                 }
@@ -192,6 +177,14 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
 
     }
 
+
+
+    private String lookUpFileName(int toi, int tsi){
+        return "";
+    }
+    private String generateFileName(int toi, int tsi){
+        return "";
+    }
 
     public void stop(){
         stopRequest=true;
@@ -216,6 +209,7 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
         stopRequest=true;
         sInstance.handleTaskState(this, FluteReceiver.TASK_ERROR);
     }
+
 
 
 

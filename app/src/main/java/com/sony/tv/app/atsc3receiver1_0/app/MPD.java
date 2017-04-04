@@ -297,7 +297,7 @@ public final class MPD {
 //            long availabilityStartTime=parseXsDateTime(getAttribute(attr_availabilityStartTime));  //TODO We want the real startTime calculated by the receiving of packets.
             loop:for (int period = 0; period < periods.size(); period++) {
                 String baseUrl=periods.get(period).getAttribute(tag_BaseUrl)!=""?periods.get(period).getAttribute(tag_BaseUrl):"/";
-                for (int adaptationSet = 0; adaptationSet < 2; adaptationSet++) {
+                for (int adaptationSet = 0; adaptationSet <periods.get(period).adaptationSet.size() ; adaptationSet++) {
                     baseUrl=baseUrl.concat(periods.get(period).adaptationSet.get(adaptationSet).getAttribute(tag_BaseUrl));
                     baseUrl=baseUrl.concat(periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute(tag_BaseUrl));
 

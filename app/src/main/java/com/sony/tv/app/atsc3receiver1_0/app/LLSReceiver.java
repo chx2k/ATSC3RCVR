@@ -43,7 +43,7 @@ public class LLSReceiver {
     public LLSData systemTime;
     public boolean running=false;
     private static DataSpec dataSpec;
-    private UdpDataSource udpDataSource;
+    private FakeUdpDataSource udpDataSource;
     private byte[] bytes;
     private Handler mHandler;
 
@@ -200,21 +200,21 @@ public class LLSReceiver {
         @Override
         public void run(){
 
-            udpDataSource = new UdpDataSource(new TransferListener<UdpDataSource>() {
+            udpDataSource = new FakeUdpDataSource(new TransferListener<FakeUdpDataSource>() {
                 @Override
-                public void onTransferStart(UdpDataSource source, DataSpec dataSpec) {
+                public void onTransferStart(FakeUdpDataSource source, DataSpec dataSpec) {
                     running=true;
                 }
 
                 @Override
-                public void onBytesTransferred(UdpDataSource source, int bytesTransferred) {
+                public void onBytesTransferred(FakeUdpDataSource source, int bytesTransferred) {
                     packetSize=bytesTransferred;
                 }
                 @Override
-                public void onTransferEnd(UdpDataSource source) {
+                public void onTransferEnd(FakeUdpDataSource source) {
                     running=false;
                 }
-            });
+            }, false);
 
             try {
                 udpDataSource.open(dataSpec);
@@ -260,42 +260,42 @@ public class LLSReceiver {
         public void transferDataToUIThread(int type, byte[] data, int len){
 
             if (type==SLT ) {
-//                try{
-//                GZIPInputStream gzipInputStream;
-//                    gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data, 4, data.length - 4));
-//                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
-//                    gzipInputStream.close();
-//                    mSLTData=new String (buffer,0,unziplen);
-//                    sInstance.handleTaskState(this, FOUND_SLT);
-//
-//                }
-//                catch(ZipException e){
+                try{
+                GZIPInputStream gzipInputStream;
+                    gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data, 4, data.length - 4));
+                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
+                    gzipInputStream.close();
+                    mSLTData=new String (buffer,0,unziplen);
+                    sInstance.handleTaskState(this, FOUND_SLT);
+
+                }
+                catch(ZipException e){
                     mSLTData=new String (data,4,len-4);
                     sInstance.handleTaskState(this, FOUND_SLT);
 
-//                }
-//                catch(IOException e2){
-//                    e2.printStackTrace();
-//                }
+                }
+                catch(IOException e2){
+                    e2.printStackTrace();
+                }
 
             }else if (type==ST){
-//                try{
-//                    GZIPInputStream gzipInputStream;
-//                    gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data, 4, data.length - 4));
-//                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
-//                    gzipInputStream.close();
-//                    mSTData=new String (buffer,0,unziplen);
-//                    sInstance.handleTaskState(this, FOUND_ST);
-//
-//                }
-//                catch(ZipException e){
+                try{
+                    GZIPInputStream gzipInputStream;
+                    gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data, 4, data.length - 4));
+                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
+                    gzipInputStream.close();
+                    mSTData=new String (buffer,0,unziplen);
+                    sInstance.handleTaskState(this, FOUND_ST);
+
+                }
+                catch(ZipException e){
                     mSTData=new String (data,4,len-4);
                     sInstance.handleTaskState(this, FOUND_ST);
-//
-//                }
-//                catch(IOException e2){
-//                    e2.printStackTrace();
-//                }
+
+                }
+                catch(IOException e2){
+                    e2.printStackTrace();
+                }
 
             }
         }

@@ -12,8 +12,10 @@ public interface FluteFileManagerBase {
 
     void reset();
     void resetTimeStamp();
-    boolean create(RouteDecode r) throws Exception;
-    String write(RouteDecode r, byte[] input, int offset, int length);
+    boolean create(RouteDecodeBase r) throws Exception;
+
+    String write(RouteDecodeBase r, byte[] input, int offset, int length);
+
     long open(DataSpec dataSpec, int thread) throws IOException;
     int read(byte[] buffer, int offset, int readLength, int thread) throws IOException;
 

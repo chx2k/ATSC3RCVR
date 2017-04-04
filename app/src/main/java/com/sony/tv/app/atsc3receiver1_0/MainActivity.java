@@ -65,6 +65,7 @@ public class MainActivity extends Activity {
 
     CallBackInterface callBackInterface;
 
+    public static Activity activity;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -80,6 +81,8 @@ public class MainActivity extends Activity {
         stComplete=false;
         ExoPlayerStarted=false;
         fragmentsInitialized=false;
+        activity=this;
+
 
         callBackInterface=new CallBackInterface() {
             @Override

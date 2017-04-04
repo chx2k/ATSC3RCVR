@@ -68,7 +68,7 @@ public class FluteReceiver  {
         mHandler=new Handler(Looper.getMainLooper()) {
             @Override
             public void handleMessage(Message inputMessage) {
-                FluteTaskManager flutetask= (FluteTaskManager) inputMessage.obj;
+                FluteTaskManagerBase flutetask= (FluteTaskManagerBase) inputMessage.obj;
                 switch (inputMessage.what) {
                     // The decoding is done
 //                    case TASK_COMPLETE:
@@ -88,7 +88,7 @@ public class FluteReceiver  {
                     case FOUND_FLUTE_FILE:
                         break;
                     case TASK_ERROR:
-                        Log.d(TAG,"FOUND ERROR: "+flutetask.error);
+//                        Log.d(TAG,"FOUND ERROR: "+flutetask.error);
                         break;
                     case TASK_STOPPED:
                         Log.d(TAG,"STOP REQUEST ISSUED");

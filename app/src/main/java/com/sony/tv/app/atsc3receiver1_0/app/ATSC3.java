@@ -17,6 +17,9 @@ import com.google.android.exoplayer2.util.Util;
 import com.sony.tv.app.atsc3receiver1_0.PlayerActivity;
 import com.sony.tv.app.atsc3receiver1_0.SampleChooserFragment;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 
 /**
  * Created by xhamc on 3/10/17.
@@ -30,6 +33,7 @@ public class ATSC3 extends Application {
     private String TAG="ATSC3";
     public static int dataSourceIndex;
     public static String manifest="ManifestUpdate_Dynamic.mpd";
+    public static String manifestContents;
     public static int NAB=1;
     public static int QUALCOMM=2;
 
@@ -47,6 +51,18 @@ public class ATSC3 extends Application {
     public void onCreate() {
         super.onCreate();
         userAgent = Util.getUserAgent(this, "ExoPlayerDemo");
+
+        try {
+            byte[] buffer=new byte[10000];
+            InputStream is=getApplicationContext().getAssets().open("Manifest2.txt");
+
+            int len=is.read(buffer,0,10000);
+            manifestContents=new String(buffer,0,len);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
 
     }
 

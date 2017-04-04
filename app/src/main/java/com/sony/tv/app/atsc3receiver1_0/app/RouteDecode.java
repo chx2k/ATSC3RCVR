@@ -6,7 +6,7 @@ import android.util.Log;
  * Created by xhamc on 4/2/17.
  */
 
-public class RouteDecode {
+public class RouteDecode implements RouteDecodeBase {
 
     private final static String TAG="RouteDecode";
     private final int HEADER_LENGTH_POSITION=2;
@@ -35,6 +35,18 @@ public class RouteDecode {
     public String fileName="";
     public int contentLength;
     public int efdt_toi;
+
+    public void fileName(String fileName){
+        this.fileName=fileName;
+    }
+    public boolean valid(){return valid;}
+
+    public int tsi(){return (int) tsi;}
+    public int toi(){return (int) toi;}
+    public int arrayPosition(){return (int) arrayPosition;}
+    public String fileName() {return fileName;}
+    public int contentLength(){return contentLength;}
+    public int efdt_toi(){return efdt_toi;}
 
     public RouteDecode(byte[] data, int packetSize) {
         if (data.length < 0x20) return;
@@ -65,12 +77,6 @@ public class RouteDecode {
                 Log.e(TAG,"Unknown Route header length: "+length);
             }
         }
-    }
-
-
-    private class oldRouteDecode{
-
-
     }
 
 }

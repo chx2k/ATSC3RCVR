@@ -320,11 +320,11 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
 
 
-    public String write(RouteDecode r, byte[] input, int offset, int length){
-        int toi=r.toi;
+    public String write(RouteDecodeBase r, byte[] input, int offset, int length){
+        int toi=r.toi();
         lock.lock();
         try{
-            int index=mapGetBufferNumberFromTSI.get(r.tsi);
+            int index=mapGetBufferNumberFromTSI.get(r.tsi());
             HashMap<Integer,String> t=array_MapTOI_FileName.get(index);
             HashMap<String, ContentFileLocation> m=arrayMapFileLocations.get(index);
 
@@ -459,10 +459,10 @@ public class FluteFileManager  implements FluteFileManagerBase {
 //        return finalResult.getBytes();
     }
 
-    public boolean create(RouteDecode r) throws Exception {
+    public boolean create(RouteDecodeBase r) throws Exception {
         lock.lock();
         try {
-            short tsi=r.tsi;
+            int tsi=r.tsi();
             int index=mapGetBufferNumberFromTSI.get(tsi);
             if (tsi>2){
                 Log.e(TAG,"Asking for tsi> 2: :"+tsi);
@@ -470,10 +470,10 @@ public class FluteFileManager  implements FluteFileManagerBase {
             }
             HashMap<Integer,String> t=array_MapTOI_FileName.get(index);
             HashMap<String, ContentFileLocation> m=arrayMapFileLocations.get(index);
-            firstAvailablePosition[index] = (firstAvailablePosition[index] + r.contentLength) > maxAvailablePosition[index] ? 0 : firstAvailablePosition[index];
+            firstAvailablePosition[index] = (firstAvailablePosition[index] + r.contentLength()) > maxAvailablePosition[index] ? 0 : firstAvailablePosition[index];
             Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
 
-            ContentFileLocation c = new ContentFileLocation(r.fileName.concat(".new"), r.efdt_toi, firstAvailablePosition[index], r.contentLength,
+            ContentFileLocation c = new ContentFileLocation(r.fileName().concat(".new"), r.efdt_toi(), firstAvailablePosition[index], r.contentLength(),
                                                                 now.getTime(), now.getTime() + MAX_FILE_RETENTION_MS);
             Iterator<Map.Entry<String,ContentFileLocation>> iterator= m.entrySet().iterator();
             while (iterator.hasNext()) {
@@ -499,9 +499,9 @@ public class FluteFileManager  implements FluteFileManagerBase {
             }
 
             m.put(c.fileName, c);
-            t.put(r.efdt_toi,c.fileName);
+            t.put(r.efdt_toi(),c.fileName);
 
-            firstAvailablePosition[index] += r.contentLength;
+            firstAvailablePosition[index] += r.contentLength();
 
             snapshot_of_Filemanager();
             return true;
@@ -537,6 +537,10 @@ public class FluteFileManager  implements FluteFileManagerBase {
 //        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(2).entrySet() ){
 //            Log.v(TAG,"Audio: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength +"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
 //        }
+    }
+
+    public  String write (RouteDecodeNAB r, byte[] input, int offset, int length){
+        return "";
     }
 }
 
