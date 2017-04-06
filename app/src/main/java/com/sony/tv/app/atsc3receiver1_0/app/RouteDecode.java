@@ -26,11 +26,11 @@ public class RouteDecode implements RouteDecodeBase {
 
     public boolean valid=false;
     public boolean efdt=false;
-    public short tsi;
-    public short toi;
-    public short instanceId;
-    public short maxObjectSize;
-    public short arrayPosition;
+    public int tsi;
+    public int toi;
+    public int instanceId;
+    public int maxObjectSize;
+    public int arrayPosition;
     public long expiry;
     public String fileName="";
     public int contentLength;
@@ -41,8 +41,8 @@ public class RouteDecode implements RouteDecodeBase {
     }
     public boolean valid(){return valid;}
 
-    public int tsi(){return (int) tsi;}
-    public int toi(){return (int) toi;}
+    public int tsi(){return tsi;}
+    public int toi(){return toi;}
     public int arrayPosition(){return (int) arrayPosition;}
     public String fileName() {return fileName;}
     public int contentLength(){return contentLength;}
@@ -52,17 +52,17 @@ public class RouteDecode implements RouteDecodeBase {
         if (data.length < 0x20) return;
         if (data[0] == PREAMBLE[0] && data[1] == PREAMBLE[1]) {
 
-            toi = (short) ((data[TOI_POSITION] &0xff) <<24 | (data[TOI_POSITION + 1] &0xff)<<16 | (data[TOI_POSITION + 2] &0xff) <<8 | (data[TOI_POSITION + 3]&0xff));
-            tsi = (short) ((data[TSI_POSITION] &0xff) <<24 | (data[TSI_POSITION + 1] &0xff)<<16 | (data[TSI_POSITION + 2] &0xff) <<8 | (data[TSI_POSITION + 3]&0xff));
+            toi = ((data[TOI_POSITION] &0xff) <<24 | (data[TOI_POSITION + 1] &0xff)<<16 | (data[TOI_POSITION + 2] &0xff) <<8 | (data[TOI_POSITION + 3]&0xff));
+            tsi = ((data[TSI_POSITION] &0xff) <<24 | (data[TSI_POSITION + 1] &0xff)<<16 | (data[TSI_POSITION + 2] &0xff) <<8 | (data[TSI_POSITION + 3]&0xff));
             byte length = data[HEADER_LENGTH_POSITION];
             if (length == 4) {
-                arrayPosition = (short) ((data[ARRAY_POSITION]&0xff) <<24 | (data[ARRAY_POSITION + 1] &0xff)<<16 | (data[ARRAY_POSITION + 2] &0xff) <<8 | (data[ARRAY_POSITION + 3] & 0xff));
+                arrayPosition = ((data[ARRAY_POSITION]&0xff) <<24 | (data[ARRAY_POSITION + 1] &0xff)<<16 | (data[ARRAY_POSITION + 2] &0xff) <<8 | (data[ARRAY_POSITION + 3] & 0xff));
                 valid = true;
             } else if (length>0 && toi==0) {
                 if (data[HEADER_EXTENSIONS] == EXFT_192_PREAMBLE[0] && (data[HEADER_EXTENSIONS + 1] & 0xF0) == EXFT_192_PREAMBLE[1]) {
-                    instanceId = (short) ((data[INSTANCE_ID_POSITION] & 0x0F) << 16 | (data[INSTANCE_ID_POSITION + 1] & 0xff) << 8 | (data[INSTANCE_ID_POSITION + 2] * 0xff));
+                    instanceId = ((data[INSTANCE_ID_POSITION] & 0x0F) << 16 | (data[INSTANCE_ID_POSITION + 1] & 0xff) << 8 | (data[INSTANCE_ID_POSITION + 2] * 0xff));
                     expiry = System.currentTimeMillis() + ((data[EXPIRY_POSITION] & 0xff) << 24 | (data[EXPIRY_POSITION + 1] & 0xff) << 16 | (data[EXPIRY_POSITION + 2] & 0xff) << 8 | (data[EXPIRY_POSITION + 3] & 0xff)) * 1000;
-                    maxObjectSize = (short) ((data[MAX_OBJECT_SIZE_POSITION] & 0xff) << 24 | (data[MAX_OBJECT_SIZE_POSITION + 1] & 0xff) << 16 | (data[MAX_OBJECT_SIZE_POSITION + 2] & 0xff) << 8 | (data[MAX_OBJECT_SIZE_POSITION + 3] & 0xff));
+                    maxObjectSize = ((data[MAX_OBJECT_SIZE_POSITION] & 0xff) << 24 | (data[MAX_OBJECT_SIZE_POSITION + 1] & 0xff) << 16 | (data[MAX_OBJECT_SIZE_POSITION + 2] & 0xff) << 8 | (data[MAX_OBJECT_SIZE_POSITION + 3] & 0xff));
                     String s = new String(data, EFDT_CONTENT_START_POSITION, packetSize - EFDT_CONTENT_START_POSITION);
                     EFDT_DATA e = (new ATSCXmlParse(s, ATSCXmlParse.EFDT_INSTANCE_TAG)).EFDTParse();
                     fileName = e.location;

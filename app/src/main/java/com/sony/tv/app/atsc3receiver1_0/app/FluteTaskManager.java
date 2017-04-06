@@ -155,10 +155,10 @@ public class FluteTaskManager implements FluteTaskManagerBase{
             try {
                 sInstance.handleTaskState(mFluteTaskManager, FluteReceiver.FOUND_FLUTE_PACKET);
                 String fileName;
-                RouteDecode routeDecode = new RouteDecode(bytes, packetSize);
+                RouteDecodeBase routeDecode = new RouteDecode(bytes, packetSize);
                 try {
-                    if (routeDecode.toi == 0 && routeDecode.tsi == 0) {
-                        fileName = routeDecode.fileName;
+                    if (routeDecode.toi() == 0 && routeDecode.tsi() == 0) {
+                        fileName = routeDecode.fileName();
                         if (fileName.toLowerCase().contains(".mpd") || fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml")) {
                             Log.d(TAG, "Found file: " + fileName);
 
@@ -166,7 +166,7 @@ public class FluteTaskManager implements FluteTaskManagerBase{
                         } else {
                             Log.e(TAG, "Unrecognized fileName: " + fileName);
                         }
-                    } else if (routeDecode.toi == 0) {
+                    } else if (routeDecode.toi() == 0) {
                         fileManager.create(routeDecode);
                     } else {
                         fileName = fileManager.write(routeDecode, bytes, RouteDecode.PAYLOAD_START_POSITION, packetSize - RouteDecode.PAYLOAD_START_POSITION);

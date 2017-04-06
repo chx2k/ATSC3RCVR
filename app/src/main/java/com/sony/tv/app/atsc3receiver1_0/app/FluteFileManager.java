@@ -53,8 +53,8 @@ public class FluteFileManager  implements FluteFileManagerBase {
     private HashMap<Integer,String> map_TOI_FileNameAud;
     private HashMap<Integer,String> map_TOI_FileNameVid;
     private ArrayList<HashMap<Integer,String>> array_MapTOI_FileName =new ArrayList<>();
-    private HashMap<Integer, Short> mapGetTSIFromBufferNumber;             //retrieve the relevant FileManager from the TSI value
-    private HashMap<Short, Integer> mapGetBufferNumberFromTSI;             //retrieve the relevant FileManager from the TSI value
+    private HashMap<Integer, Integer> mapGetTSIFromBufferNumber;             //retrieve the relevant FileManager from the TSI value
+    private HashMap<Integer, Integer> mapGetBufferNumberFromTSI;             //retrieve the relevant FileManager from the TSI value
 
     private byte[] signalingStorage;
     private byte[] videoStorage;
@@ -119,12 +119,12 @@ public class FluteFileManager  implements FluteFileManagerBase {
         array_MapTOI_FileName.add(2,map_TOI_FileNameAud);
 
             /*default mapping of TSI to buffer positions*/
-        mapGetTSIFromBufferNumber.put(0,(short) 0);
-        mapGetTSIFromBufferNumber.put(1,(short) 1);
-        mapGetTSIFromBufferNumber.put(2,(short) 2);
-        mapGetBufferNumberFromTSI.put((short) 0, 0);
-        mapGetBufferNumberFromTSI.put((short) 1, 1);
-        mapGetBufferNumberFromTSI.put((short) 2, 2);
+        mapGetTSIFromBufferNumber.put(0,0);
+        mapGetTSIFromBufferNumber.put(1,1);
+        mapGetTSIFromBufferNumber.put(2,2);
+        mapGetBufferNumberFromTSI.put(0, 0);
+        mapGetBufferNumberFromTSI.put(1, 1);
+        mapGetBufferNumberFromTSI.put(2, 2);
 
         storage.add(0,signalingStorage);
         storage.add(1,videoStorage);
