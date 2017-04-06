@@ -31,7 +31,7 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
 
     private UdpDataSource udpDataSourceAv;
     private byte[] bytes;
-    private static int MAX_SOCKET_TIMEOUT=20*1000;
+    private static int MAX_SOCKET_TIMEOUT=0;
     private FluteReceiver sInstance=FluteReceiver.getInstance();
     private CallBackInterface callBackInterface;
 

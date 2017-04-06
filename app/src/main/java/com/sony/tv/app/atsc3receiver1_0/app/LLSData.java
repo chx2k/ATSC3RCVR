@@ -38,6 +38,7 @@ public class LLSData {
             hashMap.put("serviceCategory", LLSData.class.getMethod("putServiceCategory",int.class, String.class ));
             hashMap.put("shortServiceName", LLSData.class.getMethod("putShortServiceName",int.class, String.class ));
             hashMap.put("slsProtocol", LLSData.class.getMethod("putSlsProtocol",int.class, int.class, String.class ));
+            hashMap.put("slsPlpId", LLSData.class.getMethod("putSlsPlpId",int.class, int.class, String.class ));
             hashMap.put("slsMajorProtocolVersion", LLSData.class.getMethod("putSlsMajorProtocolVersion",int.class, int.class, String.class ));
             hashMap.put("slsMinorProtocolVersion", LLSData.class.getMethod("putSlsMinorProtocolVersion",int.class, int.class, String.class ));
             hashMap.put("slsDestinationIpAddress", LLSData.class.getMethod("putSlsDestinationIpAddress",int.class, int.class, String.class ));
@@ -122,6 +123,11 @@ public class LLSData {
         if (item2>s.broadcastServices.size()) b=s.addBroadcastService(item2-1); else b=s.broadcastServices.get(item2-1);
         b.slsProtocol=Byte.parseByte(value);
     }
+
+    public void putSlsPlpId(int item, int item2, String value){
+
+    }
+
     public void putSlsMajorProtocolVersion(int item, int item2, String value){
         SLTData.Service s;
         if (item>mSLTData.mServices.size()) s=mSLTData.addService(item-1); else s=mSLTData.mServices.get(item-1);

@@ -15,6 +15,8 @@
  */
 package com.google.android.exoplayer2;
 
+import android.util.Log;
+
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.upstream.Allocator;
@@ -32,20 +34,21 @@ public final class DefaultLoadControl implements LoadControl {
    * times, in milliseconds.
    */
 //  public static final int DEFAULT_MIN_BUFFER_MS = 15000;
-  public static final int DEFAULT_MIN_BUFFER_MS = 1500;
+  public static final int DEFAULT_MIN_BUFFER_MS = 2500;
 
   /**
    * The default maximum duration of media that the player will attempt to buffer, in milliseconds.
    */
 //  public static final int DEFAULT_MAX_BUFFER_MS = 30000;
-  public static final int DEFAULT_MAX_BUFFER_MS = 3000;
+  public static final int DEFAULT_MAX_BUFFER_MS = 10000;
 
   /**
    * The default duration of media that must be buffered for playback to start or resume following a
    * user action such as a seek, in milliseconds.
    */
 //  public static final int DEFAULT_BUFFER_FOR_PLAYBACK_MS = 2500;
-  public static final int DEFAULT_BUFFER_FOR_PLAYBACK_MS = 500;
+//  public static final int DEFAULT_BUFFER_FOR_PLAYBACK_MS = 500;
+  public static final int DEFAULT_BUFFER_FOR_PLAYBACK_MS = 1000;
 
 
   /**
@@ -54,7 +57,8 @@ public final class DefaultLoadControl implements LoadControl {
    * action.
    */
 //  public static final int DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS  = 5000;
-  public static final int DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS  = 500;
+//  public static final int DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS  = 500;
+  public static final int DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS  = 1500;
 
   /**
    * Priority for media loading.
@@ -192,6 +196,9 @@ public final class DefaultLoadControl implements LoadControl {
       } else {
         priorityTaskManager.remove(LOADING_PRIORITY);
       }
+    }
+    if (isBuffering){
+      Log.d("LOAD","Continue Loading: "+bufferedDurationUs/1000000+"  LOW: "+minBufferUs+"  HIGH:  "+maxBufferUs);
     }
     return isBuffering;
   }

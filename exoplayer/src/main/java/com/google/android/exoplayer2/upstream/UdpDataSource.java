@@ -28,7 +28,7 @@ import java.net.SocketException;
 /**
  * A UDP {@link DataSource}.
  */
-public final class UdpDataSource implements DataSource {
+public class UdpDataSource implements DataSource {
 
   /**
    * Thrown when an error is encountered when trying to read from a {@link UdpDataSource}.

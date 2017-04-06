@@ -1,0 +1,13 @@
+id="p4085" start="PT0S">
+       <AdaptationSet id="0" maxFrameRate="60/1" maxHeight="1080" maxWidth="1920" par="16:9" segmentAlignment="true">
+
+         <Representation bandwidth="5000000" codecs="hev1.1.6.L123.90" frameRate="60/1" height="1080" id="0" mimeType="video/mp4" sar="1:1" scanType="progressive" startWithSAP="1" width="1920">
+            <SegmentTemplate duration="10000000" initialization="video/video_init.mp4" media="video/$Number$.m4s" startNumber="1" timescale="10000000"/>
+         </Representation>
+       </AdaptationSet>
+       <AdaptationSet id="1" lang="und" segmentAlignment="true">
+         <Representation audioSamplingRate="48000" bandwidth="128000" codecs="mp4a.40.2" id="1" mimeType="audio/mp4" startWithSAP="1">
+           <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>
+         <SegmentTemplate duration="10000000" initialization="audio/audio_init.mp4" media="audio/$Number$.m4s" startNumber="1" timescale="10000000"/></Representation>
+       </AdaptationSet>
+      </Period>

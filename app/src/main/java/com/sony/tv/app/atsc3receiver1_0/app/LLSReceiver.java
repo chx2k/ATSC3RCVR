@@ -43,10 +43,11 @@ public class LLSReceiver {
     public LLSData systemTime;
     public boolean running=false;
     private static DataSpec dataSpec;
-    private FakeUdpDataSource udpDataSource;
     private byte[] bytes;
     private Handler mHandler;
 
+    private static int MAX_SOCKET_TIMEOUT=0;
+    UdpDataSource udpDataSource;
 
     private final static byte SLT=1;
     private final static byte ST=3;
@@ -199,56 +200,118 @@ public class LLSReceiver {
 
         @Override
         public void run(){
+//            if (ATSC3.FAKEUDPSOURCE) {
+//                FakeUdpDataSource udpDataSource;
+//
+//                udpDataSource = new FakeUdpDataSource(new TransferListener<FakeUdpDataSource>() {
+//                    @Override
+//                    public void onTransferStart(FakeUdpDataSource source, DataSpec dataSpec) {
+//                        running = true;
+//                    }
+//
+//                    @Override
+//                    public void onBytesTransferred(FakeUdpDataSource source, int bytesTransferred) {
+//                        packetSize = bytesTransferred;
+//                    }
+//
+//                    @Override
+//                    public void onTransferEnd(FakeUdpDataSource source) {
+//                        running = false;
+//                    }
+//                }, false);
+//
+//                try {
+//                    udpDataSource.open(dataSpec);
+//                } catch (UdpDataSource.UdpDataSourceException e) {
+//                    e.printStackTrace();
+//                    return;
+//                }
+//                mainloop:
+//                while (!stopRequest && running) {
+//
+//                    int len;
+//                    int offset = 0;
+//                    bytes = new byte[UdpDataSource.DEFAULT_MAX_PACKET_SIZE];
+//                    do {
+//                        try {
+//                            len = udpDataSource.read(bytes, offset, 500);
+//                            offset += len;
+//                        } catch (UdpDataSource.UdpDataSourceException e) {
+//                            e.printStackTrace();
+//                            reportError();
+//                            break mainloop;
+//                        }
+//                    } while (offset < packetSize);
+//
+//                    transferDataToUIThread(bytes[0], bytes, packetSize);
+//
+//                    try {
+//                        Thread.sleep(100);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                        reportError();
+//                        break;
+//                    }
+//                }
+//                udpDataSource.close();
+//            }else{
 
-            udpDataSource = new FakeUdpDataSource(new TransferListener<FakeUdpDataSource>() {
-                @Override
-                public void onTransferStart(FakeUdpDataSource source, DataSpec dataSpec) {
-                    running=true;
-                }
-
-                @Override
-                public void onBytesTransferred(FakeUdpDataSource source, int bytesTransferred) {
-                    packetSize=bytesTransferred;
-                }
-                @Override
-                public void onTransferEnd(FakeUdpDataSource source) {
-                    running=false;
-                }
-            }, false);
-
-            try {
-                udpDataSource.open(dataSpec);
-            } catch (UdpDataSource.UdpDataSourceException e) {
-                e.printStackTrace();
-                return;
-            }
-            mainloop:while (!stopRequest && running) {
-
-                int len;
-                int offset = 0;
-                bytes = new byte[UdpDataSource.DEFAULT_MAX_PACKET_SIZE];
-                do {
-                    try {
-                        len = udpDataSource.read(bytes, offset, 500);
-                        offset += len;
-                    } catch (UdpDataSource.UdpDataSourceException e) {
-                        e.printStackTrace();
-                        reportError();
-                        break mainloop;
+                    udpDataSource = new UdpDataSource(new TransferListener<UdpDataSource>() {
+                    @Override
+                    public void onTransferStart(UdpDataSource source, DataSpec dataSpec) {
+                        running = true;
                     }
-                } while (offset < packetSize);
 
-                transferDataToUIThread(bytes[0], bytes, packetSize);
+                    @Override
+                    public void onBytesTransferred(UdpDataSource source, int bytesTransferred) {
+                        packetSize = bytesTransferred;
+                    }
+
+                    @Override
+                    public void onTransferEnd(UdpDataSource source) {
+                        running = false;
+                    }
+                },
+                        UdpDataSource.DEFAULT_MAX_PACKET_SIZE,
+                        MAX_SOCKET_TIMEOUT
+                );
 
                 try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
+                    udpDataSource.open(dataSpec);
+                } catch (UdpDataSource.UdpDataSourceException e) {
                     e.printStackTrace();
-                    reportError();
-                    break;
+                    return;
                 }
-            }
-            udpDataSource.close();
+                mainloop:
+                while (!stopRequest && running) {
+
+                    int len;
+                    int offset = 0;
+                    bytes = new byte[UdpDataSource.DEFAULT_MAX_PACKET_SIZE];
+                    do {
+                        try {
+                            len = udpDataSource.read(bytes, offset, 500);
+                            offset += len;
+                        } catch (UdpDataSource.UdpDataSourceException e) {
+                            e.printStackTrace();
+                            reportError();
+                            break mainloop;
+                        }
+                    } while (offset < packetSize);
+
+                    transferDataToUIThread(bytes[0], bytes, packetSize);
+
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        reportError();
+                        break;
+                    }
+                }
+                udpDataSource.close();
+
+//            }
         }
 
         public void stop(){
@@ -260,43 +323,78 @@ public class LLSReceiver {
         public void transferDataToUIThread(int type, byte[] data, int len){
 
             if (type==SLT ) {
-                try{
-                GZIPInputStream gzipInputStream;
-                    gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data, 4, data.length - 4));
-                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
-                    gzipInputStream.close();
-                    mSLTData=new String (buffer,0,unziplen);
-                    sInstance.handleTaskState(this, FOUND_SLT);
+//                try{
+//                GZIPInputStream gzipInputStream;
+//                    ByteArrayInputStream byteArray=new ByteArrayInputStream(data, 4, data.length - 4);
+//                    gzipInputStream = new GZIPInputStream(byteArray);
+//                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
+//                    gzipInputStream.close();
+//                    mSLTData=new String (buffer,0,unziplen);
+//                    sInstance.handleTaskState(this, FOUND_SLT);
 
-                }
-                catch(ZipException e){
+//                    sInstance.handleTaskState(this, FOUND_SLT);
+//                    InputStream in = new InputStream() {
+//                        @Override
+//                        public int read() throws IOException {
+//                            return 0;
+//                        }
+//                    };
+//                    byte[] dataout=new byte[len*10];
+//                    Inflater i=new Inflater();
+//                    i.setInput(data,4,len-4);
+//                    try {
+//                        len=i.inflate(dataout);
+//                        mSLTData=new String (data,0,len);
+//                    } catch (DataFormatException e) {
+//                        mSLTData=new String (data,4,len-4);
+//                    }
+//
+//                }
+//                catch(ZipException e){
                     mSLTData=new String (data,4,len-4);
                     sInstance.handleTaskState(this, FOUND_SLT);
 
-                }
-                catch(IOException e2){
-                    e2.printStackTrace();
-                }
+//                }
+//                catch(IOException e2){
+//                    e2.printStackTrace();
+//                }
 
             }else if (type==ST){
-                try{
-                    GZIPInputStream gzipInputStream;
-                    gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data, 4, data.length - 4));
-                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
-                    gzipInputStream.close();
-                    mSTData=new String (buffer,0,unziplen);
-                    sInstance.handleTaskState(this, FOUND_ST);
-
-                }
-                catch(ZipException e){
+//                try{
+//                    GZIPInputStream gzipInputStream;
+//                    ByteArrayInputStream byteArray=new ByteArrayInputStream(data, 4, data.length - 4);
+//                    gzipInputStream = new GZIPInputStream(byteArray);
+//                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
+//                    gzipInputStream.close();
+//                    mSTData=new String (buffer,0,unziplen);
+//                    sInstance.handleTaskState(this, FOUND_ST);
+////
+//                }
+//                catch(ZipException e){
                     mSTData=new String (data,4,len-4);
                     sInstance.handleTaskState(this, FOUND_ST);
-
-                }
-                catch(IOException e2){
-                    e2.printStackTrace();
-                }
-
+//
+//                }
+//                catch(IOException e2){
+//                    e2.printStackTrace();
+//                }
+//                    sInstance.handleTaskState(this, FOUND_ST);
+//                    InputStream in = new InputStream() {
+//                        @Override
+//                        public int read() throws IOException {
+//                            return 0;
+//                        }
+//                    };
+//                    byte[] dataout=new byte[len*10];
+//                    Inflater i=new Inflater();
+//                    i.setInput(data,4,len-4);
+//                    try {
+//                        len=i.inflate(dataout);
+//                        mSTData=new String (data,0,len);
+//                    } catch (DataFormatException e) {
+//                        mSTData=new String (data,4,len-4);
+//                    }
+//
             }
         }
 

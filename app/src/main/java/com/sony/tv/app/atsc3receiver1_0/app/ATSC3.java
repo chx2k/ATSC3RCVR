@@ -28,13 +28,15 @@ import java.io.InputStream;
 public class ATSC3 extends Application {
 
 
-    public final static boolean FAKEUDPSOURCE=true;
-    public final static boolean FAKEMANIFEST=true;
+    public final static boolean FAKEUDPSOURCE=false;
+    public final static boolean FAKEMANIFEST=false;
+    public final static boolean FAKEPERIODINJECT=false;
 
     protected String userAgent;
     private String TAG="ATSC3";
     public static int dataSourceIndex;
     public static String manifest="ManifestUpdate_Dynamic.mpd";
+    public static String periodToInject="";
     public static String manifestContents;
     public static int NAB=1;
     public static int QUALCOMM=2;
@@ -56,10 +58,10 @@ public class ATSC3 extends Application {
 
         try {
             byte[] buffer=new byte[10000];
-            InputStream is=getApplicationContext().getAssets().open("Manifest2.txt");
+            InputStream is=getApplicationContext().getAssets().open("Period");
 
             int len=is.read(buffer,0,10000);
-            manifestContents=new String(buffer,0,len);
+            periodToInject=new String(buffer,0,len);
 
         } catch (IOException e) {
             e.printStackTrace();

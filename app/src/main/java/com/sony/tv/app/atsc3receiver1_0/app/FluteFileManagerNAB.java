@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.upstream.DataSpec;
+import com.google.android.exoplayer2.util.XmlPullParserUtil;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -18,6 +19,8 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static com.google.android.exoplayer2.util.Util.parseXsDuration;
+
 /**
  * Created by xhamc on 4/2/17.
  */
@@ -25,16 +28,17 @@ import java.util.concurrent.locks.ReentrantLock;
 public class FluteFileManagerNAB implements FluteFileManagerBase {
 
 
-    private static final long AVAILABILITY_TIME_OFFSET=2500;
-    private static final String MIN_BUFFER_TIME="PT10S";
-    private static final String TIME_SHIFT_BUFFER_OFFSET="PT0S";
-    private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";
-    private static final String SUGGESTED_PRESENTATION_DELAY="PT0S";
+    private static final long AVAILABILITY_TIME_OFFSET=6000;
+    private static final String MIN_BUFFER_TIME="PT1.5S";
+    private static final String TIME_SHIFT_BUFFER_OFFSET="PT1S";
+    private static final String TIME_SHIFT_DEPTH="PT2S";
+    private static final String MINIMUM_UPDATE_PERIOD="PT2S";
+    private static final String SUGGESTED_PRESENTATION_DELAY="PT2S";
 
     //        HashMap<String, ContentFileLocation> mapContentLocations;
     private static final String TAG="FileManager";
     public static final int MAX_SIGNALING_BUFFERSIZE=10000;
-    public static final int MAX_VIDEO_BUFFERSIZE=40000000;
+    public static final int MAX_VIDEO_BUFFERSIZE=20000000;
     public static final int MAX_AUDIO_BUFFERSIZE=2000000;
     private static final int MAX_FILE_RETENTION_MS=10000;
 
@@ -69,6 +73,7 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
 
     private static boolean first;
     private static long availabilityStartTime;
+    private static int videoStartNumber;
     private static long availabilityStartTimeOffset;
 
     private SLS sls=new SLS();
@@ -354,13 +359,20 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
                         Date now= Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
                         l.time=now.getTime();
                         m.put(fileName, l);
+                        if (fileName.contains("video")&& fileName.contains(".m4s")&&first){
+                            int v1=fileName.indexOf("/",1);
+                            int v2=fileName.indexOf(".",1);
+                            String number=fileName.substring(v1+1,v2);
+                            videoStartNumber=Integer.parseInt(number);
+                        }
                         t.remove(toi);
                         t.put(toi, fileName);
                         if (r.tsi() == 0){
                             sls.create(l,storage.get(index));
-                            mapGetBufferNumberFromTSI.put(sls.stsidParser.getTSI(0),1); //TODO: Use bw to determine video if there is both audio and video
-                            mapGetTSIFromBufferNumber.put(1,sls.stsidParser.getTSI(0));
-
+                            for (int i=0; i<sls.stsidParser.getLSSize(); i++) {
+                                mapGetBufferNumberFromTSI.put(sls.stsidParser.getTSI(i), i+1); //TODO: Use bw to determine video if there is both audio and video
+                                mapGetTSIFromBufferNumber.put(i+1, sls.stsidParser.getTSI(i));
+                            }
                         }
 
 
@@ -395,6 +407,8 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
             }
 
             mMPDbytes = parseManifest(mpdData);
+            String s=new String(mMPDbytes,0,mMPDbytes.length);
+//            Log.d(TAG,"MPD: "+ s);
             contentLength=mMPDbytes.length;
 
             return new FileBuffer(mMPDbytes, contentLength, 0);
@@ -415,47 +429,128 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
 
             }
         }
-
     }
+
+    public Date getAvailabilityStartTime(String mpdData){
+
+        TimeZone timeZone = TimeZone.getTimeZone("UTC");
+
+        Calendar c= Calendar.getInstance(timeZone);
+        Date now=c.getTime();
+        String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
+        String[] result2=result[1].split("[\"]+",2);
+        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        formatter.setTimeZone(timeZone);
+
+        try{
+            Date mpd=formatter.parse(result2[0]);
+            Log.d(TAG, "Time now minus time MPD created in s: "+ (double)(now.getTime()-mpd.getTime())/1000);
+
+//            formatter = new SimpleDateFormat("yyyy-MM-dd'T'H:mm:ss.SSS'Z'");
+
+            return mpd;
+
+        }catch (ParseException e){
+            Log.e(TAG, "Error parsing date from MPD");
+            return null;
+        }
+    }
+
 
 
     private byte[] parseManifest(String mpdData){
 
+        TimeZone timeZone = TimeZone.getTimeZone("UTC");
+        Calendar c= Calendar.getInstance(timeZone);
+        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+
+//
         if (first){
+            long firstTimeOffset=0;
+            if (ATSC3.FAKEPERIODINJECT) {
+                String periodParse = new MPDParser(mpdData).parseFirstPeriodStart();
+                firstTimeOffset = parseXsDuration(periodParse);
+            }
             MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
             mpdParser.MPDParse();
 
             availabilityStartTimeOffset=AVAILABILITY_TIME_OFFSET;
-            availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+availabilityStartTimeOffset;
+            availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+availabilityStartTimeOffset-firstTimeOffset;
+
+//            Date manifestDate=getAvailabilityStartTime(mpdData);
+//            availabilityStartTime=manifestDate.getTime()+availabilityStartTimeOffset;
+
+//            availabilityStartTimeOffset = AVAILABILITY_TIME_OFFSET;
+//            Date now = c.getTime();
+//            availabilityStartTime = now.getTime() + AVAILABILITY_TIME_OFFSET;
+
 
             Log.d(TAG,"AvailabilityStartTime set to "+availabilityStartTime);
             first=false;
 
         }
+        if (ATSC3.FAKEMANIFEST) {
+            String replacement = "startNumber=\"".concat(String.format("%d", videoStartNumber)).concat("\"");
+            mpdData = mpdData.replaceAll("startNumber=\"([0-9])+\"", replacement);
+
+        }
+
+
+
+
+//        String replacement1 = "start=\"PT0S\"";
+//        String replacement2 = "start=\"PT20S\"";
+//        int index1=mpdData.indexOf("start=\"");
+//        int index2=mpdData.indexOf("\"", index1+10);
+//        int index3=mpdData.indexOf("start=\"", index2);
+//        int index4=mpdData.indexOf("\"", index3+10);
+//        String mpdDataNew=mpdData.substring(0,index1).concat(replacement1);
+//        mpdDataNew=mpdDataNew.concat(mpdData.substring(index2+1,index3)).concat(replacement2);
+//        mpdData=mpdDataNew.concat(mpdData.substring(index4+1));
+
+
+
+
         String[] mpdSplit=mpdData.split("\\?>",2);
         String mpdHeaderStart=mpdSplit[1];
         String[] mpdDataSplit=mpdHeaderStart.split(">",2);
         String mpdHeader=mpdDataSplit[0].concat(">");
 
-        TimeZone timeZone = TimeZone.getTimeZone("UTC");
-        Calendar c= Calendar.getInstance(timeZone);
-        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+
         formatter.setTimeZone(timeZone);
-//        availabilityStartTimeOffset=AVAILABILITY_TIME_OFFSET;
-//        Date now= c.getTime();
-//        availabilityStartTime=now.getTime()+AVAILABILITY_TIME_OFFSET;
+        if (ATSC3.FAKEMANIFEST) {
+            availabilityStartTimeOffset = AVAILABILITY_TIME_OFFSET;
+            Date now = c.getTime();
+            availabilityStartTime = now.getTime() + AVAILABILITY_TIME_OFFSET;
+        }
+        String periodParse="";
+        if (ATSC3.FAKEPERIODINJECT) {
+            periodParse = new MPDParser(mpdData).parseFirstPeriodStart();
+            long firstTimeOffset = parseXsDuration(periodParse);
+
+
+            periodParse = "<Period duration=\"".concat(periodParse).concat("\" ").concat(ATSC3.periodToInject);
+        }
 
         String availabilityStartTimeString= formatter.format(availabilityStartTime);
         Log.d(TAG, availabilityStartTimeString);
 
         MPDParser mpdParser=new MPDParser(mpdHeader, mapFileLocationsVid, mapFileLocationsAud);
         mpdParser.MPDParse();
-//        mpdParser.mpd.getAttributes().put("minBufferTime",MIN_BUFFER_TIME);
-//        mpdParser.mpd.getAttributes().put("timeShiftBufferOffset",TIME_SHIFT_BUFFER_OFFSET);
+        mpdParser.mpd.getAttributes().put("minBufferTime",MIN_BUFFER_TIME);
+        mpdParser.mpd.getAttributes().put("timeShiftBufferOffset",TIME_SHIFT_BUFFER_OFFSET);
+        mpdParser.mpd.getAttributes().put("timeShiftBufferDepth",TIME_SHIFT_DEPTH);
+        mpdParser.mpd.getAttributes().put("profiles", "urn:mpeg:dash:profile:isoff-live:2011");
         mpdParser.mpd.getAttributes().put("minimumUpdatePeriod",MINIMUM_UPDATE_PERIOD);
         mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
         mpdParser.mpd.getAttributes().put("availabilityStartTime",availabilityStartTimeString);
-        mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(mpdDataSplit[1]);
+        mpdParser.mpd.getAttributes().remove("maxSegmentDuration");
+
+//        mpdParser.mpd.getAttributes().remove("timeShiftBufferDepth");
+//        mpdParser.mpd.getAttributes().remove("timeShiftBufferDepth");
+        mpdParser.mpd.getAttributes().remove("publishTime");
+        mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(periodParse).concat(mpdDataSplit[1]);
+
 
         return mpdData.getBytes();
 
@@ -591,6 +686,7 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
 
 
     }
+
 
 
 

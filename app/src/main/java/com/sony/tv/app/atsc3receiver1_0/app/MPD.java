@@ -78,7 +78,7 @@ public final class MPD {
 
     private HashMap<String, String> attrs=new HashMap<>();
 
-    private ArrayList<Period> periods=new ArrayList<>();
+    public ArrayList<Period> periods=new ArrayList<>();
 
     public MPD(StringBuilder sb){
         this.sb=sb;
@@ -318,12 +318,14 @@ public final class MPD {
                                         videoSegmentDuration = (long) 1000 * Double.parseDouble(videoTemplate.segmentTimeline.tagS.get(0).getAttribute("d")) /
                                                 Double.parseDouble(videoTemplate.getAttribute(attr_timeScale));
                                     }
+                                    long periodStartTimeOffset=parseXsDuration(periods.get(0).getAttribute(attr_start));
+
                                     long periodStartTime=parseXsDuration(periods.get(period).getAttribute(attr_start));
                                     long periodDuration=parseXsDuration(periods.get(period).getAttribute(attr_duration));
                                     long videoStartTime=video.getValue().time;
                                     long periodEndNumber=periodStartNumber+(long)(periodDuration/videoSegmentDuration);
                                     if (videoSegmentNumber>=periodStartNumber && videoSegmentNumber<periodEndNumber) {
-                                        long videoSegmentOffset =  (long) ((videoSegmentNumber - periodStartNumber) * videoSegmentDuration) + periodStartTime;
+                                        long videoSegmentOffset =  (long) ((videoSegmentNumber - periodStartNumber) * videoSegmentDuration) + periodStartTime-periodStartTimeOffset;
                                         long availabilityTime = videoStartTime - videoSegmentOffset;
 //                                        Log.d(TAG, "Difference in availability Times calc_from_videos - manifest: "  + (availabilityTime-availabilityStartTime));
                                         return availabilityTime;
