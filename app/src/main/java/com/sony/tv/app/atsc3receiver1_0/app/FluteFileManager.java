@@ -401,6 +401,9 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
 
 
+        TimeZone timeZone = TimeZone.getTimeZone("UTC");
+        Calendar c= Calendar.getInstance(timeZone);
+        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
         if (first){
             MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
@@ -412,7 +415,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
 //            Log.d(TAG,"AvailabilityStartTimeOffset set to "+availabilityStartTimeOffset);
             availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+availabilityStartTimeOffset;
-            Log.d(TAG,"AvailabilityStartTime set to "+availabilityStartTime);
+            Log.d(TAG,"AvailabilityStartTime set to "+availabilityStartTime +  "  difference: "+ ((Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime()).getTime()-availabilityStartTime));
             first=false;
         }
         String[] mpdSplit=mpdData.split("\\?>",2);
@@ -420,9 +423,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
         String[] mpdDataSplit=mpdHeaderStart.split(">",2);
         String mpdHeader=mpdDataSplit[0].concat(">");
 
-        TimeZone timeZone = TimeZone.getTimeZone("UTC");
-        Calendar c= Calendar.getInstance(timeZone);
-        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+
         formatter.setTimeZone(timeZone);
         String availabilityStartTimeString= formatter.format(new Date(availabilityStartTime));
 
@@ -433,6 +434,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
         mpdParser.mpd.getAttributes().put("minimumUpdatePeriod",MINIMUM_UPDATE_PERIOD);
         mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
         mpdParser.mpd.getAttributes().put("availabilityStartTime",availabilityStartTimeString);
+        mpdParser.mpd.getAttributes().remove("presentationTimeOffset");
         mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(mpdDataSplit[1]);
 
 

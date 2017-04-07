@@ -323,79 +323,52 @@ public class LLSReceiver {
         public void transferDataToUIThread(int type, byte[] data, int len){
 
             if (type==SLT ) {
-//                try{
-//                GZIPInputStream gzipInputStream;
-//                    ByteArrayInputStream byteArray=new ByteArrayInputStream(data, 4, data.length - 4);
-//                    gzipInputStream = new GZIPInputStream(byteArray);
-//                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
-//                    gzipInputStream.close();
-//                    mSLTData=new String (buffer,0,unziplen);
-//                    sInstance.handleTaskState(this, FOUND_SLT);
+                if (ATSC3.GZIP) {
+                    try {
+                        GZIPInputStream gzipInputStream;
+                        ByteArrayInputStream byteArray = new ByteArrayInputStream(data, 4, data.length - 4);
+                        gzipInputStream = new GZIPInputStream(byteArray);
+                        int unziplen = gzipInputStream.read(buffer, 0, buffer.length);
+                        gzipInputStream.close();
+                        mSLTData = new String(buffer, 0, unziplen);
+                        sInstance.handleTaskState(this, FOUND_SLT);
 
-//                    sInstance.handleTaskState(this, FOUND_SLT);
-//                    InputStream in = new InputStream() {
-//                        @Override
-//                        public int read() throws IOException {
-//                            return 0;
-//                        }
-//                    };
-//                    byte[] dataout=new byte[len*10];
-//                    Inflater i=new Inflater();
-//                    i.setInput(data,4,len-4);
-//                    try {
-//                        len=i.inflate(dataout);
-//                        mSLTData=new String (data,0,len);
-//                    } catch (DataFormatException e) {
-//                        mSLTData=new String (data,4,len-4);
-//                    }
-//
-//                }
-//                catch(ZipException e){
+                    } catch (ZipException e) {
+
+                    } catch(IOException e2){
+                        e2.printStackTrace();
+                    }
+
+                }else{
+
                     mSLTData=new String (data,4,len-4);
                     sInstance.handleTaskState(this, FOUND_SLT);
 
-//                }
-//                catch(IOException e2){
-//                    e2.printStackTrace();
-//                }
+                }
 
-            }else if (type==ST){
-//                try{
-//                    GZIPInputStream gzipInputStream;
-//                    ByteArrayInputStream byteArray=new ByteArrayInputStream(data, 4, data.length - 4);
-//                    gzipInputStream = new GZIPInputStream(byteArray);
-//                    int unziplen = gzipInputStream.read(buffer,0,buffer.length);
-//                    gzipInputStream.close();
-//                    mSTData=new String (buffer,0,unziplen);
-//                    sInstance.handleTaskState(this, FOUND_ST);
-////
-//                }
-//                catch(ZipException e){
-                    mSTData=new String (data,4,len-4);
+
+            }else if (type==ST) {
+                if (ATSC3.GZIP) {
+                    try {
+                        GZIPInputStream gzipInputStream;
+                        ByteArrayInputStream byteArray = new ByteArrayInputStream(data, 4, data.length - 4);
+                        gzipInputStream = new GZIPInputStream(byteArray);
+                        int unziplen = gzipInputStream.read(buffer, 0, buffer.length);
+                        gzipInputStream.close();
+                        mSTData = new String(buffer, 0, unziplen);
+                        sInstance.handleTaskState(this, FOUND_ST);
+
+                    } catch (ZipException e) {
+
+                    } catch (IOException e2) {
+                        e2.printStackTrace();
+                    }
+                } else {
+                    mSTData = new String(buffer, 0, len - 4);
                     sInstance.handleTaskState(this, FOUND_ST);
-//
-//                }
-//                catch(IOException e2){
-//                    e2.printStackTrace();
-//                }
-//                    sInstance.handleTaskState(this, FOUND_ST);
-//                    InputStream in = new InputStream() {
-//                        @Override
-//                        public int read() throws IOException {
-//                            return 0;
-//                        }
-//                    };
-//                    byte[] dataout=new byte[len*10];
-//                    Inflater i=new Inflater();
-//                    i.setInput(data,4,len-4);
-//                    try {
-//                        len=i.inflate(dataout);
-//                        mSTData=new String (data,0,len);
-//                    } catch (DataFormatException e) {
-//                        mSTData=new String (data,4,len-4);
-//                    }
-//
+                }
             }
+
         }
 
         public void reportError(){

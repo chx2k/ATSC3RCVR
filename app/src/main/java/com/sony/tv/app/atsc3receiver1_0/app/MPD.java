@@ -325,9 +325,9 @@ public final class MPD {
                                     long videoStartTime=video.getValue().time;
                                     long periodEndNumber=periodStartNumber+(long)(periodDuration/videoSegmentDuration);
                                     if (videoSegmentNumber>=periodStartNumber && videoSegmentNumber<periodEndNumber) {
-                                        long videoSegmentOffset =  (long) ((videoSegmentNumber - periodStartNumber) * videoSegmentDuration) + periodStartTime-periodStartTimeOffset;
+                                        long videoSegmentOffset =  (long) ((videoSegmentNumber - periodStartNumber) * videoSegmentDuration) + periodStartTime;
                                         long availabilityTime = videoStartTime - videoSegmentOffset;
-//                                        Log.d(TAG, "Difference in availability Times calc_from_videos - manifest: "  + (availabilityTime-availabilityStartTime));
+                                        Log.d("TIME: ", "videoSegmentOffset ms: "+videoSegmentOffset+"   segment number: "+videoSegmentNumber+"  avail Time: "+availabilityTime);
                                         return availabilityTime;
                                     }
 

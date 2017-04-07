@@ -376,7 +376,8 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
       debugViewHelper.stop();
       debugViewHelper = null;
       shouldAutoPlay = player.getPlayWhenReady();
-      updateResumePosition();
+      //updateResumePosition();
+      clearResumePosition();
       player.release();
       player = null;
       trackSelector = null;
