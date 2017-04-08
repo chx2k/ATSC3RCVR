@@ -28,12 +28,12 @@ import static com.google.android.exoplayer2.util.Util.parseXsDuration;
 public class FluteFileManagerNAB implements FluteFileManagerBase {
 
 
-    private static final long AVAILABILITY_TIME_OFFSET=6000;
-    private static final String MIN_BUFFER_TIME="PT1.5S";
-    private static final String TIME_SHIFT_BUFFER_OFFSET="PT1S";
-    private static final String TIME_SHIFT_DEPTH="PT2S";
-    private static final String MINIMUM_UPDATE_PERIOD="PT2S";
-    private static final String SUGGESTED_PRESENTATION_DELAY="PT2S";
+    private static final long AVAILABILITY_TIME_OFFSET=3500;
+    private static final String MIN_BUFFER_TIME="PT1S";
+    private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
+    private static final String TIME_SHIFT_BUFFER_DEPTH="PT2S";
+    private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";
+    private static final String SUGGESTED_PRESENTATION_DELAY="PT0S";
 
     //        HashMap<String, ContentFileLocation> mapContentLocations;
     private static final String TAG="FileManager";
@@ -539,10 +539,12 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
         mpdParser.MPDParse();
         mpdParser.mpd.getAttributes().put("minBufferTime",MIN_BUFFER_TIME);
         mpdParser.mpd.getAttributes().put("timeShiftBufferOffset",TIME_SHIFT_BUFFER_OFFSET);
-        mpdParser.mpd.getAttributes().put("timeShiftBufferDepth",TIME_SHIFT_DEPTH);
+        mpdParser.mpd.getAttributes().put("timeShiftBufferDepth",TIME_SHIFT_BUFFER_DEPTH);
         mpdParser.mpd.getAttributes().put("profiles", "urn:mpeg:dash:profile:isoff-live:2011");
         mpdParser.mpd.getAttributes().put("minimumUpdatePeriod",MINIMUM_UPDATE_PERIOD);
         mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
+//        mpdParser.mpd.getAttributes().put("mediaPresentationDuration","PT30S");
+
         mpdParser.mpd.getAttributes().put("availabilityStartTime",availabilityStartTimeString);
         mpdParser.mpd.getAttributes().remove("maxSegmentDuration");
 

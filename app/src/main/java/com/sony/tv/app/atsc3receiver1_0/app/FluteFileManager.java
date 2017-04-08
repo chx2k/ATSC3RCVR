@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
-
+import static com.google.android.exoplayer2.util.Util.parseXsDuration;
 
 
 /**
@@ -432,9 +432,20 @@ public class FluteFileManager  implements FluteFileManagerBase {
         mpdParser.mpd.getAttributes().put("minBufferTime",MIN_BUFFER_TIME);
         mpdParser.mpd.getAttributes().put("timeShiftBufferOffset",TIME_SHIFT_BUFFER_OFFSET);
         mpdParser.mpd.getAttributes().put("minimumUpdatePeriod",MINIMUM_UPDATE_PERIOD);
-        mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
+//        mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
         mpdParser.mpd.getAttributes().put("availabilityStartTime",availabilityStartTimeString);
-        mpdParser.mpd.getAttributes().remove("presentationTimeOffset");
+//        mpdParser.mpd.getAttributes().remove("presentationTimeOffset");`
+        long suggestedPresentationDelay= ((c.getTime()).getTime()-availabilityStartTime)/1000;
+//
+
+        MPDParser mpdPeriodParser=new MPDParser(mpdData);
+        long periodZeroStart=parseXsDuration(mpdPeriodParser.parseFirstPeriodStart());
+        long mediaPresentationDuration=parseXsDuration( mpdParser.mpd.getAttributes().get("mediaPresentationDuration"));
+        mediaPresentationDuration+=periodZeroStart;
+
+//        mpdParser.mpd.getAttributes().put ("mediaPresentationDuration",String.format("PT%1.2fS",(float)(mediaPresentationDuration/1000)));
+        mpdParser.mpd.getAttributes().put ("mediaPresentationDuration","PT120H20M35S");
+
         mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(mpdDataSplit[1]);
 
 

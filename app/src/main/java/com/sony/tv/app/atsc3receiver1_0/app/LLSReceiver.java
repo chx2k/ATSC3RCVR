@@ -71,6 +71,7 @@ public class LLSReceiver {
 
     /**
      * LLSReceiver is singleton
+     *
      */
     private LLSReceiver() {
 
@@ -364,7 +365,7 @@ public class LLSReceiver {
                         e2.printStackTrace();
                     }
                 } else {
-                    mSTData = new String(buffer, 0, len - 4);
+                    mSTData = new String(data, 4 , len - 4);
                     sInstance.handleTaskState(this, FOUND_ST);
                 }
             }
