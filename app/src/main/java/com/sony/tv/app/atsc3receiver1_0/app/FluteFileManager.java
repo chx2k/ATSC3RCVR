@@ -29,7 +29,7 @@ import static com.google.android.exoplayer2.util.Util.parseXsDuration;
 
 public class FluteFileManager  implements FluteFileManagerBase {
 
-    private static final long AVAILABILITY_TIME_OFFSET=3500;
+    private static final long AVAILABILITY_TIME_OFFSET=1500;
     private static final String MIN_BUFFER_TIME="PT1S";
     private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
     private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";
@@ -444,7 +444,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
         mediaPresentationDuration+=periodZeroStart;
 
 //        mpdParser.mpd.getAttributes().put ("mediaPresentationDuration",String.format("PT%1.2fS",(float)(mediaPresentationDuration/1000)));
-        mpdParser.mpd.getAttributes().put ("mediaPresentationDuration","PT120H20M35S");
+        mpdParser.mpd.getAttributes().put ("mediaPresentationDuration","PT1000H20M35S");
 
         mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(mpdDataSplit[1]);
 

@@ -122,7 +122,7 @@ public class FluteTaskManager implements FluteTaskManagerBase{
                 }
             },
                     UdpDataSource.DEFAULT_MAX_PACKET_SIZE,
-                    MAX_SOCKET_TIMEOUT
+                    0
             );
 
             try {

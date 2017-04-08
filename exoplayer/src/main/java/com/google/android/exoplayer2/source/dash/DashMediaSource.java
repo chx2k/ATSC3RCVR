@@ -471,32 +471,41 @@ public final class DashMediaSource implements MediaSource {
     if (manifest.dynamic && !lastPeriodSeekInfo.isIndexExplicit) {
       // The manifest describes an incomplete live stream. Update the start/end times to reflect the
       // live stream duration and the manifest's time shift buffer depth.
+/***start******************Graham*************************/
+//      long timeNow=getNowUnixTimeUs();
+//      long liveStreamDurationUs = timeNow - C.msToUs(manifest.availabilityStartTime);
+//      long liveStreamEndPositionInLastPeriodUs = liveStreamDurationUs
+//          - C.msToUs(manifest.getPeriod(lastPeriodIndex).startMs);
+//      currentEndTimeUs = Math.min(liveStreamEndPositionInLastPeriodUs, currentEndTimeUs);
+//      if (manifest.timeShiftBufferDepth != C.TIME_UNSET) {
+//        long timeShiftBufferDepthUs = C.msToUs(manifest.timeShiftBufferDepth);
+//        long offsetInPeriodUs = currentEndTimeUs - timeShiftBufferDepthUs;
+//        int periodIndex = lastPeriodIndex;
+//        while (offsetInPeriodUs < 0 && periodIndex > 0) {
+//          offsetInPeriodUs += manifest.getPeriodDurationUs(--periodIndex);
+//        }
+//        if (periodIndex == 0) {
+//          currentStartTimeUs = Math.max(currentStartTimeUs, offsetInPeriodUs);
+//        } else {
+//          // The time shift buffer starts after the earliest period.
+//          // TODO: Does this ever happen?
+//          currentStartTimeUs = manifest.getPeriodDurationUs(0);
+//        }
+
       long timeNow=getNowUnixTimeUs();
-      long liveStreamDurationUs = timeNow - C.msToUs(manifest.availabilityStartTime);
-      long liveStreamEndPositionInLastPeriodUs = liveStreamDurationUs
-          - C.msToUs(manifest.getPeriod(lastPeriodIndex).startMs);
-      currentEndTimeUs = Math.min(liveStreamEndPositionInLastPeriodUs, currentEndTimeUs);
+      currentEndTimeUs = timeNow - C.msToUs(manifest.availabilityStartTime);
       if (manifest.timeShiftBufferDepth != C.TIME_UNSET) {
-        long timeShiftBufferDepthUs = C.msToUs(manifest.timeShiftBufferDepth);
-        long offsetInPeriodUs = currentEndTimeUs - timeShiftBufferDepthUs;
-        int periodIndex = lastPeriodIndex;
-        while (offsetInPeriodUs < 0 && periodIndex > 0) {
-          offsetInPeriodUs += manifest.getPeriodDurationUs(--periodIndex);
-        }
-        if (periodIndex == 0) {
-          currentStartTimeUs = Math.max(currentStartTimeUs, offsetInPeriodUs);
-        } else {
-          // The time shift buffer starts after the earliest period.
-          // TODO: Does this ever happen?
-          currentStartTimeUs = manifest.getPeriodDurationUs(0);
-        }
+        currentStartTimeUs=currentEndTimeUs- C.msToUs(manifest.timeShiftBufferDepth);
+/**end*******************Graham*************************/
       }
       windowChangingImplicitly = true;
     }
     long windowDurationUs = currentEndTimeUs - currentStartTimeUs;
-    for (int i = 0; i < manifest.getPeriodCount() - 1; i++) {
-      windowDurationUs += manifest.getPeriodDurationUs(i);
-    }
+/***start******************Graham*************************/
+//    for (int i = 0; i < manifest.getPeriodCount() - 1; i++) {
+//      windowDurationUs += manifest.getPeriodDurationUs(i);
+//    }
+/**end*******************Graham*************************/
     long windowDefaultStartPositionUs = 0;
     if (manifest.dynamic) {
       long presentationDelayForManifestMs = livePresentationDelayMs;
@@ -514,8 +523,16 @@ public final class DashMediaSource implements MediaSource {
             windowDurationUs / 2);
       }
     }
-    long windowStartTimeMs = manifest.availabilityStartTime
-        + manifest.getPeriod(0).startMs + C.usToMs(currentStartTimeUs);
+/***start******************Graham*************************/
+
+//    long windowStartTimeMs = manifest.availabilityStartTime
+//        + manifest.getPeriod(0).startMs + C.usToMs(currentStartTimeUs);
+//
+
+    long windowStartTimeMs = manifest.availabilityStartTime + C.usToMs(currentStartTimeUs);
+    currentStartTimeUs-=manifest.getPeriod(0).startMs*1000;
+/**end******************Graham*************************/
+
     DashTimeline timeline = new DashTimeline(manifest.availabilityStartTime, windowStartTimeMs,
         firstPeriodId, currentStartTimeUs, windowDurationUs, windowDefaultStartPositionUs,
         manifest);

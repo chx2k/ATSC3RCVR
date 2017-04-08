@@ -543,7 +543,7 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
         mpdParser.mpd.getAttributes().put("profiles", "urn:mpeg:dash:profile:isoff-live:2011");
         mpdParser.mpd.getAttributes().put("minimumUpdatePeriod",MINIMUM_UPDATE_PERIOD);
         mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
-//        mpdParser.mpd.getAttributes().put("mediaPresentationDuration","PT30S");
+        mpdParser.mpd.getAttributes().put("mediaPresentationDuration","PT744H"); //One month maximum; NAB restarts the timing at beginning of month
 
         mpdParser.mpd.getAttributes().put("availabilityStartTime",availabilityStartTimeString);
         mpdParser.mpd.getAttributes().remove("maxSegmentDuration");
