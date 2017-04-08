@@ -31,7 +31,9 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
     private static final long AVAILABILITY_TIME_OFFSET=1500;
     private static final String MIN_BUFFER_TIME="PT1S";
-    private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
+//    private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
+    private static final String TIME_SHIFT_BUFFER_DEPTH="PT3S";
+
     private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";
     private static final String SUGGESTED_PRESENTATION_DELAY="PT0S";
 
@@ -430,7 +432,8 @@ public class FluteFileManager  implements FluteFileManagerBase {
         MPDParser mpdParser=new MPDParser(mpdHeader, mapFileLocationsVid, mapFileLocationsAud);
         mpdParser.MPDParse();
         mpdParser.mpd.getAttributes().put("minBufferTime",MIN_BUFFER_TIME);
-        mpdParser.mpd.getAttributes().put("timeShiftBufferOffset",TIME_SHIFT_BUFFER_OFFSET);
+//        mpdParser.mpd.getAttributes().put("timeShiftBufferOffset",TIME_SHIFT_BUFFER_OFFSET);
+        mpdParser.mpd.getAttributes().put("timeShiftBufferDepth",TIME_SHIFT_BUFFER_DEPTH);
         mpdParser.mpd.getAttributes().put("minimumUpdatePeriod",MINIMUM_UPDATE_PERIOD);
 //        mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
         mpdParser.mpd.getAttributes().put("availabilityStartTime",availabilityStartTimeString);
