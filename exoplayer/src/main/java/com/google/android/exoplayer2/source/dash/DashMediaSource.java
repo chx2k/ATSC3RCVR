@@ -68,7 +68,8 @@ public final class DashMediaSource implements MediaSource {
    * A fixed default presentation delay for live streams. The presentation delay is the duration
    * by which the default start position precedes the end of the live window.
    */
-  public static final long DEFAULT_LIVE_PRESENTATION_DELAY_FIXED_MS = 30000;
+//  public static final long DEFAULT_LIVE_PRESENTATION_DELAY_FIXED_MS = 30000;
+  public static final long DEFAULT_LIVE_PRESENTATION_DELAY_FIXED_MS = 0;
 
   /**
    * The interval in milliseconds between invocations of
@@ -79,7 +80,8 @@ public final class DashMediaSource implements MediaSource {
   /**
    * The minimum default start position for live streams, relative to the start of the live window.
    */
-  private static final long MIN_LIVE_DEFAULT_START_POSITION_US = 5000000;
+//  private static final long MIN_LIVE_DEFAULT_START_POSITION_US = 5000000;
+  private static final long MIN_LIVE_DEFAULT_START_POSITION_US = 2500000;
 
   private static final String TAG = "DashMediaSource";
 
@@ -515,13 +517,13 @@ public final class DashMediaSource implements MediaSource {
       }
       // Snap the default position to the start of the segment containing it.
       windowDefaultStartPositionUs = windowDurationUs - C.msToUs(presentationDelayForManifestMs);
-      if (windowDefaultStartPositionUs < MIN_LIVE_DEFAULT_START_POSITION_US) {
+//      if (windowDefaultStartPositionUs < MIN_LIVE_DEFAULT_START_POSITION_US) {
         // The default start position is too close to the start of the live window. Set it to the
-        // minimum default start position provided the window is at least twice as big. Else set
-        // it to the middle of the window.
+        // minimum default start psition provided the window is at least twice as big. Else set
+        // it to the middle of the woindow.
         windowDefaultStartPositionUs = Math.min(MIN_LIVE_DEFAULT_START_POSITION_US,
             windowDurationUs / 2);
-      }
+//      }
     }
 /***start******************Graham*************************/
 
@@ -531,6 +533,9 @@ public final class DashMediaSource implements MediaSource {
 
     long windowStartTimeMs = manifest.availabilityStartTime + C.usToMs(currentStartTimeUs);
     currentStartTimeUs-=manifest.getPeriod(0).startMs*1000;
+
+    Log.d("window", "windowstarttime: "+windowStartTimeMs+ "  manifest.getPeriod(0).startMs*1000: "+manifest.getPeriod(0).startMs*1000+
+    "  firstPeriodId: "+firstPeriodId+"  currentStartTime: "+currentStartTimeUs+"   windowDefaultStart: "+windowDefaultStartPositionUs);
 /**end******************Graham*************************/
 
     DashTimeline timeline = new DashTimeline(manifest.availabilityStartTime, windowStartTimeMs,

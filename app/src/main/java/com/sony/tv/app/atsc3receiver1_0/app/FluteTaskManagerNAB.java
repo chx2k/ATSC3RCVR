@@ -52,7 +52,6 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
         stopRequest=false;
         this.signalingDataSpec=signalingDataSpec;
         fileManager=new FluteFileManagerNAB(signalingDataSpec);
-        fileManager.reset();
         new Thread(new RunUpdonThread(signalingDataSpec)).start();
     }
 
@@ -70,7 +69,6 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
         if (signalingDataSpec.uri.toString().equals(avDataSpec.uri.toString())){
 
             fileManager=new FluteFileManagerNAB(signalingDataSpec);
-            fileManager.reset();
 
             new Thread(new RunUpdonThread(signalingDataSpec)).start();
 
