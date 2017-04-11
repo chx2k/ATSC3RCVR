@@ -303,7 +303,16 @@ public final class MPD {
 
                     if (periods.get(period).adaptationSet.get(adaptationSet).getAttribute("mimeType").contains("video") ||
                             periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute("mimeType").contains("video")){
+
                         SegmentTemplate videoTemplate =periods.get(period).adaptationSet.get(adaptationSet).segmentTemplate;
+                        if (videoTemplate.getAttribute("media").contains("$RepresentationID")){
+                            videoTemplate.setAttribute("media", videoTemplate.getAttribute("media").replaceAll("\\$RepresentationID\\$",
+                                    periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute("id") ));
+                        }
+                        if (videoTemplate.getAttribute("initialization").contains("$RepresentationID")){
+                            videoTemplate.setAttribute("initialization", videoTemplate.getAttribute("initialization").replaceAll("\\$RepresentationID\\$",
+                                    periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute("id") ));
+                        }
                         String[] check=baseUrl.concat(videoTemplate.getAttribute(attr_media)).split("\\$Number\\$");
                         for (Map.Entry<String,ContentFileLocation> video:videos.entrySet()){
                             if (!video.getKey().equals(baseUrl.concat(videoTemplate.getAttribute("initialization")))) {
