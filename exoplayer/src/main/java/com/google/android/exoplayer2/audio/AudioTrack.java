@@ -384,7 +384,9 @@ public final class AudioTrack {
       long framesDiff = durationUsToFrames(actualSpeedPresentationDiff);
       // The position of the frame that's currently being presented.
       long currentFramePosition = audioTrackUtil.getTimestampFramePosition() + framesDiff;
+//      currentPositionUs = framesToDurationUs(currentFramePosition) + startMediaTimeUs;
       currentPositionUs = framesToDurationUs(currentFramePosition) + startMediaTimeUs;
+
     } else {
       if (playheadOffsetCount == 0) {
         // The AudioTrack has started, but we don't have any samples to compute a smoothed position.

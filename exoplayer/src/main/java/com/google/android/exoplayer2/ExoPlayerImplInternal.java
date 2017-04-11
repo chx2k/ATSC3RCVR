@@ -799,7 +799,7 @@ import java.io.IOException;
       loadingPeriodHolder.next = null;
       if (loadingPeriodHolder.prepared) {
         long loadingPeriodPositionUs = Math.max(loadingPeriodHolder.startPositionUs,
-            loadingPeriodHolder.toPeriodTime(rendererPositionUs));
+                loadingPeriodHolder.toPeriodTime(rendererPositionUs));
         loadingPeriodHolder.updatePeriodTrackSelection(loadingPeriodPositionUs, false);
       }
     }

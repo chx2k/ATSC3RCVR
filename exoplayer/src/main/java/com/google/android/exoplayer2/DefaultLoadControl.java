@@ -15,6 +15,8 @@
  */
 package com.google.android.exoplayer2;
 
+import android.util.Log;
+
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.upstream.Allocator;
@@ -184,8 +186,10 @@ public final class DefaultLoadControl implements LoadControl {
     int bufferTimeState = getBufferTimeState(bufferedDurationUs);
     boolean targetBufferSizeReached = allocator.getTotalBytesAllocated() >= targetBufferSize;
     boolean wasBuffering = isBuffering;
+
     isBuffering = bufferTimeState == BELOW_LOW_WATERMARK
         || (bufferTimeState == BETWEEN_WATERMARKS && isBuffering && !targetBufferSizeReached);
+
     if (priorityTaskManager != null && isBuffering != wasBuffering) {
       if (isBuffering) {
         priorityTaskManager.add(LOADING_PRIORITY);

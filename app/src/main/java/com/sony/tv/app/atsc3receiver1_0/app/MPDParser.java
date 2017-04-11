@@ -77,7 +77,9 @@ public class MPDParser {
     }
 
 
-    public String parseFirstPeriodStart(){
+    public String[] parseFirstPeriodStart(){
+        String[] startPeriods=new String[2];
+        int startPeriodIndex=0;
         try {
             factory = XmlPullParserFactory.newInstance();
             xpp = factory.newPullParser();
@@ -91,7 +93,9 @@ public class MPDParser {
                     if (xpp.getName().equals("Period")){
                         for (int i=0; i<xpp.getAttributeCount(); i++) {
                             if (xpp.getAttributeName(i).equals("start")){
-                                return xpp.getAttributeValue(i);
+                                startPeriods[startPeriodIndex]= xpp.getAttributeValue(i);
+                                startPeriodIndex++;
+                                if (startPeriodIndex==2) return startPeriods;
                             }
                         }
                     }
@@ -105,7 +109,7 @@ public class MPDParser {
             e.printStackTrace();
         }
 
-        return "";
+        return null;
 
     }
 

@@ -36,6 +36,7 @@ import com.google.android.exoplayer2.drm.DrmSessionManager;
 import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.mediacodec.MediaCodecUtil.DecoderQueryException;
 import com.google.android.exoplayer2.source.MediaPeriod;
+import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.NalUnitUtil;
 import com.google.android.exoplayer2.util.TraceUtil;
@@ -903,10 +904,9 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
         return false;
       }
     }
-
     if (processOutputBuffer(positionUs, elapsedRealtimeUs, codec, outputBuffers[outputIndex],
-        outputIndex, outputBufferInfo.flags, outputBufferInfo.presentationTimeUs,
-        shouldSkipOutputBuffer)) {
+            outputIndex, outputBufferInfo.flags, outputBufferInfo.presentationTimeUs,
+            shouldSkipOutputBuffer)) {
       onProcessedOutputBuffer(outputBufferInfo.presentationTimeUs);
       outputIndex = C.INDEX_UNSET;
       return true;

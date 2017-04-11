@@ -18,6 +18,7 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -82,6 +83,12 @@ public class MainActivity extends Activity {
         ExoPlayerStarted=false;
         fragmentsInitialized=false;
         activity=this;
+
+        Intent intent=getIntent();
+        if (intent.getExtras().containsKey("gzip")){
+            boolean value=Boolean.parseBoolean(intent.getStringExtra("gzip"));
+            ATSC3.GZIP=value;
+        }
 
 
         callBackInterface=new CallBackInterface() {
@@ -167,6 +174,8 @@ public class MainActivity extends Activity {
 
 //        initFragments();
     }
+
+
     @Override
     public void onStop(){
         super.onStop();

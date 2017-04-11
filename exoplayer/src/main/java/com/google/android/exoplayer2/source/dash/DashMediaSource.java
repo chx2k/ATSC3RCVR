@@ -53,6 +53,9 @@ import java.util.TimeZone;
  */
 public final class DashMediaSource implements MediaSource {
 
+  public static long presentationTimeOffsetInDashMediaSource;
+
+
   /**
    * The default minimum number of times to retry loading data prior to failing.
    */
@@ -531,11 +534,14 @@ public final class DashMediaSource implements MediaSource {
 //        + manifest.getPeriod(0).startMs + C.usToMs(currentStartTimeUs);
 //
 
+    presentationTimeOffsetInDashMediaSource=manifest.getPeriod(0).startMs*1000;
+
     long windowStartTimeMs = manifest.availabilityStartTime + C.usToMs(currentStartTimeUs);
     currentStartTimeUs-=manifest.getPeriod(0).startMs*1000;
 
-    Log.d("window", "windowstarttime: "+windowStartTimeMs+ "  manifest.getPeriod(0).startMs*1000: "+manifest.getPeriod(0).startMs*1000+
-    "  firstPeriodId: "+firstPeriodId+"  currentStartTime: "+currentStartTimeUs+"   windowDefaultStart: "+windowDefaultStartPositionUs);
+    Log.d("window", "windowstarttime: "+windowStartTimeMs/1000+ "  period(0) start/dur: "+manifest.getPeriod(0).startMs/1000+" / "
+            +(manifest.getPeriod(1).startMs-manifest.getPeriod(0).startMs)/1000+
+    "  firstPeriodId: "+firstPeriodId+"  currentStartTime: "+currentStartTimeUs/1000000+"   windowDefaultStart: "+windowDefaultStartPositionUs/1000000);
 /**end******************Graham*************************/
 
     DashTimeline timeline = new DashTimeline(manifest.availabilityStartTime, windowStartTimeMs,

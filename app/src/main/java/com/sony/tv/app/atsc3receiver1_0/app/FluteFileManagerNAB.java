@@ -31,7 +31,7 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
     private static final long AVAILABILITY_TIME_OFFSET=2500;
     private static final String MIN_BUFFER_TIME="PT2S";
     private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
-    private static final String TIME_SHIFT_BUFFER_DEPTH="PT5S";
+    private static final String TIME_SHIFT_BUFFER_DEPTH="PT3S";
     private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";
     private static final String SUGGESTED_PRESENTATION_DELAY="PT0S";
     private static final int LIVE_BUFFER_READ_OFFSET=0;
@@ -72,13 +72,13 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
     private FluteFileManagerNAB sInstance;
     public DataSpec baseDataSpec;
 
-    private boolean first;
-    private long availabilityStartTime;
-    private int videoStartNumber;
-    private long availabilityStartTimeOffset;
-    private long liveReadFromBufferTime;
-    private static final int MAX_MANIFEST_TIME_PAIRS=20;
-    private ArrayList<ManifestTimePair> manifestTimePairs;
+    private static boolean first;
+    private static long availabilityStartTime;
+    private static int videoStartNumber;
+    private static long availabilityStartTimeOffset;
+    private static long liveReadFromBufferTime;
+    private static final int MAX_MANIFEST_TIME_PAIRS=40;
+    private static ArrayList<ManifestTimePair> manifestTimePairs;
     private class ManifestTimePair{
         public String manifest;
         public long timeReceived;
@@ -417,20 +417,29 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
                 mpdData = ATSC3.manifestContents;
             }else{
                 ArrayList<ManifestTimePair>mtp=sls.getManifest();
-                if (first){
+//                if (first){
                     mpdData=mtp.get(0).manifest;
-                }else{
-                    int size=mtp.size();
-                    for (int i=size-1; i>=0; i--){
-                        if (mtp.get(i).timeReceived>(liveReadFromBufferTime+LIVE_BUFFER_READ_OFFSET)||i==0){
-                            mpdData=mtp.get(i).manifest;
-                            break;
-                        }else{
-                            mtp.remove(i);          //stale
-                        }
-                    }
-                }
+//                }else{
+//                    int size=mtp.size();
+//                    long timeNow=(Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime()).getTime();
+//                    mpdData=mtp.get(0).manifest;
+//                    int i=Math.min(mtp.size()-1,25);
+//                    mpdData=mtp.get(i).manifest;
+//
+////                    for (int i=0; i<size; i++){
+////
+////                        long timeDiff=timeNow-mtp.get(i).timeReceived;
+////                        long periodZeroDuration=periodStartTimes[1]-periodStartTimes[0];
+////                        if (timeDiff>(periodZeroDuration+LIVE_BUFFER_READ_OFFSET)){
+////                            Log.d(TAG,"Window: manifest index no: "+i+"   timeDiff: "+timeDiff/1000+"  periodZeroDuration: "+periodZeroDuration/1000);
+////                            mpdData=mtp.get(i).manifest;
+////                            break;
+////                        }
+////                    }
+//                }
             }
+
+            mpdData=mpdData.replaceAll("Header\\.m4s","2.m4s");
 
             mMPDbytes = parseManifest(mpdData);
             String s=new String(mMPDbytes,0,mMPDbytes.length);
@@ -449,6 +458,7 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
             if (f != null) {
 
                 liveReadFromBufferTime=f.time;              //Exoplayer is reading from here so is closest time to live edge we know of
+                Log.d(TAG,"window for live: liveBufferTimeRead offset from avail in secs: "+(liveReadFromBufferTime-availabilityStartTime)/1000);
                 index--;
                 return new FileBuffer(storage.get(index), f.contentLength, f.start);
             }else{
@@ -485,6 +495,7 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
     }
 
     private static String mpdOld="";
+    private long[] periodStartTimes=new long[2];
 
 
     private byte[] parseManifest(String mpdData){
@@ -496,10 +507,10 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
 //
         if (first){
             long firstTimeOffset=0;
-            if (ATSC3.FAKEPERIODINJECT) {
-                String periodParse = new MPDParser(mpdData).parseFirstPeriodStart();
-                firstTimeOffset = parseXsDuration(periodParse);
-            }
+//            if (ATSC3.FAKEPERIODINJECT) {
+//                String periodParse = new MPDParser(mpdData).parseFirstPeriodStart();
+//                firstTimeOffset = parseXsDuration(periodParse);
+//            }
             MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
             mpdParser.MPDParse();
 
@@ -553,13 +564,20 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
             availabilityStartTime = now.getTime() + AVAILABILITY_TIME_OFFSET;
         }
         String periodParse="";
-        if (ATSC3.FAKEPERIODINJECT) {
-            periodParse = new MPDParser(mpdData).parseFirstPeriodStart();
-            long firstTimeOffset = parseXsDuration(periodParse);
+//        if (ATSC3.FAKEPERIODINJECT) {
+//            periodParse = new MPDParser(mpdData).parseFirstPeriodStart();
+//            long firstTimeOffset = parseXsDuration(periodParse);
+//
+//
+//            periodParse = "<Period duration=\"".concat(periodParse).concat("\" ").concat(ATSC3.periodToInject);
+//        }
+
+        String [] periodParses = new MPDParser(mpdData).parseFirstPeriodStart();
+
+        periodStartTimes[0]=parseXsDuration (periodParses[0])+availabilityStartTime;
+        periodStartTimes[1]=parseXsDuration (periodParses[1])+availabilityStartTime;
 
 
-            periodParse = "<Period duration=\"".concat(periodParse).concat("\" ").concat(ATSC3.periodToInject);
-        }
 
         String availabilityStartTimeString= formatter.format(availabilityStartTime);
         Log.d(TAG, availabilityStartTimeString);
@@ -571,7 +589,7 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
         mpdParser.mpd.getAttributes().put("timeShiftBufferDepth",TIME_SHIFT_BUFFER_DEPTH);
         mpdParser.mpd.getAttributes().put("profiles", "urn:mpeg:dash:profile:isoff-live:2011");
         mpdParser.mpd.getAttributes().put("minimumUpdatePeriod",MINIMUM_UPDATE_PERIOD);
-//        mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
+        mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
        // mpdParser.mpd.getAttributes().put("mediaPresentationDuration","PT744H"); //One month maximum; NAB restarts the timing at beginning of month
         mpdParser.mpd.getAttributes().put ("mediaPresentationDuration","PT1000H20M35S");
 
@@ -583,6 +601,8 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
 //        mpdParser.mpd.getAttributes().remove("publishTime");
 //        mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(periodParse).concat(mpdDataSplit[1]);
 //        mpdData.replaceAll("id=\"p","id=\"");
+        mpdParser.mpd.getAttributes().remove("publishTime");
+        mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(periodParse).concat(mpdDataSplit[1]);
 
 
 //

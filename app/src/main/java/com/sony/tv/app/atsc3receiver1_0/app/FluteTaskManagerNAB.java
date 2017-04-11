@@ -82,7 +82,7 @@ public class FluteTaskManagerNAB implements FluteTaskManagerBase  {
 
         }
 
-        fileManager.reset();
+//        fileManager.reset();
 
 
     }

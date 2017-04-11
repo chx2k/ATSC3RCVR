@@ -442,7 +442,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
 //
 
         MPDParser mpdPeriodParser=new MPDParser(mpdData);
-        long periodZeroStart=parseXsDuration(mpdPeriodParser.parseFirstPeriodStart());
+        long periodZeroStart=parseXsDuration(mpdPeriodParser.parseFirstPeriodStart()[0]);
         long mediaPresentationDuration=parseXsDuration( mpdParser.mpd.getAttributes().get("mediaPresentationDuration"));
         mediaPresentationDuration+=periodZeroStart;
 
