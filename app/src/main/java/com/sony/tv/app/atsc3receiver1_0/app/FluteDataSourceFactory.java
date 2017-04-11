@@ -21,7 +21,7 @@ public class FluteDataSourceFactory implements DataSource.Factory{
 
         thread++;
         if (thread>99) thread=0;
-        return new FluteDataSource(thread);
+        return new FluteDataSource(thread,ATSC3.getContext());
 
     }
 

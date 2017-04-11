@@ -1,10 +1,23 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
+import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
+
+import com.google.android.exoplayer2.upstream.AssetDataSource;
+import com.google.android.exoplayer2.upstream.ContentDataSource;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
+import com.google.android.exoplayer2.upstream.FileDataSource;
+import com.google.android.exoplayer2.upstream.HttpDataSource;
+import com.google.android.exoplayer2.upstream.TransferListener;
+import com.google.android.exoplayer2.util.Assertions;
+import com.google.android.exoplayer2.util.Util;
+
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -22,22 +35,81 @@ public class FluteDataSource implements DataSource {
     private int thread;
     private int indexToFileManager=0;
 
-    public FluteDataSource(int thread){
+
+
+    private static final String SCHEME_ASSET = "asset";
+    private static final String SCHEME_CONTENT = "content";
+
+    private final DataSource fileDataSource;
+    private final DataSource assetDataSource;
+    private final DataSource httpDataDataSource;
+
+    private DataSource dataSource;
+    private TransferListener<? super DataSource> listener;
+
+    /**
+     * Constructs a new instance that delegates to a provided {@link DataSource} for URI schemes other
+     * than file, asset and content.
+     *
+     * @param context A context.
+     * @param thread  link the filemanager to a thread.
+     */
+
+    public FluteDataSource(int thread, Context context){
+
+        this.listener=new TransferListener<DataSource>(){
+
+            @Override
+            public void onTransferStart(DataSource source, DataSpec dataSpec) {
+
+            }
+
+            @Override
+            public void onBytesTransferred(DataSource source, int bytesTransferred) {
+
+            }
+
+            @Override
+            public void onTransferEnd(DataSource source) {
+
+            }
+        };
+
+        this.fileDataSource = new FileDataSource(listener);
+        this.assetDataSource = new AssetDataSource(context, listener);
+        this.httpDataDataSource = new DefaultHttpDataSource(ATSC3.userAgent, null, listener, DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS,
+                DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS, true);
+
         indexToFileManager=ATSC3.dataSourceIndex;
         fluteReceiver=FluteReceiver.getInstance();
         fileManager=fluteReceiver.mFluteTaskManager[indexToFileManager].fileManager();
         if (thread>2){
             Log.d(TAG,"Created new FluteDataSource >2: "+thread);
         }
-
         this.thread=thread;
-
-
         Log.d(TAG, "Created new FluteDataSource at thread: "+thread+ "  that points to filemanager at index: "+indexToFileManager);
 
     }
     @Override
     public long open(DataSpec dataSpec) throws IOException {
+        Assertions.checkState(dataSource == null);
+        // Choose the correct source for the scheme.
+        String scheme = dataSpec.uri.getScheme();
+        if (Util.isLocalFileUri(dataSpec.uri)) {
+            if (dataSpec.uri.getPath().startsWith("/android_asset/")) {
+                dataSource = assetDataSource;
+            } else {
+                dataSource = fileDataSource;
+            }
+        } else if (SCHEME_ASSET.equals(scheme)) {
+            dataSource = assetDataSource;
+        } else {
+            dataSource = null;
+        }
+        // Open the source and return.
+        if (dataSource!=null) return dataSource.open(dataSpec);
+
+
         mExoPlayerUri=dataSpec;
         return fileManager.open(dataSpec, thread);
 
@@ -45,18 +117,34 @@ public class FluteDataSource implements DataSource {
 
     @Override
     public int read(byte[] buffer, int offset, int readLength) throws IOException {
+        if (dataSource!= null)
+            return dataSource.read(buffer, offset, readLength);
+
         return fileManager.read(buffer, offset, readLength, thread );
 
     }
 
     @Override
     public Uri getUri() {
+        if (dataSource!=null)
+            return dataSource == null ? null : dataSource.getUri();
+
         return mExoPlayerUri.uri;
     }
 
     @Override
     public void close() throws IOException {
-        Log.d(TAG, "Closed socket");
+        if (dataSource != null) {
+            try {
+                dataSource.close();
+            } finally {
+                dataSource = null;
+            }
+        }
     }
+
+
+
+
 
 }
