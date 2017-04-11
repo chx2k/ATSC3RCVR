@@ -40,17 +40,17 @@ public class Ads {
     private XmlPullParser xpp;
 
     private static final String TAG="Ads";
-    private static final String SCHEME_ASSET = "asset";
-    private static final String SCHEME_FLUTE = "flute";
-    private static final String SCHEME_HTTP  = "http";
-    private final static String XLINK_HREF  ="/@xlink:href ";
+    public static final String SCHEME_ASSET = "asset";
+    public static final String SCHEME_FLUTE = "flute";
+    public static final String SCHEME_HTTP  = "http";
+    public final static String XLINK_HREF  ="/@xlink:href ";
     private final static int MANIFEST_BUFFER_SIZE=1000;
 
     private byte[] buffer;
     private ArrayList<Ad> adArrayList=new ArrayList<>();
 
 
-    public Ads(String uri, String scheme){
+    public Ads(){
 
         fileDataSource=new FileDataSource(null);
         assetDataSource=new FileDataSource(null);
@@ -60,19 +60,19 @@ public class Ads {
         buffer=new byte[MANIFEST_BUFFER_SIZE];
     }
 
-    public void addAd(String url, String scheme){
+    public boolean addAd(String url, boolean enabled){
         String title="",period="",duration="",replaceStartString="";
         Uri uri=Uri.parse(url);
         if (Util.isLocalFileUri(uri)) {
             dataSource = fileDataSource;
-        } else if (SCHEME_ASSET.equals(scheme)) {
+        } else if (SCHEME_ASSET.equals(uri.getScheme())) {
             dataSource = assetDataSource;
-        } else if (SCHEME_HTTP.equals(scheme)) {
+        } else if (SCHEME_HTTP.equals(uri.getScheme())) {
             dataSource = httpDataDataSource;
         }else{
             Log.e(TAG,"URI scheme not recognized");
             dataSource = null;
-            return;
+            return false;
         }
         DataSpec dataSpec=new DataSpec(uri);
         String manifest="";
@@ -82,7 +82,7 @@ public class Ads {
             manifest=new String (buffer,0,len);
         } catch (IOException e) {
             e.printStackTrace();
-            return;
+            return false;
         }
         XmlPullParserFactory factory = null;
         try {
@@ -92,7 +92,7 @@ public class Ads {
             xpp.setInput(s);
             int eventType = xpp.getEventType();
             boolean titleTag=false;
-            while (eventType!=XmlPullParser.END_DOCUMENT) {
+            loop:while (eventType!=XmlPullParser.END_DOCUMENT) {
                 if(eventType == XmlPullParser.START_DOCUMENT) {
 
                 } else if(eventType == XmlPullParser.START_TAG) {
@@ -111,6 +111,7 @@ public class Ads {
                                 duration=xpp.getAttributeValue(i);
                             }
                         }
+                        break loop;
                     }
                 } else if(eventType == XmlPullParser.END_TAG) {
                 } else if(eventType == XmlPullParser.TEXT) {
@@ -120,14 +121,70 @@ public class Ads {
                 }
                 eventType = xpp.next();
             }
+            period=manifest.substring(manifest.indexOf("<Period"),manifest.indexOf("</Period>")+9);
+            adArrayList.add(new Ad(title,period,duration,scheme,replaceStartString,uri,enabled));
+            return  true;
         } catch (Exception e) {
             e.printStackTrace();
-            return;
+            return false;
         }
-        period=manifest.substring(manifest.indexOf("<Period"),manifest.indexOf("</Period>")+9);
-        adArrayList.add(new Ad(title,period,duration,scheme,replaceStartString,uri));
+
 
     }
+
+    public ArrayList<Ad> getAds(boolean enabled){
+        if (!enabled){
+            return adArrayList;
+        }else{
+            ArrayList<Ad> enabledArrayAds=new ArrayList<>();
+            for (Ad ad:adArrayList)
+            {
+                if (ad.enabled) {
+                    enabledArrayAds.add(ad);
+                }
+            }
+            return enabledArrayAds;
+        }
+    }
+    private static int adCount=0;
+
+    public Ad getNextAd(boolean random){
+        ArrayList<Ad> enabledArrayAds=new ArrayList<>();
+
+        for (Ad ad:adArrayList)
+        {
+            if (ad.enabled) {
+                enabledArrayAds.add(ad);
+            }
+        }
+        if (enabledArrayAds.size()==0) return null;
+        if (random)
+        adCount++;
+        if (adCount>enabledArrayAds.size()){
+            adCount=0;
+        }
+        return enabledArrayAds.get(adCount);
+    }
+    public Ad getRandomAd(){
+
+        ArrayList<Ad> enabledArrayAds=new ArrayList<>();
+
+        for (Ad ad:adArrayList)
+        {
+            if (ad.enabled) {
+                enabledArrayAds.add(ad);
+            }
+        }
+        if (enabledArrayAds.size()==0) return null;
+        Math.random(1)
+        adCount++;
+        if (adCount>enabledArrayAds.size()){
+            adCount=0;
+        }
+        return enabledArrayAds.get(adCount);
+    }
+
+
 
     private class Ad{
         public String title;
@@ -136,13 +193,15 @@ public class Ads {
         public String scheme;
         public String replaceStartString;
         public Uri uri;
-        public Ad(String title, String period, String duration, String scheme, String replaceStartString, Uri uri){
+        public boolean enabled;
+        public Ad(String title, String period, String duration, String scheme, String replaceStartString, Uri uri, boolean enabled){
             this.title=title;
             this.period=period;
             this.duration=duration;
             this.scheme=scheme;
             this.replaceStartString=replaceStartString;
             this.uri=uri;
+            this.enabled=true;
         }
 
     }

@@ -67,6 +67,7 @@ public class MainActivity extends Activity {
     private static boolean firstLLS =true;
     public static boolean ExoPlayerStarted=false;
     public static int exoPlayerDataSourceIndex=0;
+    private Ads ads;
 
     CallBackInterface callBackInterface;
 
@@ -95,9 +96,14 @@ public class MainActivity extends Activity {
         }
 
 
-        ArrayList<Ads> ads[];
+        Ads ads=new Ads();
         try {
             String[] adlist=getApplicationContext().getAssets().list("ADS");
+            for (int i=0; i<adlist.length; i++) {
+                if (adlist[i].endsWith(".mpd")) {
+                    ads.addAd(Ads.SCHEME_ASSET.concat(":///ADS/").concat(adlist[i]), true);
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
