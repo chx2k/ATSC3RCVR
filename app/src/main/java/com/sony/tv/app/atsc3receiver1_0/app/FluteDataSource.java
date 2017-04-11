@@ -38,7 +38,9 @@ public class FluteDataSource implements DataSource {
 
 
     private static final String SCHEME_ASSET = "asset";
-    private static final String SCHEME_CONTENT = "content";
+    private static final String SCHEME_FLUTE = "flute";
+    private static final String SCHEME_HTTP  = "http";
+    private final static String XLINK_HREF  ="/@xlink:href ";
 
     private final DataSource fileDataSource;
     private final DataSource assetDataSource;
@@ -92,26 +94,32 @@ public class FluteDataSource implements DataSource {
     }
     @Override
     public long open(DataSpec dataSpec) throws IOException {
-        Assertions.checkState(dataSource == null);
-        // Choose the correct source for the scheme.
         String scheme = dataSpec.uri.getScheme();
-        if (Util.isLocalFileUri(dataSpec.uri)) {
-            if (dataSpec.uri.getPath().startsWith("/android_asset/")) {
-                dataSource = assetDataSource;
-            } else {
-                dataSource = fileDataSource;
+
+        if (SCHEME_FLUTE.equals(scheme)) {
+            if (dataSpec.uri.getPath().startsWith("XLINK_HREF ")){
+                String absoluteUri=dataSpec.uri.getPath().substring(XLINK_HREF.length());
+                dataSpec=new DataSpec(Uri.parse(absoluteUri));
+            }else{
+                mExoPlayerUri=dataSpec;
+                return fileManager.open(dataSpec, thread);
             }
+        }
+
+        if (Util.isLocalFileUri(dataSpec.uri)) {
+            dataSource = fileDataSource;
         } else if (SCHEME_ASSET.equals(scheme)) {
             dataSource = assetDataSource;
-        } else {
+        } else if (SCHEME_HTTP.equals(scheme)) {
+            dataSource = httpDataDataSource;
+        }else{
+            Log.e(TAG,"URI scheme not recognized");
             dataSource = null;
         }
         // Open the source and return.
         if (dataSource!=null) return dataSource.open(dataSpec);
 
-
-        mExoPlayerUri=dataSpec;
-        return fileManager.open(dataSpec, thread);
+        return -1;
 
     }
 

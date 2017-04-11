@@ -28,14 +28,18 @@ import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3.*;
 
 import com.sony.tv.app.atsc3receiver1_0.app.ATSCXmlParse;
+import com.sony.tv.app.atsc3receiver1_0.app.Ads;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteTaskManager;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteTaskManagerBase;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSData;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -88,6 +92,14 @@ public class MainActivity extends Activity {
         if (intent.getExtras().containsKey("gzip")){
             boolean value=Boolean.parseBoolean(intent.getStringExtra("gzip"));
             ATSC3.GZIP=value;
+        }
+
+
+        ArrayList<Ads> ads[];
+        try {
+            String[] adlist=getApplicationContext().getAssets().list("ADS");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
 

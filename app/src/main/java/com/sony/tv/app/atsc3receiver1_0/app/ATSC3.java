@@ -58,10 +58,10 @@ public class ATSC3 extends Application {
     public void onCreate() {
         super.onCreate();
         userAgent = Util.getUserAgent(this, "ATSC3Demo");
-        context=getApplicationContext();
+        context=this;
         try {
             byte[] buffer=new byte[10000];
-            InputStream is=getApplicationContext().getAssets().open("Period");
+            InputStream is=getAssets().open("Period");
 
             int len=is.read(buffer,0,10000);
             periodToInject=new String(buffer,0,len);

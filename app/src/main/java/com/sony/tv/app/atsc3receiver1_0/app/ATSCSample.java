@@ -21,7 +21,7 @@ public final class ATSCSample extends Sample {
     public ATSCSample(String name, UUID drmSchemeUuid, String drmLicenseUrl,
                       String[] drmKeyRequestProperties, boolean preferExtensionDecoders, String uri, String port, String fileName) {
         super(name, drmSchemeUuid, drmLicenseUrl, drmKeyRequestProperties, preferExtensionDecoders);
-        this.uri = "udp://"+uri+":"+port+"/"+fileName;
+        this.uri = "flute://"+uri+":"+port+"/"+fileName;
         //            this.extension = extension;
     }
 
