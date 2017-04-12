@@ -33,7 +33,7 @@ public class ATSC3 extends Application {
     public final static boolean FAKEPERIODINJECT=false;
     public static boolean GZIP=true;
 
-    protected String userAgent;
+    public static String userAgent;
     private String TAG="ATSC3";
     public static int dataSourceIndex;
     public static String manifest="ManifestUpdate_Dynamic.mpd";
@@ -41,6 +41,8 @@ public class ATSC3 extends Application {
     public static String manifestContents;
     public static int NAB=1;
     public static int QUALCOMM=2;
+
+    private static Context context;
 
     public interface CallBackInterface{
         void callBackSLTFound();
@@ -55,11 +57,11 @@ public class ATSC3 extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        userAgent = Util.getUserAgent(this, "ExoPlayerDemo");
-
+        userAgent = Util.getUserAgent(this, "ATSC3Demo");
+        context=this;
         try {
             byte[] buffer=new byte[10000];
-            InputStream is=getApplicationContext().getAssets().open("Period");
+            InputStream is=getAssets().open("Period");
 
             int len=is.read(buffer,0,10000);
             periodToInject=new String(buffer,0,len);
@@ -71,7 +73,9 @@ public class ATSC3 extends Application {
 
     }
 
-
+    public static Context getContext(){
+        return context;
+    }
 
 
     public DataSource.Factory buildDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {

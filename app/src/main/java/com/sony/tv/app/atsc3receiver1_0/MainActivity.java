@@ -28,14 +28,18 @@ import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3.*;
 
 import com.sony.tv.app.atsc3receiver1_0.app.ATSCXmlParse;
+import com.sony.tv.app.atsc3receiver1_0.app.Ads;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteTaskManager;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteTaskManagerBase;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSData;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -63,6 +67,7 @@ public class MainActivity extends Activity {
     private static boolean firstLLS =true;
     public static boolean ExoPlayerStarted=false;
     public static int exoPlayerDataSourceIndex=0;
+    private Ads ads;
 
     CallBackInterface callBackInterface;
 
@@ -85,9 +90,32 @@ public class MainActivity extends Activity {
         activity=this;
 
         Intent intent=getIntent();
-        if (intent.getExtras().containsKey("gzip")){
-            boolean value=Boolean.parseBoolean(intent.getStringExtra("gzip"));
-            ATSC3.GZIP=value;
+        if (null!=intent){
+            if (null!=intent.getExtras()){
+                if (intent.getExtras().containsKey("gzip")){
+                    boolean value=Boolean.parseBoolean(intent.getStringExtra("gzip"));
+                    ATSC3.GZIP=value;
+                }
+
+
+            }
+        }
+        Ads ads=new Ads(this);
+        try {
+            String[] dirlist=activity.getApplicationContext().getAssets().list("ADS");
+            for (int i=0; i<dirlist.length; i++) {
+                String[] adList = activity.getApplicationContext().getAssets().list("ADS/".concat(dirlist[i]));
+                for (int j=0; j<adList.length;j++) {
+
+                    if (adList[j].endsWith(".mpd")) {
+                        ads.addAd(Ads.SCHEME_ASSET.concat(":///ADS/").concat(dirlist[i]).concat("/").concat(adList[j]), true);
+                    }
+
+                }
+
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
 
@@ -194,7 +222,7 @@ public class MainActivity extends Activity {
     @Override
     public void onStart(){
         super.onStart();
-
+        mFluteReceiver.resetTimeStamp();
 //        LLSReceiver.getInstance().start(this);
     }
     /**

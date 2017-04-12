@@ -11,6 +11,7 @@ import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -112,6 +113,38 @@ public class MPDParser {
         return null;
 
     }
+
+//    public XmlPullParser[] parsePeriodAttributes(){
+//        XmlPullParser[] xppArray=new XmlPullParser[10];
+//        int startPeriodIndex=0;
+//        try {
+//            factory = XmlPullParserFactory.newInstance();
+//            xpp = factory.newPullParser();
+//            StringReader s=new StringReader(data);
+//            xpp.setInput(s);
+//            int eventType = xpp.getEventType();
+//            while (eventType!=XmlPullParser.END_DOCUMENT) {
+//                if(eventType == XmlPullParser.START_DOCUMENT) {
+//
+//                } else if(eventType == XmlPullParser.START_TAG) {
+//                    if (xpp.getName().equals("Period")){
+//                        for (int i=0; i<xpp.getAttributeCount(); i++)
+//                        xppArray[startPeriodIndex][i]=xpp.;
+//                    }
+//                } else if(eventType == XmlPullParser.END_TAG) {
+//                } else if(eventType == XmlPullParser.TEXT) {
+//                }else{
+//                }
+//                eventType = xpp.next();
+//            }
+//            return xppArray;
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
+//
+//        return null;
+//
+//    }
 
     public StringBuilder mMPDgenerate(){
         return mpd.toStringBuilder();
