@@ -125,7 +125,14 @@ public class Ads {
                 eventType = xpp.next();
             }
             period=manifest.substring(manifest.indexOf("<Period"),manifest.indexOf("</Period>")+9);
-            adArrayList.add(new Ad(title,period,duration,scheme,replaceStartString,uri,enabled));
+            int baseUrlStart=period.indexOf("<Period");
+            baseUrlStart=period.indexOf(">",baseUrlStart+7)+1;
+
+            String newPeriod=period.substring(0,baseUrlStart).concat("<BaseURL>").concat(uri.toString().substring(0,uri.toString().lastIndexOf("/")+1)).concat("</BaseURL>").concat(period.substring(baseUrlStart,period.length()));
+
+//            String newPeriod=period.substring(0,baseUrlStart).concat("<BaseURL>").concat("/asset").concat(uri.getPath().substring(0,uri.getPath().lastIndexOf("/")+1)).concat("</BaseURL>").concat(period.substring(baseUrlStart,period.length()));
+
+            adArrayList.add(new Ad(title,newPeriod,duration,scheme,replaceStartString,uri,enabled));
             return  true;
         } catch (Exception e) {
             e.printStackTrace();

@@ -97,18 +97,20 @@ public class FluteDataSource implements DataSource {
         String scheme = dataSpec.uri.getScheme();
 
         if (SCHEME_FLUTE.equals(scheme)) {
-            if (dataSpec.uri.getPath().startsWith("XLINK_HREF ")){
-                String absoluteUri=dataSpec.uri.getPath().substring(XLINK_HREF.length());
-                dataSpec=new DataSpec(Uri.parse(absoluteUri));
-            }else{
+//            if (dataSpec.uri.getPath().startsWith("asset/")){
+//                String absoluteUri="asset://".concat(dataSpec.uri.getPath().substring("asset/".length()));
+//                dataSpec=new DataSpec(Uri.parse(absoluteUri));
+//            }else{
                 mExoPlayerUri=dataSpec;
                 return fileManager.open(dataSpec, thread);
-            }
+//            }
         }
+        Log.d("TAG", "ExoPlayer trying to open :"+dataSpec.uri);
 
         if (Util.isLocalFileUri(dataSpec.uri)) {
             dataSource = fileDataSource;
         } else if (SCHEME_ASSET.equals(scheme)) {
+
             dataSource = assetDataSource;
         } else if (SCHEME_HTTP.equals(scheme)) {
             dataSource = httpDataDataSource;

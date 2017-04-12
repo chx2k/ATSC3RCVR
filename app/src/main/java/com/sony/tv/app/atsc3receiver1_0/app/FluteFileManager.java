@@ -8,8 +8,10 @@ import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.util.Util;
 
 import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -450,31 +452,6 @@ public class FluteFileManager  implements FluteFileManagerBase {
 //        mediaPresentationDuration+=periodZeroStart;
 
 
-        ArrayList<XmlPullParser> periodStartAttributes=new MPDParser(mpdData).parsePeriodAttributes();
-        for (int i=0; i<periodStartAttributes.size(); i++){
-            XmlPullParser xpp=periodStartAttributes.get(i);
-            if (xpp.getName().contains("xlink")){
-                int indexStart=0;
-                int indexEnd=0;
-                String period="";
-                for (int j=0; j<=i; j++){
-                    indexStart=mpdData.indexOf("<Period");
-                    indexEnd=mpdData.indexOf("</Period>");
-                }
-                String start=xpp.getAttributeValue(null,"start");
-                if (lastAdInsertion==null || !start.equals(lastAdStart)){
-                    lastAdStart=start;
-                    start="start=\"".concat(start).concat("\"");
-                    lastAdInsertion=Ads.getNextAd(true);
-                    period=lastAdInsertion.period.replaceFirst( "start=['|\"][PTMHS\\.0-9]+['|\"]",start);
-                }
-                mpdData=mpdData.substring(0,indexStart).concat(period)
-                        .concat("<BaseUrl>").concat("xlink href ").concat(lastAdInsertion.uri.toString()).concat("</BaseUrl>")
-                        .concat(mpdData.substring(indexEnd+10,mpdData.length()));
-
-            }
-        }
-
 
 
 //        mpdParser.mpd.getAttributes().put ("mediaPresentationDuration",String.format("PT%1.2fS",(float)(mediaPresentationDuration/1000)));
@@ -482,7 +459,51 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
         mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(mpdDataSplit[1]);
 
+        try {
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            XmlPullParser xpp = factory.newPullParser();
+            StringReader s=new StringReader(mpdData);
+            xpp.setInput(s);
+            int periodNumber=0;
+            int eventType = xpp.getEventType();
+            while (eventType!=XmlPullParser.END_DOCUMENT) {
+                if(eventType == XmlPullParser.START_DOCUMENT) {
 
+                } else if(eventType == XmlPullParser.START_TAG) {
+                    if (xpp.getName().equals("Period")){
+                        for (int i=0; i<xpp.getAttributeCount(); i++){
+                            if (xpp.getAttributeName(i).startsWith("xlink")){
+                                int indexStart=0;
+                                int indexEnd=0;
+                                String period="";
+                                for (int j=0; j<=periodNumber; j++){
+                                    indexStart=mpdData.indexOf("<Period", indexEnd+9);
+                                    indexEnd=mpdData.indexOf("</Period>", indexEnd+9);
+                                }
+                                String start=xpp.getAttributeValue(null,"start");
+                                if (lastAdInsertion==null || !start.equals(lastAdStart)){
+                                    lastAdStart=start;
+                                    start="start=\"".concat(start).concat("\"");
+                                    lastAdInsertion=Ads.getNextAd(true);
+                                    lastAdInsertion.period=lastAdInsertion.period.replaceFirst( "start=['|\"][PTMHS\\.0-9]+['|\"]",start);
+
+                                }
+                                mpdData=mpdData.substring(0,indexStart).concat(lastAdInsertion.period).concat(mpdData.substring(indexEnd+9,mpdData.length()));
+                                break;
+                            }
+                        }
+                        periodNumber++;
+
+                    }
+                } else if(eventType == XmlPullParser.END_TAG) {
+                } else if(eventType == XmlPullParser.TEXT) {
+                }else{
+                }
+                eventType = xpp.next();
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
 //        String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
 //        String[] result2=result[1].split("[\"]+",2);
 //        mpdData=result[0].concat("availabilityStartTime=\"").concat(availabilityStartTimeString).concat("\"").concat(result2[1]);

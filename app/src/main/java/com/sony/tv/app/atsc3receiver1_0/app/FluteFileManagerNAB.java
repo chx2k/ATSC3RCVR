@@ -556,30 +556,30 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
 //            periodParse = "<Period duration=\"".concat(periodParse).concat("\" ").concat(ATSC3.periodToInject);
 //        }
 
-        ArrayList<XmlPullParser> periodStartAttributes=new MPDParser(mpdData).parsePeriodAttributes();
-        for (int i=0; i<periodStartAttributes.size(); i++){
-            XmlPullParser xpp=periodStartAttributes.get(i);
-            if (xpp.getName().contains("xlink")){
-                int indexStart=0;
-                int indexEnd=0;
-                String period="";
-                for (int j=0; j<=i; j++){
-                    indexStart=mpdData.indexOf("<Period");
-                    indexEnd=mpdData.indexOf("</Period>");
-                }
-                String start=xpp.getAttributeValue(null,"start");
-                if (lastAdInsertion==null || !start.equals(lastAdStart)){
-                    lastAdStart=start;
-                    start="start=\"".concat(start).concat("\"");
-                    lastAdInsertion=Ads.getNextAd(true);
-                    period=lastAdInsertion.period.replaceFirst( "start=\"[PTMHS\\.0-9]+\"",start);
-                }
-                mpdData=mpdData.substring(0,indexStart).concat(period)
-                        .concat("<BaseUrl>").concat("xlink href ").concat(lastAdInsertion.uri.toString()).concat("</BaseUrl>")
-                        .concat(mpdData.substring(indexEnd+10,mpdData.length()));
-
-            }
-        }
+//        XmlPullParser[] periodStartAttributes=new MPDParser(mpdData).parsePeriodAttributes();
+//        for (int i=0; i<periodStartAttributes.length; i++){
+//            XmlPullParser xpp=periodStartAttributes[i];
+//            if (xpp.getName().contains("xlink")){
+//                int indexStart=0;
+//                int indexEnd=0;
+//                String period="";
+//                for (int j=0; j<=i; j++){
+//                    indexStart=mpdData.indexOf("<Period");
+//                    indexEnd=mpdData.indexOf("</Period>");
+//                }
+//                String start=xpp.getAttributeValue(null,"start");
+//                if (lastAdInsertion==null || !start.equals(lastAdStart)){
+//                    lastAdStart=start;
+//                    start="start=\"".concat(start).concat("\"");
+//                    lastAdInsertion=Ads.getNextAd(true);
+//                    period=lastAdInsertion.period.replaceFirst( "start=['|\"][PTMHS\\.0-9]+['|\"]",start);
+//                }
+//                mpdData=mpdData.substring(0,indexStart).concat(period)
+//                        .concat("<BaseUrl>").concat("xlink href ").concat(lastAdInsertion.uri.toString()).concat("</BaseUrl>")
+//                        .concat(mpdData.substring(indexEnd+10,mpdData.length()));
+//
+//            }
+//        }
 
 
 
