@@ -31,7 +31,7 @@ public class ATSC3 extends Application {
     public final static boolean FAKEUDPSOURCE=false;
     public final static boolean FAKEMANIFEST=false;
     public final static boolean FAKEPERIODINJECT=false;
-    public static boolean GZIP=false;
+    public static boolean GZIP=true;
 
     public static String userAgent;
     private String TAG="ATSC3";

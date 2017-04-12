@@ -139,10 +139,18 @@ public class FluteReceiver  {
 
     }
 
-    public void resetTimeStamp(int index) {
+    public void resetTimeStamp() {
 
-        mFluteTaskManager[index].fileManager().resetTimeStamp();
+        if (null!=mFluteTaskManager) {
+            for (int i = 0; i < mFluteTaskManager.length; i++) {
+                if (null != mFluteTaskManager[i]) {
+                    if (null != mFluteTaskManager[i].fileManager()) {
 
+                        mFluteTaskManager[i].fileManager().resetTimeStamp();
+                    }
+                }
+            }
+        }
 
     }
 
