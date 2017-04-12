@@ -7,6 +7,8 @@ import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.util.Util;
 
+import org.xmlpull.v1.XmlPullParser;
+
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -77,11 +79,12 @@ public class FluteFileManager  implements FluteFileManagerBase {
     private DataSpec signalingDataSpec;
     private DataSpec avDataSpec;
 
-
-
     private static boolean first;
     private static long availabilityStartTime;
     private static long availabilityStartTimeOffset;
+
+    private Ads.Ad lastAdInsertion;
+    private String lastAdStart="";
 
     public FluteFileManager(DataSpec dataSpec){
         sInstance=this;
@@ -441,10 +444,38 @@ public class FluteFileManager  implements FluteFileManagerBase {
         long suggestedPresentationDelay= ((c.getTime()).getTime()-availabilityStartTime)/1000;
 //
 
-        MPDParser mpdPeriodParser=new MPDParser(mpdData);
-        long periodZeroStart=parseXsDuration(mpdPeriodParser.parseFirstPeriodStart()[0]);
-        long mediaPresentationDuration=parseXsDuration( mpdParser.mpd.getAttributes().get("mediaPresentationDuration"));
-        mediaPresentationDuration+=periodZeroStart;
+//        MPDParser mpdPeriodParser=new MPDParser(mpdData);
+//        long periodZeroStart=parseXsDuration(mpdPeriodParser.parseFirstPeriodStart()[0]);
+//        long mediaPresentationDuration=parseXsDuration( mpdParser.mpd.getAttributes().get("mediaPresentationDuration"));
+//        mediaPresentationDuration+=periodZeroStart;
+
+
+        ArrayList<XmlPullParser> periodStartAttributes=new MPDParser(mpdData).parsePeriodAttributes();
+        for (int i=0; i<periodStartAttributes.size(); i++){
+            XmlPullParser xpp=periodStartAttributes.get(i);
+            if (xpp.getName().contains("xlink")){
+                int indexStart=0;
+                int indexEnd=0;
+                String period="";
+                for (int j=0; j<=i; j++){
+                    indexStart=mpdData.indexOf("<Period");
+                    indexEnd=mpdData.indexOf("</Period>");
+                }
+                String start=xpp.getAttributeValue(null,"start");
+                if (lastAdInsertion==null || !start.equals(lastAdStart)){
+                    lastAdStart=start;
+                    start="start=\"".concat(start).concat("\"");
+                    lastAdInsertion=Ads.getNextAd(true);
+                    period=lastAdInsertion.period.replaceFirst( "start=['|\"][PTMHS\\.0-9]+['|\"]",start);
+                }
+                mpdData=mpdData.substring(0,indexStart).concat(period)
+                        .concat("<BaseUrl>").concat("xlink href ").concat(lastAdInsertion.uri.toString()).concat("</BaseUrl>")
+                        .concat(mpdData.substring(indexEnd+10,mpdData.length()));
+
+            }
+        }
+
+
 
 //        mpdParser.mpd.getAttributes().put ("mediaPresentationDuration",String.format("PT%1.2fS",(float)(mediaPresentationDuration/1000)));
         mpdParser.mpd.getAttributes().put ("mediaPresentationDuration","PT1000H20M35S");

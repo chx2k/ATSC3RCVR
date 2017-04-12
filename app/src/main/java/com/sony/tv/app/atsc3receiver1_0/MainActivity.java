@@ -90,19 +90,29 @@ public class MainActivity extends Activity {
         activity=this;
 
         Intent intent=getIntent();
-        if (intent.getExtras().containsKey("gzip")){
-            boolean value=Boolean.parseBoolean(intent.getStringExtra("gzip"));
-            ATSC3.GZIP=value;
-        }
-
-
-        Ads ads=new Ads();
-        try {
-            String[] adlist=getApplicationContext().getAssets().list("ADS");
-            for (int i=0; i<adlist.length; i++) {
-                if (adlist[i].endsWith(".mpd")) {
-                    ads.addAd(Ads.SCHEME_ASSET.concat(":///ADS/").concat(adlist[i]), true);
+        if (null!=intent){
+            if (null!=intent.getExtras()){
+                if (intent.getExtras().containsKey("gzip")){
+                    boolean value=Boolean.parseBoolean(intent.getStringExtra("gzip"));
+                    ATSC3.GZIP=value;
                 }
+
+
+            }
+        }
+        Ads ads=new Ads(this);
+        try {
+            String[] dirlist=activity.getApplicationContext().getAssets().list("ADS");
+            for (int i=0; i<dirlist.length; i++) {
+                String[] adList = activity.getApplicationContext().getAssets().list("ADS/".concat(dirlist[i]));
+                for (int j=0; j<adList.length;j++) {
+
+                    if (adList[j].endsWith(".mpd")) {
+                        ads.addAd(Ads.SCHEME_ASSET.concat(":///ADS/").concat(dirlist[i]).concat("/").concat(adList[j]), true);
+                    }
+
+                }
+
             }
         } catch (IOException e) {
             e.printStackTrace();

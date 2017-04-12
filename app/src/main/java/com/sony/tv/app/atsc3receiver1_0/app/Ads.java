@@ -1,8 +1,10 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
+import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
 
+import com.google.android.exoplayer2.upstream.AssetDataSource;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
@@ -15,6 +17,7 @@ import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.net.URI;
 import java.util.ArrayList;
@@ -26,42 +29,41 @@ import java.util.HashMap;
 
 public class Ads {
 
-    private String title;
-    private String Period;
-    private String duration;
-    private String scheme;
-    private String parsedPeriod;
+    private static String title;
+    private static String Period;
+    private static String duration;
+    private static String scheme;
+    private static String parsedPeriod;
 
-    private DataSource dataSource;
-    private DataSource fileDataSource;
-    private DataSource assetDataSource;
-    private DataSource httpDataDataSource;
-    private XmlPullParserFactory factory;
-    private XmlPullParser xpp;
+    private static DataSource dataSource;
+    private static DataSource fileDataSource;
+    private static DataSource assetDataSource;
+    private static DataSource httpDataDataSource;
+    private static XmlPullParserFactory factory;
+    private static XmlPullParser xpp;
 
     private static final String TAG="Ads";
     public static final String SCHEME_ASSET = "asset";
     public static final String SCHEME_FLUTE = "flute";
     public static final String SCHEME_HTTP  = "http";
     public final static String XLINK_HREF  ="/@xlink:href ";
-    private final static int MANIFEST_BUFFER_SIZE=1000;
-
-    private byte[] buffer;
-    private ArrayList<Ad> adArrayList=new ArrayList<>();
+    private final static int MANIFEST_BUFFER_SIZE=5000;
+    private static int adCount=0;
 
 
-    public Ads(){
+    private static byte[] buffer=new byte[MANIFEST_BUFFER_SIZE];
+    private static ArrayList<Ad> adArrayList=new ArrayList<>();
 
-        fileDataSource=new FileDataSource(null);
-        assetDataSource=new FileDataSource(null);
-        httpDataDataSource=new DefaultHttpDataSource(ATSC3.userAgent, null, null, DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS,
-                DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS, true) {
-        };
-        buffer=new byte[MANIFEST_BUFFER_SIZE];
+    public Ads(Context context){
+        DataSource fileDataSource=new FileDataSource(null);
+        assetDataSource=new AssetDataSource(context);
+        httpDataDataSource= new DefaultHttpDataSource(ATSC3.userAgent, null, null,
+                DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS,
+                DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS, true);
     }
 
-    public boolean addAd(String url, boolean enabled){
-        String title="",period="",duration="",replaceStartString="";
+    public static boolean addAd(String url, boolean enabled){
+        String title="",period="",duration="",replaceStartString="",manifest="";
         Uri uri=Uri.parse(url);
         if (Util.isLocalFileUri(uri)) {
             dataSource = fileDataSource;
@@ -75,7 +77,7 @@ public class Ads {
             return false;
         }
         DataSpec dataSpec=new DataSpec(uri);
-        String manifest="";
+
         try {
             dataSource.open(dataSpec);
             int len=dataSource.read(buffer,0,MANIFEST_BUFFER_SIZE);
@@ -84,6 +86,7 @@ public class Ads {
             e.printStackTrace();
             return false;
         }
+
         XmlPullParserFactory factory = null;
         try {
             factory = XmlPullParserFactory.newInstance();
@@ -96,16 +99,16 @@ public class Ads {
                 if(eventType == XmlPullParser.START_DOCUMENT) {
 
                 } else if(eventType == XmlPullParser.START_TAG) {
-                    if (xpp.getName()=="Title"){
+                    if (xpp.getName().equals("Title")){
                         titleTag=true;
                     }else{
                         titleTag=false;
                     }
-                    if (xpp.getName()=="Period"){
+                    if (xpp.getName().equals("Period")){
 
                         for (int i = 0; i < xpp.getAttributeCount(); i++) {
                             if (xpp.getAttributeName(i).equals("start")){
-                                replaceStartString="start=".concat(xpp.getAttributeValue(i));
+                                replaceStartString=xpp.getAttributeValue(i);
                             }
                             if (xpp.getAttributeName(i).equals("duration")){
                                 duration=xpp.getAttributeValue(i);
@@ -128,11 +131,9 @@ public class Ads {
             e.printStackTrace();
             return false;
         }
-
-
     }
 
-    public ArrayList<Ad> getAds(boolean enabled){
+    public static ArrayList<Ad> getAds(boolean enabled){
         if (!enabled){
             return adArrayList;
         }else{
@@ -146,9 +147,21 @@ public class Ads {
             return enabledArrayAds;
         }
     }
-    private static int adCount=0;
 
-    public Ad getNextAd(boolean random){
+    public static Ad getAdByTitle(String title){
+
+        for (Ad ad:adArrayList)
+        {
+            if (ad.title.equals(title)) {
+               return ad;
+            }
+        }
+        return null;
+
+    }
+
+
+    public static Ad getNextAd(boolean random){
         ArrayList<Ad> enabledArrayAds=new ArrayList<>();
 
         for (Ad ad:adArrayList)
@@ -158,35 +171,25 @@ public class Ads {
             }
         }
         if (enabledArrayAds.size()==0) return null;
-        if (random)
-        adCount++;
-        if (adCount>enabledArrayAds.size()){
-            adCount=0;
-        }
-        return enabledArrayAds.get(adCount);
-    }
-    public Ad getRandomAd(){
+        if (random){
+            if (enabledArrayAds.size()==0) return null;
+            int randomAd=(int) Math.floor(enabledArrayAds.size()*Math.random());
+            return enabledArrayAds.get(randomAd);
 
-        ArrayList<Ad> enabledArrayAds=new ArrayList<>();
-
-        for (Ad ad:adArrayList)
-        {
-            if (ad.enabled) {
-                enabledArrayAds.add(ad);
+        }else {
+            adCount++;
+            if (adCount > enabledArrayAds.size()) {
+                adCount = 0;
             }
+            return enabledArrayAds.get(adCount);
         }
-        if (enabledArrayAds.size()==0) return null;
-        Math.random(1)
-        adCount++;
-        if (adCount>enabledArrayAds.size()){
-            adCount=0;
-        }
-        return enabledArrayAds.get(adCount);
+
     }
 
 
 
-    private class Ad{
+
+    public static class Ad{
         public String title;
         public String period;
         public String duration;
