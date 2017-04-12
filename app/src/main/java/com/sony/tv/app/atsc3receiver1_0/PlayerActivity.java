@@ -21,12 +21,15 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -70,6 +73,9 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
+import com.sony.tv.app.atsc3receiver1_0.app.Ad;
+import com.sony.tv.app.atsc3receiver1_0.app.AdsListAdapter;
+import com.sony.tv.app.atsc3receiver1_0.app.NewAddDialogFragment;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -78,16 +84,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import io.realm.Realm;
+import io.realm.RealmResults;
+
+import static com.sony.tv.app.atsc3receiver1_0.app.ATSC3.getContext;
+
 /**
  * An activity that plays media using {@link SimpleExoPlayer}.
  */
 public class PlayerActivity extends Activity implements OnClickListener, ExoPlayer.EventListener,
-    PlaybackControlView.VisibilityListener {
+    PlaybackControlView.VisibilityListener{
 
   public static final String DRM_SCHEME_UUID_EXTRA = "drm_scheme_uuid";
   public static final String DRM_LICENSE_URL = "drm_license_url";
   public static final String DRM_KEY_REQUEST_PROPERTIES = "drm_key_request_properties";
   public static final String PREFER_EXTENSION_DECODERS = "prefer_extension_decoders";
+  public static final String CHANNEL_NAME = "channel_name";
 
   public static final String ACTION_VIEW = "com.google.android.exoplayer.demo.action.VIEW";
   public static final String EXTENSION_EXTRA = "extension";
@@ -104,12 +116,23 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     DEFAULT_COOKIE_MANAGER.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
   }
 
+  private Realm realm;
   private Handler mainHandler;
   private EventLogger eventLogger;
   private SimpleExoPlayerView simpleExoPlayerView;
   private LinearLayout debugRootView;
+  private LinearLayout infoLayout;
+  private LinearLayout debugLayout;
+  private LinearLayout adSelectLayout;
   private TextView debugTextView;
+  private RecyclerView adRecyclerView;
+  private AdsListAdapter adsListAdapter;
+  private TextView noAdFoundTextView;
+  private RealmResults<Ad> adsList;
+  private ImageButton addNewAdButton;
+
   private Button retryButton;
+
 
   private DataSource.Factory mediaDataSourceFactory;
   private SimpleExoPlayer player;
@@ -131,6 +154,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     clearResumePosition();
     mediaDataSourceFactory = buildDataSourceFactory(true);
     mainHandler = new Handler();
+    realm = Realm.getDefaultInstance();
     if (CookieHandler.getDefault() != DEFAULT_COOKIE_MANAGER) {
       CookieHandler.setDefault(DEFAULT_COOKIE_MANAGER);
     }
@@ -139,6 +163,24 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     View rootView = findViewById(R.id.root);
     rootView.setOnClickListener(this);
     debugRootView = (LinearLayout) findViewById(R.id.controls_root);
+    infoLayout = (LinearLayout) findViewById(R.id.info_layout);
+    debugLayout = (LinearLayout) findViewById(R.id.debug_layout);
+    adSelectLayout = (LinearLayout) findViewById(R.id.ad_drop_down_layout);
+    adRecyclerView = (RecyclerView) findViewById(R.id.ad_recycler_view);
+    noAdFoundTextView = (TextView) findViewById(R.id.empty_text);
+    addNewAdButton = (ImageButton) findViewById(R.id.add_new_ad_button);
+    addNewAdButton.setSelected(true);
+
+    addNewAdButton.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        closeAdSelectorLayout();
+        showNewAdDialogScreen();
+      }
+    });
+
+
+
     debugTextView = (TextView) findViewById(R.id.debug_text_view);
     retryButton = (Button) findViewById(R.id.retry_button);
     retryButton.setOnClickListener(this);
@@ -146,7 +188,9 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     simpleExoPlayerView = (SimpleExoPlayerView) findViewById(R.id.player_view);
     simpleExoPlayerView.setControllerVisibilityListener(this);
     simpleExoPlayerView.requestFocus();
+    simpleExoPlayerView.setUseController(false);
   }
+
 
   @Override
   public void onNewIntent(Intent intent) {
@@ -189,6 +233,12 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   }
 
   @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    realm.close();
+  }
+
+  @Override
   public void onRequestPermissionsResult(int requestCode, String[] permissions,
       int[] grantResults) {
     if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -206,18 +256,107 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
 
     Log.d("KEY","Key Pressed: "+event.getKeyCode());
     boolean channelChange=false;
-    if (event.getKeyCode()==166){
-      channelChange=ATSC3.channelUp(this);
-    }else if(event.getKeyCode()==167){
-      channelChange=ATSC3.channelDown(this);
-    }
-    if (channelChange){
+    switch (event.getKeyCode()){
+      case 19:
+        //Up button clicked
+        showPlayControllerLayout();
+        break;
+      case 20:
+        //Down button clicked
+//        simpleExoPlayerView.setUseController(false);
+//        simpleExoPlayerView.hideController();
+        break;
+      case 21:
+        //Left button clicked
+        showDebugLayout();
+        break;
+      case 22:
+        //Right arrow clicked
+        showInfoLayout();
+        break;
+      case 166:
+        channelChange=ATSC3.channelUp(this);
+        break;
+      case 167:
+        channelChange=ATSC3.channelDown(this);
+        break;
+      case 7:
+        //show Ad Switcher
+        showAdSelectorLayout();
+        break;
+      case 15:
+        //Close Add Switcher
+        closeAdSelectorLayout();
+        break;
 
     }
+
+
     // Show the controls on any key event.
-    simpleExoPlayerView.showController();
+
     // If the event was not handled then see if the player view can handle it as a media key event.
     return super.dispatchKeyEvent(event) || simpleExoPlayerView.dispatchMediaKeyEvent(event);
+  }
+
+  private void closeAdSelectorLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    infoLayout.setVisibility(View.GONE);
+    debugLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+
+  }
+
+  private void showNewAdDialogScreen() {
+    NewAddDialogFragment dialogFragment = new NewAddDialogFragment();
+    dialogFragment.show(getFragmentManager(), "Dialog");
+  }
+
+
+  private void showAdSelectorLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    infoLayout.setVisibility(View.GONE);
+    debugLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.VISIBLE);
+    addNewAdButton.requestFocus();
+
+    adsList = realm.where(Ad.class).findAll();
+    if (adsList != null && adsList.size() > 0){
+        showEmptyText(false);
+      adRecyclerView.setHasFixedSize(true);
+      adRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+      adsListAdapter = new AdsListAdapter(adsList, realm);
+      adRecyclerView.setAdapter(adsListAdapter);
+    }else {
+      showEmptyText(true);
+    }
+  }
+
+  private void showPlayControllerLayout() {
+    simpleExoPlayerView.setUseController(true);
+    simpleExoPlayerView.showController();
+    debugLayout.setVisibility(View.GONE);
+    infoLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+
+  }
+
+  private void showInfoLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    debugLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+    infoLayout.setVisibility(View.VISIBLE);
+  }
+
+  private void showDebugLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    infoLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+    debugLayout.setVisibility(View.VISIBLE);
+
   }
 
   // OnClickListener methods
@@ -232,6 +371,16 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         trackSelectionHelper.showSelectionDialog(this, ((Button) view).getText(),
             trackSelector.getCurrentMappedTrackInfo(), (int) view.getTag());
       }
+    }
+  }
+
+  public void showEmptyText(boolean showText) {
+    if (showText){
+      adRecyclerView.setVisibility(View.GONE);
+      noAdFoundTextView.setVisibility(View.VISIBLE);
+    }else {
+      noAdFoundTextView.setVisibility(View.GONE);
+      adRecyclerView.setVisibility(View.VISIBLE);
     }
   }
 
@@ -573,5 +722,6 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     }
     return false;
   }
+
 
 }

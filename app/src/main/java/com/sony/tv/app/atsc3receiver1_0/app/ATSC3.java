@@ -3,22 +3,20 @@ package com.sony.tv.app.atsc3receiver1_0.app;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 
 import com.google.android.exoplayer2.upstream.DataSource;
-
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
-
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
-
 import com.google.android.exoplayer2.util.Util;
-import com.sony.tv.app.atsc3receiver1_0.PlayerActivity;
-import com.sony.tv.app.atsc3receiver1_0.SampleChooserFragment;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicLong;
+
+import io.realm.Realm;
+import io.realm.RealmConfiguration;
+import io.realm.RealmResults;
 
 
 /**
@@ -31,7 +29,8 @@ public class ATSC3 extends Application {
     public final static boolean FAKEUDPSOURCE=false;
     public final static boolean FAKEMANIFEST=false;
     public final static boolean FAKEPERIODINJECT=false;
-    public static boolean GZIP=true;
+    public static AtomicLong adPrimaryKey;
+    public static boolean GZIP=false;
 
     public static String userAgent;
     private String TAG="ATSC3";
@@ -68,6 +67,31 @@ public class ATSC3 extends Application {
 
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        initRealm();
+    }
+
+    private void initRealm() {
+        Realm.init(this);
+        RealmConfiguration configuration  = new RealmConfiguration.Builder()
+                .name("atsc3demo")
+                .schemaVersion(1)
+                .deleteRealmIfMigrationNeeded()
+                .build();
+        Realm.setDefaultConfiguration(configuration);
+        Realm realm = Realm.getInstance(configuration);
+
+        try {
+            adPrimaryKey = new AtomicLong(realm.where(Ad.class).max("id").longValue() + 1);
+        } catch (Exception e) {
+            realm.beginTransaction();
+            Ad task = realm.createObject(Ad.class, 0);
+            adPrimaryKey = new AtomicLong(realm.where(Ad.class).max("id").longValue() + 1);
+            RealmResults<Ad> results = realm.where(Ad.class).equalTo("id", 0).findAll();
+            results.deleteAllFromRealm();
+            realm.commitTransaction();
+        }finally {
+            realm.close();
         }
 
 
