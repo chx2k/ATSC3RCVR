@@ -15,7 +15,6 @@
 package com.sony.tv.app.atsc3receiver1_0;
 
 import android.app.Activity;
-import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.Intent;
@@ -25,28 +24,14 @@ import android.util.Log;
 
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
-import com.sony.tv.app.atsc3receiver1_0.app.ATSC3.*;
-
-import com.sony.tv.app.atsc3receiver1_0.app.ATSCXmlParse;
+import com.sony.tv.app.atsc3receiver1_0.app.ATSC3.CallBackInterface;
 import com.sony.tv.app.atsc3receiver1_0.app.Ads;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
-import com.sony.tv.app.atsc3receiver1_0.app.FluteTaskManager;
 import com.sony.tv.app.atsc3receiver1_0.app.FluteTaskManagerBase;
-import com.sony.tv.app.atsc3receiver1_0.app.LLSData;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
-
-
-import static java.lang.Thread.sleep;
 
 /*
  * MainActivity class that loads MainFragment
@@ -232,6 +217,8 @@ public class MainActivity extends Activity {
 
         fragmentsInitialized=true;
     }
+
+
 
     private void initLLSReceiver(){
         startLLSReceiver();

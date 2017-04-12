@@ -7,18 +7,15 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.upstream.FileDataSource;
-import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
 import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by xhamc on 4/11/17.
@@ -129,22 +126,8 @@ public class Ads {
 
     }
 
-    private class Ad{
-        public String title;
-        public String period;
-        public String duration;
-        public String scheme;
-        public String replaceStartString;
-        public Uri uri;
-        public Ad(String title, String period, String duration, String scheme, String replaceStartString, Uri uri){
-            this.title=title;
-            this.period=period;
-            this.duration=duration;
-            this.scheme=scheme;
-            this.replaceStartString=replaceStartString;
-            this.uri=uri;
-        }
-
+    public static List<Ads> getAds() {
+        return null;
     }
 
 }
