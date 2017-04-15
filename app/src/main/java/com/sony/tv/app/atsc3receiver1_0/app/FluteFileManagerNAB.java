@@ -37,14 +37,13 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
     private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
     private static final String TIME_SHIFT_BUFFER_DEPTH="PT3S";
     private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";
-    private static final String SUGGESTED_PRESENTATION_DELAY="PT0S";
-    private static final int LIVE_BUFFER_READ_OFFSET=0;
+    private static final String SUGGESTED_PRESENTATION_DELAY="PT0S";    private static final int LIVE_BUFFER_READ_OFFSET=0;
 
     //        HashMap<String, ContentFileLocation> mapContentLocations;
     private static final String TAG="FileManager";
     public static final int MAX_SIGNALING_BUFFERSIZE=10000;
-    public static final int MAX_VIDEO_BUFFERSIZE=20000000;
-    public static final int MAX_AUDIO_BUFFERSIZE=2000000;
+    public static final int MAX_VIDEO_BUFFERSIZE=10000000;
+    public static final int MAX_AUDIO_BUFFERSIZE=1000000;
     private static final int MAX_FILE_RETENTION_MS=10000;
 
     private static final int SERVER_TIME_OFFSET=7100;
@@ -76,12 +75,12 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
     private FluteFileManagerNAB sInstance;
     public DataSpec baseDataSpec;
 
-    private static boolean first;
-    private static long availabilityStartTime;
-    private static int videoStartNumber;
-    private static long availabilityStartTimeOffset;
-    private static long liveReadFromBufferTime;
-    private static ManifestTimePair manifestTimePair;
+    private  boolean first;
+    private  long availabilityStartTime;
+    private  int videoStartNumber;
+    private  long availabilityStartTimeOffset;
+    private  long liveReadFromBufferTime;
+    private  ManifestTimePair manifestTimePair;
     private class ManifestTimePair{
         public String manifest;
         public long timeReceived;
@@ -394,7 +393,7 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
                         }
 
 
-                        Log.d(TAG, "Wrote file: "+ fileName +" of size "+ l.contentLength + " to buffer: "+index + "which is connected to TSI: " + mapGetTSIFromBufferNumber.get(index));
+                        Log.d(TAG, "Wrote file: "+ baseDataSpec.uri.toString().concat(fileName) +" of size "+ l.contentLength + " to buffer: "+index + "which is connected to TSI: " + mapGetTSIFromBufferNumber.get(index));
                         return fileName;
                     }
                 }else {
@@ -610,53 +609,60 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
         mpdParser.mpd.getAttributes().remove("publishTime");
         mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(periodParse).concat(mpdDataSplit[1]);
 
+        if (ATSC3.ADS_ENABLED){
+            try {
+                XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+                XmlPullParser xpp = factory.newPullParser();
+                StringReader s=new StringReader(mpdData);
+                xpp.setInput(s);
+                int periodNumber=0;
+                int eventType = xpp.getEventType();
+                while (eventType!=XmlPullParser.END_DOCUMENT) {
+                    if(eventType == XmlPullParser.START_DOCUMENT) {
 
-        try {
-            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-            XmlPullParser xpp = factory.newPullParser();
-            StringReader s=new StringReader(mpdData);
-            xpp.setInput(s);
-            int periodNumber=0;
-            int eventType = xpp.getEventType();
-            while (eventType!=XmlPullParser.END_DOCUMENT) {
-                if(eventType == XmlPullParser.START_DOCUMENT) {
+                    } else if(eventType == XmlPullParser.START_TAG) {
+                        if (xpp.getName().equals("Period")){
+                            for (int i=0; i<xpp.getAttributeCount(); i++){
+                                if (xpp.getAttributeName(i).startsWith("xlink")){
+                                    int indexStart=0;
+                                    int indexEnd=0;
+                                    String period="";
+                                    for (int j=0; j<=periodNumber; j++){
+                                        indexStart=mpdData.indexOf("<Period", indexEnd+9);
+                                        indexEnd=mpdData.indexOf("</Period>", indexEnd+9);
+                                    }
+                                    String start=xpp.getAttributeValue(null,"start");
+                                    if (lastAdInsertion==null || !start.equals(lastAdStart)){
+                                        lastAdStart=start;
+//                                        String presentationOffsetTime="presentationTimeOffset=\"".concat(String.format("%d",parseXsDuration(start)*90)).concat("\"");
+//                                        String presentationOffsetTime="presentationTimeOffset=\"0\"";
 
-                } else if(eventType == XmlPullParser.START_TAG) {
-                    if (xpp.getName().equals("Period")){
-                        for (int i=0; i<xpp.getAttributeCount(); i++){
-                            if (xpp.getAttributeName(i).startsWith("xlink")){
-                                int indexStart=0;
-                                int indexEnd=0;
-                                String period="";
-                                for (int j=0; j<=periodNumber; j++){
-                                    indexStart=mpdData.indexOf("<Period", indexEnd+9);
-                                    indexEnd=mpdData.indexOf("</Period>", indexEnd+9);
+                                        start="start=\"".concat(start).concat("\"");
+                                        lastAdInsertion=Ads.getNextAd(false);
+//                                        lastAdInsertion.period=lastAdInsertion.period.replaceAll("<SegmentTemplate","<SegmentTemplate ".concat(presentationOffsetTime));
+
+                                        lastAdInsertion.period=lastAdInsertion.period.replaceFirst( "start=['|\"][PTMHS\\.0-9]+['|\"]",start);
+
+
+
+                                    }
+                                    mpdData=mpdData.substring(0,indexStart).concat(lastAdInsertion.period).concat(mpdData.substring(indexEnd+9,mpdData.length()));
+                                    break;
                                 }
-                                String start=xpp.getAttributeValue(null,"start");
-                                if (lastAdInsertion==null || !start.equals(lastAdStart)){
-                                    lastAdStart=start;
-                                    start="start=\"".concat(start).concat("\"");
-                                    lastAdInsertion=Ads.getNextAd(true);
-                                    lastAdInsertion.period=lastAdInsertion.period.replaceFirst( "start=['|\"][PTMHS\\.0-9]+['|\"]",start);
-
-                                }
-                                mpdData=mpdData.substring(0,indexStart).concat(lastAdInsertion.period).concat(mpdData.substring(indexEnd+9,mpdData.length()));
-                                break;
                             }
+                            periodNumber++;
+
                         }
-                        periodNumber++;
-
+                    } else if(eventType == XmlPullParser.END_TAG) {
+                    } else if(eventType == XmlPullParser.TEXT) {
+                    }else{
                     }
-                } else if(eventType == XmlPullParser.END_TAG) {
-                } else if(eventType == XmlPullParser.TEXT) {
-                }else{
+                    eventType = xpp.next();
                 }
-                eventType = xpp.next();
+            }catch (Exception e){
+                e.printStackTrace();
             }
-        }catch (Exception e){
-            e.printStackTrace();
         }
-
 //
 //        if (!mpdData.equals(mpdOld)){
 //            if (!mpdOld.equals("")) {

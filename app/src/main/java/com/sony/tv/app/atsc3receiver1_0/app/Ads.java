@@ -121,6 +121,7 @@ public class Ads {
                     if (titleTag) {
                         title = xpp.getText();
                     }
+                    titleTag=false;
                 }
                 eventType = xpp.next();
             }
@@ -170,7 +171,7 @@ public class Ads {
 
     public static Ad getNextAd(boolean random){
         ArrayList<Ad> enabledArrayAds=new ArrayList<>();
-
+//        return  adArrayList.get(2);
         for (Ad ad:adArrayList)
         {
             if (ad.enabled) {
@@ -185,7 +186,7 @@ public class Ads {
 
         }else {
             adCount++;
-            if (adCount > enabledArrayAds.size()) {
+            if (adCount >= enabledArrayAds.size()) {
                 adCount = 0;
             }
             return enabledArrayAds.get(adCount);
@@ -211,7 +212,7 @@ public class Ads {
             this.scheme=scheme;
             this.replaceStartString=replaceStartString;
             this.uri=uri;
-            this.enabled=true;
+            this.enabled=enabled;
         }
 
     }

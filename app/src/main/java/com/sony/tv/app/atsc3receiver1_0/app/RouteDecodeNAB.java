@@ -54,12 +54,12 @@ public class RouteDecodeNAB implements RouteDecodeBase {
 
             toi = ((data[TOI_POSITION] &0xff) <<24 | (data[TOI_POSITION + 1] &0xff)<<16 | (data[TOI_POSITION + 2] &0xff) <<8 | (data[TOI_POSITION + 3]&0xff));
             tsi = ((data[TSI_POSITION] &0xff) <<24 | (data[TSI_POSITION + 1] &0xff)<<16 | (data[TSI_POSITION + 2] &0xff) <<8 | (data[TSI_POSITION + 3]&0xff));
-            if (tsi==0){
-                Log.d(TAG, "TSI =0");
-            }
-            if (data[13]==7){
-                Log.d(TAG, "TOI="+toi);
-            }
+//            if (tsi==0){
+//                Log.d(TAG, "TSI =0");
+//            }
+//            if (data[13]==7){
+//                Log.d(TAG, "TOI="+toi);
+//            }
 
             byte length = data[HEADER_LENGTH_POSITION];
             if (length == 8) {

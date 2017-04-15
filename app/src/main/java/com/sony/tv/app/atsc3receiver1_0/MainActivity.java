@@ -109,6 +109,7 @@ public class MainActivity extends Activity {
 
                     if (adList[j].endsWith(".mpd")) {
                         ads.addAd(Ads.SCHEME_ASSET.concat(":///ADS/").concat(dirlist[i]).concat("/").concat(adList[j]), true);
+
                     }
 
                 }
@@ -118,6 +119,26 @@ public class MainActivity extends Activity {
             e.printStackTrace();
         }
 
+//        for (int i=0; i<Ads.getAds(false).size();i++){
+//
+//            if (Ads.getAds(false).get(i).title.startsWith("Gold")||Ads.getAds(false).get(i).title.startsWith("PS4")){
+//                Ads.getAds(false).get(i).enabled=true;
+//
+//            }else{
+//                Ads.getAds(false).get(i).enabled=false;
+//            }
+//        }
+
+//
+//        for (int i=0; i<Ads.getAds(false).size();i++){
+//
+//            if (Ads.getAds(false).get(i).title.startsWith("Better")){
+//                Ads.getAds(false).get(i).enabled=true;
+//
+//            }else{
+//                Ads.getAds(false).get(i).enabled=false;
+//            }
+//        }
 
         callBackInterface=new CallBackInterface() {
             @Override

@@ -93,9 +93,9 @@ public class FluteDataSource implements DataSource {
 
     }
     @Override
-    public long open(DataSpec dataSpec) throws IOException {
+    public long open(DataSpec dataSpec) throws IOException{
         String scheme = dataSpec.uri.getScheme();
-
+        try {
         if (SCHEME_FLUTE.equals(scheme)) {
 //            if (dataSpec.uri.getPath().startsWith("asset/")){
 //                String absoluteUri="asset://".concat(dataSpec.uri.getPath().substring("asset/".length()));
@@ -107,19 +107,23 @@ public class FluteDataSource implements DataSource {
         }
         Log.d("TAG", "ExoPlayer trying to open :"+dataSpec.uri);
 
-        if (Util.isLocalFileUri(dataSpec.uri)) {
-            dataSource = fileDataSource;
-        } else if (SCHEME_ASSET.equals(scheme)) {
+            if (Util.isLocalFileUri(dataSpec.uri)) {
+                dataSource = fileDataSource;
+            } else if (SCHEME_ASSET.equals(scheme)) {
 
-            dataSource = assetDataSource;
-        } else if (SCHEME_HTTP.equals(scheme)) {
-            dataSource = httpDataDataSource;
-        }else{
-            Log.e(TAG,"URI scheme not recognized");
-            dataSource = null;
+                dataSource = assetDataSource;
+            } else if (SCHEME_HTTP.equals(scheme)) {
+                dataSource = httpDataDataSource;
+            } else {
+                Log.e(TAG, "URI scheme not recognized");
+                dataSource = null;
+            }
+            // Open the source and return.
+            if (dataSource != null) return dataSource.open(dataSpec);
+        }catch(IOException e){
+            Log.e(TAG,"Couldn't find file: "+dataSpec.uri);
+            throw new IOException(e);
         }
-        // Open the source and return.
-        if (dataSource!=null) return dataSource.open(dataSpec);
 
         return -1;
 

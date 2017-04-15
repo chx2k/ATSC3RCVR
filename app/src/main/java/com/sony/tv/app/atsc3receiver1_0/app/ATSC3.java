@@ -31,6 +31,7 @@ public class ATSC3 extends Application {
     public final static boolean FAKEUDPSOURCE=false;
     public final static boolean FAKEMANIFEST=false;
     public final static boolean FAKEPERIODINJECT=false;
+    public static final boolean ADS_ENABLED=true;
     public static boolean GZIP=true;
 
     public static String userAgent;
@@ -114,10 +115,12 @@ public class ATSC3 extends Application {
     }
 
     private static ATSCSample getSampleFromIndex(int i){
-        String host="239.255.8."+String.format("%d",i+1);
-        String url=host;
+//        String host="239.255.8."+String.format("%d",i+1);
+//        String url=host;
         String title = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).shortServiceName;
         String port = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationUdpPort;
+        String host = LLSReceiver.getInstance().slt.mSLTData.mServices.get(i).broadcastServices.get(0).slsDestinationIpAddress;
+        String url=host;
         String name = manifest; /* TODO detect automatically from USBD*/
         ATSCSample s = new ATSCSample(title, null, null, null, false, url, port, name);
         return s;
