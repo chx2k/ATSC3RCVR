@@ -6,6 +6,8 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.FileDataSource;
 
 /**
+ * Factory class to create fulte data sources for Exoplayer. the thread is needed so that one filemanager
+ * can handle all requests from the player (signaling/audio/video)
  * Created by xhamc on 3/21/17.
  */
 

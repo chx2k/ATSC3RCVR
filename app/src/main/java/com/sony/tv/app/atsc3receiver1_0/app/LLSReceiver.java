@@ -34,6 +34,7 @@ import static android.R.attr.type;
 
 
 /**
+ * Manage the starting and stopping the LLS Task Managers
  * Created by xhamc on 3/13/17.
  */
 
@@ -201,61 +202,61 @@ public class LLSReceiver {
 
         @Override
         public void run(){
-//            if (ATSC3.FAKEUDPSOURCE) {
-//                FakeUdpDataSource udpDataSource;
-//
-//                udpDataSource = new FakeUdpDataSource(new TransferListener<FakeUdpDataSource>() {
-//                    @Override
-//                    public void onTransferStart(FakeUdpDataSource source, DataSpec dataSpec) {
-//                        running = true;
-//                    }
-//
-//                    @Override
-//                    public void onBytesTransferred(FakeUdpDataSource source, int bytesTransferred) {
-//                        packetSize = bytesTransferred;
-//                    }
-//
-//                    @Override
-//                    public void onTransferEnd(FakeUdpDataSource source) {
-//                        running = false;
-//                    }
-//                }, false);
-//
-//                try {
-//                    udpDataSource.open(dataSpec);
-//                } catch (UdpDataSource.UdpDataSourceException e) {
-//                    e.printStackTrace();
-//                    return;
-//                }
-//                mainloop:
-//                while (!stopRequest && running) {
-//
-//                    int len;
-//                    int offset = 0;
-//                    bytes = new byte[UdpDataSource.DEFAULT_MAX_PACKET_SIZE];
-//                    do {
-//                        try {
-//                            len = udpDataSource.read(bytes, offset, 500);
-//                            offset += len;
-//                        } catch (UdpDataSource.UdpDataSourceException e) {
-//                            e.printStackTrace();
-//                            reportError();
-//                            break mainloop;
-//                        }
-//                    } while (offset < packetSize);
-//
-//                    transferDataToUIThread(bytes[0], bytes, packetSize);
-//
-//                    try {
-//                        Thread.sleep(100);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                        reportError();
-//                        break;
-//                    }
-//                }
-//                udpDataSource.close();
-//            }else{
+            if (ATSC3.FAKEUDPSOURCE) {
+                FakeUdpDataSource udpDataSource;
+
+                udpDataSource = new FakeUdpDataSource(new TransferListener<FakeUdpDataSource>() {
+                    @Override
+                    public void onTransferStart(FakeUdpDataSource source, DataSpec dataSpec) {
+                        running = true;
+                    }
+
+                    @Override
+                    public void onBytesTransferred(FakeUdpDataSource source, int bytesTransferred) {
+                        packetSize = bytesTransferred;
+                    }
+
+                    @Override
+                    public void onTransferEnd(FakeUdpDataSource source) {
+                        running = false;
+                    }
+                }, false);
+
+                try {
+                    udpDataSource.open(dataSpec);
+                } catch (UdpDataSource.UdpDataSourceException e) {
+                    e.printStackTrace();
+                    return;
+                }
+                mainloop:
+                while (!stopRequest && running) {
+
+                    int len;
+                    int offset = 0;
+                    bytes = new byte[UdpDataSource.DEFAULT_MAX_PACKET_SIZE];
+                    do {
+                        try {
+                            len = udpDataSource.read(bytes, offset, 500);
+                            offset += len;
+                        } catch (UdpDataSource.UdpDataSourceException e) {
+                            e.printStackTrace();
+                            reportError();
+                            break mainloop;
+                        }
+                    } while (offset < packetSize);
+
+                    transferDataToUIThread(bytes[0], bytes, packetSize);
+
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        reportError();
+                        break;
+                    }
+                }
+                udpDataSource.close();
+            }else{
 
                     udpDataSource = new UdpDataSource(new TransferListener<UdpDataSource>() {
                     @Override
@@ -312,7 +313,7 @@ public class LLSReceiver {
                 }
                 udpDataSource.close();
 
-//            }
+            }
         }
 
         public void stop(){

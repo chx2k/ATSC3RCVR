@@ -10,7 +10,10 @@ import java.lang.reflect.InvocationTargetException;
 /**
  * Created by xhamc on 3/14/17.
  * This class parses the LLS message body into SLT object and ST Object
- * Uses Reflection (invoke) to match the xml attribute to the relevant class method
+ * using Reflection (invoke) to match the xml attribute to the relevant class method
+ * or:
+ * Parses the EFDT header
+ *
  */
 
 public class ATSCXmlParse {

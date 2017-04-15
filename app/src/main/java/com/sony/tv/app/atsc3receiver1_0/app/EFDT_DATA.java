@@ -8,6 +8,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 
 /**
+ * Structure for EFDT message
  * Created by xhamc on 3/19/17.
  */
 

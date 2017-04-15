@@ -42,10 +42,6 @@ public class MPDParser {
     }
 
 
-    public MPDParser(String data){
-        this.data=data;
-
-    }
 
     public boolean MPDParse()
     {
@@ -77,81 +73,8 @@ public class MPDParser {
         return false;
     }
 
-
-    public String[] parseFirstPeriodStart(){
-        String[] startPeriods=new String[2];
-        int startPeriodIndex=0;
-        try {
-            factory = XmlPullParserFactory.newInstance();
-            xpp = factory.newPullParser();
-            StringReader s=new StringReader(data);
-            xpp.setInput(s);
-            int eventType = xpp.getEventType();
-            while (eventType!=XmlPullParser.END_DOCUMENT) {
-                if(eventType == XmlPullParser.START_DOCUMENT) {
-
-                } else if(eventType == XmlPullParser.START_TAG) {
-                    if (xpp.getName().equals("Period")){
-                        for (int i=0; i<xpp.getAttributeCount(); i++) {
-                            if (xpp.getAttributeName(i).equals("start")){
-                                startPeriods[startPeriodIndex]= xpp.getAttributeValue(i);
-                                startPeriodIndex++;
-                                if (startPeriodIndex==2) return startPeriods;
-                            }
-                        }
-                    }
-                } else if(eventType == XmlPullParser.END_TAG) {
-                } else if(eventType == XmlPullParser.TEXT) {
-                }else{
-                }
-                eventType = xpp.next();
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-
-        return null;
-
-    }
-
-//    public XmlPullParser[] parsePeriodAttributes(){
-//        XmlPullParser[] xppArray=new XmlPullParser[10];
-//        int startPeriodIndex=0;
-//        try {
-//            factory = XmlPullParserFactory.newInstance();
-//            xpp = factory.newPullParser();
-//            StringReader s=new StringReader(data);
-//            xpp.setInput(s);
-//            int eventType = xpp.getEventType();
-//            while (eventType!=XmlPullParser.END_DOCUMENT) {
-//                if(eventType == XmlPullParser.START_DOCUMENT) {
-//
-//                } else if(eventType == XmlPullParser.START_TAG) {
-//                    if (xpp.getName().equals("Period")){
-//                        for (int i=0; i<xpp.getAttributeCount(); i++)
-//                        xppArray[startPeriodIndex][i]=xpp.;
-//                    }
-//                } else if(eventType == XmlPullParser.END_TAG) {
-//                } else if(eventType == XmlPullParser.TEXT) {
-//                }else{
-//                }
-//                eventType = xpp.next();
-//            }
-//            return xppArray;
-//        }catch (Exception e){
-//            e.printStackTrace();
-//        }
-//
-//        return null;
-//
-//    }
-
-    public StringBuilder mMPDgenerate(){
-        return mpd.toStringBuilder();
-    }
-
-    public void toMPDdynamic(){
-        mpd.toDynamic(videoMap, audioMap);
+    public StringBuilder toStringBuilder(){
+        return mpd.toStringBuilder ();
     }
 
 

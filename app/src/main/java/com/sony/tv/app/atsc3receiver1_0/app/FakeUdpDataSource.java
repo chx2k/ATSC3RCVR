@@ -1,9 +1,6 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
-import android.app.Activity;
 import android.net.Uri;
-import android.provider.Settings;
-
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
@@ -18,9 +15,9 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
-import java.net.SocketException;
 
 /**
+ * Uses wireshark captured binary data to fake streaming to the filemanager
  * Created by xhamc on 4/3/17.
  */
 

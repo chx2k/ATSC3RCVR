@@ -1,6 +1,7 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
 /**
+ * Used by filemanager for managing relevant Fluet file propoerties
  * Created by xhamc on 3/21/17.
  */
 

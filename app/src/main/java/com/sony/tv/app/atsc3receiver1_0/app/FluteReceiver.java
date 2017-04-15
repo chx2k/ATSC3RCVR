@@ -15,6 +15,7 @@ import java.util.HashMap;
 
 
 /**
+ * Managers starting and stopping the FluteTaskManagers
  * Created by xhamc on 3/18/17.
  */
 
@@ -25,13 +26,6 @@ public class FluteReceiver  {
 
 
     private TransferListener<? super DataSource> listener;
-
-
-    public static final int SIGNALLING=0;
-    public static final int AUDIO_CONTENT=1;
-    public static final int VIDEO_CONTENT=2;
-
-    private HashMap<String, Integer> mapFileContainsToTSI = new HashMap<>();                //retrieve the relevant TSI based on the name of the file
 
     public static FluteTaskManagerBase[] mFluteTaskManager;
 
@@ -100,7 +94,6 @@ public class FluteReceiver  {
                 }
             }
         };
-//        this.mFileManager=FluteFileManager.getInstance();
     }
 
     public void setListener(TransferListener<? super DataSource> listener ){
@@ -109,7 +102,7 @@ public class FluteReceiver  {
 
 
     /**
-     * start the task manager
+     * start the task managers
      */
     public void start(DataSpec signalingDataSpec, DataSpec avDataSpec, int index, int type, CallBackInterface callBackInterface) {
             if (null==avDataSpec) {

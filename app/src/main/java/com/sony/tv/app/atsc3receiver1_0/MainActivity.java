@@ -52,21 +52,16 @@ import static java.lang.Thread.sleep;
  * MainActivity class that loads MainFragment
  */
 public class MainActivity extends Activity {
-    /**
-     * Called when the activity is first created.
-     */
 
     SampleChooserFragment sampleChooserFragment;
     LLSReceiver mLLSReceiver;
     FluteReceiver mFluteReceiver;
     private static final String TAG="MainActivity";
     private static boolean fragmentsInitialized=false;
-    public long timeOffset=0;
     private static boolean sltComplete=false;
     private static boolean stComplete=false;
     private static boolean firstLLS =true;
     public static boolean ExoPlayerStarted=false;
-    public static int exoPlayerDataSourceIndex=0;
     private Ads ads;
 
     CallBackInterface callBackInterface;
@@ -96,6 +91,10 @@ public class MainActivity extends Activity {
                     boolean value=Boolean.parseBoolean(intent.getStringExtra("gzip"));
                     ATSC3.GZIP=value;
                 }
+                if (intent.getExtras().containsKey("ADS")){
+                    boolean value=Boolean.parseBoolean(intent.getStringExtra("ADS"));
+                    ATSC3.ADS_ENABLED=value;
+                }
 
 
             }
@@ -118,27 +117,6 @@ public class MainActivity extends Activity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-//        for (int i=0; i<Ads.getAds(false).size();i++){
-//
-//            if (Ads.getAds(false).get(i).title.startsWith("Gold")||Ads.getAds(false).get(i).title.startsWith("PS4")){
-//                Ads.getAds(false).get(i).enabled=true;
-//
-//            }else{
-//                Ads.getAds(false).get(i).enabled=false;
-//            }
-//        }
-
-//
-//        for (int i=0; i<Ads.getAds(false).size();i++){
-//
-//            if (Ads.getAds(false).get(i).title.startsWith("Better")){
-//                Ads.getAds(false).get(i).enabled=true;
-//
-//            }else{
-//                Ads.getAds(false).get(i).enabled=false;
-//            }
-//        }
 
         callBackInterface=new CallBackInterface() {
             @Override

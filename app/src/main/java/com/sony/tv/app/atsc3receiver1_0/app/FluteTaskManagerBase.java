@@ -1,6 +1,7 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
 /**
+ * Interface to support Qualcomm and NAB flavors of FluteTaskManager
  * Created by xhamc on 4/2/17.
  */
 

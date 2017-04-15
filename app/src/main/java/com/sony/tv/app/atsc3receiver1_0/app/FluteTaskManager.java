@@ -13,6 +13,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
+ * Manages running the flute receivers on their own threads.
  * Created by xhamc on 3/22/17.
  */
 
@@ -53,7 +54,7 @@ public class FluteTaskManager implements FluteTaskManagerBase{
         this.signalingDataSpec=signalingDataSpec;
         fileManager=new FluteFileManager(signalingDataSpec);
         fileManager.reset();
-        new Thread(new RunUpdonThread(signalingDataSpec)).start();
+        new Thread(new RunUdponThread(signalingDataSpec)).start();
     }
 
     public FluteTaskManager (DataSpec signalingDataSpec, DataSpec avDataSpec, CallBackInterface callBackInterface, int index){
@@ -72,14 +73,14 @@ public class FluteTaskManager implements FluteTaskManagerBase{
             fileManager=new FluteFileManager(signalingDataSpec);
             fileManager.reset();
 
-            new Thread(new RunUpdonThread(signalingDataSpec)).start();
+            new Thread(new RunUdponThread(signalingDataSpec)).start();
 
         }else {
             fileManager = new FluteFileManager(signalingDataSpec, avDataSpec);
             fileManager.reset();
 
-            new Thread(new RunUpdonThread(signalingDataSpec)).start();
-            new Thread(new RunUpdonThread(avDataSpec)).start();
+            new Thread(new RunUdponThread(signalingDataSpec)).start();
+            new Thread(new RunUdponThread(avDataSpec)).start();
 
         }
 
@@ -89,14 +90,14 @@ public class FluteTaskManager implements FluteTaskManagerBase{
     }
 
 
-    private class RunUpdonThread implements Runnable{
+    private class RunUdponThread implements Runnable{
 
         DataSpec dataSpec;
         int packetSize=0;
         private boolean running;
 
 
-        public RunUpdonThread(DataSpec dataSpec){
+        public RunUdponThread(DataSpec dataSpec){
             this.dataSpec=dataSpec;
 
         }

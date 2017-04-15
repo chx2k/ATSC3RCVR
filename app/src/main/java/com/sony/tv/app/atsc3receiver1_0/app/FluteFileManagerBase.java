@@ -5,6 +5,7 @@ import com.google.android.exoplayer2.upstream.DataSpec;
 import java.io.IOException;
 
 /**
+ * Interface to support Qualcomm and NAB flavors of FileManager
  * Created by xhamc on 4/2/17.
  */
 

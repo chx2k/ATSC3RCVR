@@ -21,6 +21,9 @@ import java.util.Map;
 
 
 /**
+ * Maps the filemanager to the DataSource needed by ExoPlayer
+ * Supports non flute content as well (asset/http/file) when BaseUrl
+ * in Manifest is absolute address. Used for Ad insertion for instance
  * Created by xhamc on 3/16/17.
  */
 

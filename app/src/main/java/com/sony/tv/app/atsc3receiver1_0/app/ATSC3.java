@@ -28,16 +28,16 @@ import java.io.InputStream;
 public class ATSC3 extends Application {
 
 
-    public final static boolean FAKEUDPSOURCE=false;
-    public final static boolean FAKEMANIFEST=false;
-    public final static boolean FAKEPERIODINJECT=false;
-    public static final boolean ADS_ENABLED=true;
-    public static boolean GZIP=true;
+    public final static boolean FAKEUDPSOURCE=false;                //Use source from assets folder
+    public final static boolean FAKEMANIFEST=false;                 //Use manifest from assets folder
+    public final static boolean FAKEPERIODINJECT=false;             //Add extra period into manifest
+    public static boolean ADS_ENABLED=true;                   //Enable ad replacements for xlinked periods
+    public static boolean GZIP=true;                                //LLS is normally zipped. set to false for Qualcomm server
 
     public static String userAgent;
     private String TAG="ATSC3";
     public static int dataSourceIndex;
-    public static String manifest="ManifestUpdate_Dynamic.mpd";
+    public static String manifest="ManifestUpdate_Dynamic.mpd";     //Use this for the manifest name passed ot exoplayer
     public static String periodToInject="";
     public static String manifestContents;
     public static int NAB=1;
@@ -61,11 +61,12 @@ public class ATSC3 extends Application {
         userAgent = Util.getUserAgent(this, "ATSC3Demo");
         context=this;
         try {
-            byte[] buffer=new byte[10000];
-            InputStream is=getAssets().open("Period");
-
-            int len=is.read(buffer,0,10000);
-            periodToInject=new String(buffer,0,len);
+            if (FAKEPERIODINJECT){
+                byte[] buffer = new byte[10000];
+                InputStream is = getAssets().open("Period");
+                int len = is.read(buffer, 0, 10000);
+                periodToInject = new String(buffer, 0, len);
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -85,7 +86,11 @@ public class ATSC3 extends Application {
         return new FluteDataSourceFactory();
     }
 
-
+    /**
+     * Use by PlayerActivity only when not a flute source for manifest
+     * @param bandwidthMeter
+     * @return
+     */
     public HttpDataSource.Factory buildHttpDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
         return new DefaultHttpDataSourceFactory(userAgent, bandwidthMeter);
     }
@@ -103,7 +108,7 @@ public class ATSC3 extends Application {
     }
     public static boolean channelDown(final Activity activity){
 
-        if (dataSourceIndex==0){
+        if (dataSourceIndex==0 && LLSReceiver.getInstance().slt.mSLTData.mServices.size()>0){
             dataSourceIndex=1;
             resetTimeStamp(dataSourceIndex);
             ATSCSample sample=getSampleFromIndex(dataSourceIndex);
@@ -127,9 +132,19 @@ public class ATSC3 extends Application {
 
     }
 
+    /**
+     *
+     * @param index
+     */
     private static void resetTimeStamp(int index){
+        if (null!=FluteReceiver.mFluteTaskManager){
+            if (FluteReceiver.mFluteTaskManager.length>index){
+                if (null!=FluteReceiver.mFluteTaskManager[index].fileManager()){
+                    FluteReceiver.mFluteTaskManager[index].fileManager().resetTimeStamp();
+                }
+            }
+        }
 
-        FluteReceiver.mFluteTaskManager[index].fileManager().resetTimeStamp();
     }
 
 }

@@ -188,171 +188,62 @@ public final class MPD {
         return sb;
     }
 
-    private static boolean first=true;
-    private static long calculatedAvailableStartTime;
-    public boolean toDynamic(@NonNull HashMap<String, ContentFileLocation> videos, @NonNull HashMap<String, ContentFileLocation> audios){
-        try {
-
-            int[] oldestVideoIndex=new int[periods.size()];
-            int[] oldestAudioIndex=new int[periods.size()];
-            int[] earliestVideoIndex=new int[periods.size()];
-            int[] earliestAudioIndex=new int[periods.size()];
-            long[] oldestVideoTime=new long[periods.size()];
-            long[] oldestAudioTime=new long[periods.size()];
-            long[] earliestVideoTime=new long[periods.size()];
-            long[] earliestAudioTime=new long[periods.size()];
-
-
-            int [] periodIndexStart=new int[periods.size()];
-            long[] periodStartTime=new long[periods.size()];
-            long[] periodDuration=new long[periods.size()];
-
-            double[] videoSegmentDuration=new double[periods.size()];
-            double[] audioSegmentDuration=new double[periods.size()];
-            boolean[] videoIndexPresent = new boolean[periods.size()];
-            boolean[] audioIndexPresent = new boolean[periods.size()];
-            int[] adapSetVideoIndex=new int[periods.size()];
-            int[] adapSetAudioIndex=new int[periods.size()];
-            boolean [] periodToRemove=new boolean[periods.size()];
-
-            long availabilityStartTime;
-
-
-            for (int i=0; i<periods.size();i++){
-                oldestVideoIndex[i]=Integer.MAX_VALUE;
-                oldestAudioIndex[i]=Integer.MAX_VALUE;
-                earliestVideoIndex[i]=0;
-                earliestAudioIndex[i]=0;
-                videoIndexPresent[i]=false;
-                audioIndexPresent[i]=false;
-                periodStartTime[i]=0;
-                periodDuration[i]=0;
-                periodIndexStart[i]=0;
-                adapSetVideoIndex[i]=0;
-                adapSetAudioIndex[i]=0;
-            }
-            if (first) {
-                calculatedAvailableStartTime = getAvailabilityStartTimeFromVideos(videos);
-                first = false;
-            }
-            availabilityStartTime=calculatedAvailableStartTime;
-
-
-
-
-//                availabilityStartTime=parseXsDateTime(getAttribute(attr_availabilityStartTime));  //TODO We want the real startTime calculated by the receiving of packets.
-                Log.d(TAG, "Availability Start Time in ms: "+availabilityStartTime);
-//                for (int period=0; period<periods.size(); period++){
-//                    oldestVideoTime[period]=(long) (oldestVideoIndex[period]*videoSegmentDuration[period]*1000);
-//                    oldestAudioTime[period]=(long) (oldestAudioIndex[period]*audioSegmentDuration[period]*1000);
-//                    earliestVideoTime[period]=(long) (earliestVideoIndex[period]*videoSegmentDuration[period]*1000);
-//                    earliestAudioTime[period]=(long) (earliestAudioIndex[period]*audioSegmentDuration[period]*1000);
-//
-//                    Log.d(TAG, "Period No: "+period+"   videoStartTime: "+oldestVideoIndex[period]*videoSegmentDuration[period]+"   audioStartTime: "+ oldestAudioIndex[period]*audioSegmentDuration[period]);
-//                    Log.d(TAG, "Period No: "+period+"   videoEndTime: "+earliestVideoIndex[period]*videoSegmentDuration[period]+"   audioEndTime: "+ earliestAudioIndex[period]*audioSegmentDuration[period]);
-//                    periodStartTime[period]=parseXsDuration(periods.get(period).getAttribute(attr_start));         //TODO This depends on ExoPlayer library; recreate locally
-//                    periodDuration[period]=parseXsDuration(periods.get(period).getAttribute(attr_duration));
-//                    if (!audioIndexPresent[period] || !videoIndexPresent[period]) {          //no content in this period available so remove
-//                        periodToRemove[period]=true;
-//                    }
-//                    int startVideoIndex=Integer.parseInt( periods.get(period).adaptationSet.get(adapSetVideoIndex[period]).representations.get(0).segmentTemplate.getAttribute("startNumber"));
-//                    int startAudioIndex=Integer.parseInt( periods.get(period).adaptationSet.get(adapSetAudioIndex[period]).representations.get(0).segmentTemplate.getAttribute("startNumber"));
-//                    if (startVideoIndex>0 || startAudioIndex>0) {
-//                        oldestVideoTime[period] = (long) ((oldestVideoIndex[period] - startVideoIndex) * videoSegmentDuration[period] * 1000);
-//                        oldestAudioTime[period] = (long) ((oldestAudioIndex[period] - startAudioIndex) * audioSegmentDuration[period] * 1000);
-//                        if (oldestVideoTime[period]>=oldestAudioTime[period]){
-//
-//                        }else{
-//
-//                        }
-//                    }
-//                }
-//                availabilityStartTime+=FluteReceiver.getInstance().getTimeOffset();
-//                Log.d(TAG, "Availability adjusted Start Time in ms: "+availabilityStartTime);
-
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-            formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
-            String date=formatter.format(new Date(availabilityStartTime+ FluteReceiver.getInstance().timeOffset));
-
-            Log.d(TAG, "Availability adjusted Start Time: "+date);
-
-//            setAttribute(attr_availabilityStartTime,date);
-//            setAttribute(attr_timeShiftBufferDepth,"PT0S");
-//            setAttribute("suggestedPresentationDelay","PT0S");
-
-
-
-            }catch (Exception e){
-            Log.e(TAG, e.getMessage());
-            return false;
-        }
-
-        return true;
-    }
-
     public long getAvailabilityStartTimeFromVideos(HashMap<String,ContentFileLocation> videos){
 
-//        long timeOffset=0;
-//        try {
-//            long availabilityStartTime=parseXsDateTime(getAttribute(attr_availabilityStartTime));  //TODO We want the real startTime calculated by the receiving of packets.
-            loop:for (int period = 0; period < periods.size(); period++) {
-                String baseUrl=periods.get(period).getAttribute(tag_BaseUrl)!=""?periods.get(period).getAttribute(tag_BaseUrl):"/";
-                for (int adaptationSet = 0; adaptationSet <periods.get(period).adaptationSet.size() ; adaptationSet++) {
-                    baseUrl=baseUrl.concat(periods.get(period).adaptationSet.get(adaptationSet).getAttribute(tag_BaseUrl));
-                    baseUrl=baseUrl.concat(periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute(tag_BaseUrl));
+        loop:for (int period = 0; period < periods.size(); period++) {
+            String baseUrl=periods.get(period).getAttribute(tag_BaseUrl)!=""?periods.get(period).getAttribute(tag_BaseUrl):"/";
+            for (int adaptationSet = 0; adaptationSet <periods.get(period).adaptationSet.size() ; adaptationSet++) {
+                baseUrl=baseUrl.concat(periods.get(period).adaptationSet.get(adaptationSet).getAttribute(tag_BaseUrl));
+                baseUrl=baseUrl.concat(periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute(tag_BaseUrl));
 
-                    if (periods.get(period).adaptationSet.get(adaptationSet).getAttribute("mimeType").contains("video") ||
-                            periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute("mimeType").contains("video")){
+                if (periods.get(period).adaptationSet.get(adaptationSet).getAttribute("mimeType").contains("video") ||
+                        periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute("mimeType").contains("video")){
 
-                        SegmentTemplate videoTemplate =periods.get(period).adaptationSet.get(adaptationSet).segmentTemplate;
-                        if (videoTemplate.getAttribute("media").contains("$RepresentationID")){
-                            videoTemplate.setAttribute("media", videoTemplate.getAttribute("media").replaceAll("\\$RepresentationID\\$",
-                                    periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute("id") ));
-                        }
-                        if (videoTemplate.getAttribute("initialization").contains("$RepresentationID")){
-                            videoTemplate.setAttribute("initialization", videoTemplate.getAttribute("initialization").replaceAll("\\$RepresentationID\\$",
-                                    periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute("id") ));
-                        }
-                        String[] check=baseUrl.concat(videoTemplate.getAttribute(attr_media)).split("\\$Number\\$");
-                        for (Map.Entry<String,ContentFileLocation> video:videos.entrySet()){
-                            if (!video.getKey().equals(baseUrl.concat(videoTemplate.getAttribute("initialization")))) {
-                                if (video.getKey().startsWith(check[0]) && (video.getKey().endsWith(check[1]))) {
-                                    int videoSegmentNumber = Integer.parseInt(video.getKey().replace(check[0], "").replace(check[1], ""));
-                                    int periodStartNumber=Integer.parseInt(videoTemplate.getAttribute(attr_startNumber));
-                                    double videoSegmentDuration;
-                                    if (null==videoTemplate.segmentTimeline) {
-                                        videoSegmentDuration = (long) 1000 * Double.parseDouble(videoTemplate.getAttribute(attr_duration)) /
-                                                Double.parseDouble(videoTemplate.getAttribute(attr_timeScale));
-                                    } else {
-                                        videoSegmentDuration = (long) 1000 * Double.parseDouble(videoTemplate.segmentTimeline.tagS.get(0).getAttribute("d")) /
-                                                Double.parseDouble(videoTemplate.getAttribute(attr_timeScale));
-                                    }
-                                    long periodStartTimeOffset=parseXsDuration(periods.get(0).getAttribute(attr_start));
+                    SegmentTemplate videoTemplate =periods.get(period).adaptationSet.get(adaptationSet).segmentTemplate;
+                    if (videoTemplate.getAttribute("media").contains("$RepresentationID")){
+                        videoTemplate.setAttribute("media", videoTemplate.getAttribute("media").replaceAll("\\$RepresentationID\\$",
+                                periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute("id") ));
+                    }
+                    if (videoTemplate.getAttribute("initialization").contains("$RepresentationID")){
+                        videoTemplate.setAttribute("initialization", videoTemplate.getAttribute("initialization").replaceAll("\\$RepresentationID\\$",
+                                periods.get(period).adaptationSet.get(adaptationSet).representation.getAttribute("id") ));
+                    }
+                    String[] check=baseUrl.concat(videoTemplate.getAttribute(attr_media)).split("\\$Number\\$");
+                    for (Map.Entry<String,ContentFileLocation> video:videos.entrySet()){
+                        if (!video.getKey().equals(baseUrl.concat(videoTemplate.getAttribute("initialization")))) {
+                            if (video.getKey().startsWith(check[0]) && (video.getKey().endsWith(check[1]))) {
+                                int videoSegmentNumber = Integer.parseInt(video.getKey().replace(check[0], "").replace(check[1], ""));
+                                int periodStartNumber=Integer.parseInt(videoTemplate.getAttribute(attr_startNumber));
+                                double videoSegmentDuration;
+                                if (null==videoTemplate.segmentTimeline) {
+                                    videoSegmentDuration = (long) 1000 * Double.parseDouble(videoTemplate.getAttribute(attr_duration)) /
+                                            Double.parseDouble(videoTemplate.getAttribute(attr_timeScale));
+                                } else {
+                                    videoSegmentDuration = (long) 1000 * Double.parseDouble(videoTemplate.segmentTimeline.tagS.get(0).getAttribute("d")) /
+                                            Double.parseDouble(videoTemplate.getAttribute(attr_timeScale));
+                                }
+                                long periodStartTimeOffset=parseXsDuration(periods.get(0).getAttribute(attr_start));
 
-                                    long periodStartTime=parseXsDuration(periods.get(period).getAttribute(attr_start));
-                                    long periodDuration=parseXsDuration(periods.get(period).getAttribute(attr_duration));
-                                    long videoStartTime=video.getValue().time;
-                                    long periodEndNumber=periodStartNumber+(long)(periodDuration/videoSegmentDuration);
-                                    if (videoSegmentNumber>=periodStartNumber && videoSegmentNumber<periodEndNumber) {
-                                        long videoSegmentOffset =  (long) ((videoSegmentNumber - periodStartNumber) * videoSegmentDuration) + periodStartTime;
-                                        long availabilityTime = videoStartTime - videoSegmentOffset;
-                                        Log.d("TIME: ", "videoSegmentOffset ms: "+videoSegmentOffset+"   segment number: "+videoSegmentNumber+"  avail Time: "+availabilityTime);
-                                        return availabilityTime;
-                                    }
-
+                                long periodStartTime=parseXsDuration(periods.get(period).getAttribute(attr_start));
+                                long periodDuration=parseXsDuration(periods.get(period).getAttribute(attr_duration));
+                                long videoStartTime=video.getValue().time;
+                                long periodEndNumber=periodStartNumber+(long)(periodDuration/videoSegmentDuration);
+                                if (videoSegmentNumber>=periodStartNumber && videoSegmentNumber<periodEndNumber) {
+                                    long videoSegmentOffset =  (long) ((videoSegmentNumber - periodStartNumber) * videoSegmentDuration) + periodStartTime;
+                                    long availabilityTime = videoStartTime - videoSegmentOffset;
+                                    Log.d("TIME: ", "videoSegmentOffset ms: "+videoSegmentOffset+"   segment number: "+videoSegmentNumber+"  avail Time: "+availabilityTime);
+                                    return availabilityTime;
                                 }
 
                             }
+
                         }
                     }
                 }
-
             }
 
+        }
 
-//        } catch (ParserException e) {
-//            e.printStackTrace();
-//        }
         return -1;
     }
 
