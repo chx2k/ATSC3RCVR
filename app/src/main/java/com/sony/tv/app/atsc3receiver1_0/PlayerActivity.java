@@ -81,7 +81,6 @@ import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
 import com.sony.tv.app.atsc3receiver1_0.app.AdContent;
-import com.sony.tv.app.atsc3receiver1_0.app.Ads;
 import com.sony.tv.app.atsc3receiver1_0.app.AdsListAdapter;
 import com.sony.tv.app.atsc3receiver1_0.app.NewAddDialogFragment;
 import com.sony.tv.app.atsc3receiver1_0.app.events.OnNewAdInsertedEvent;
@@ -93,13 +92,13 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
 import io.realm.Realm;
+import io.realm.RealmResults;
 
 import static com.sony.tv.app.atsc3receiver1_0.app.ATSC3.getContext;
 
@@ -332,7 +331,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         channelChange=ATSC3.channelDown(this);
         break;
       case 7:
-        //show AdContent Switcher
+        //show Ad Switcher
         showAdSelectorLayout();
         break;
       case 15:
@@ -373,7 +372,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     addNewAdButton.requestFocus();
 
 
-    ArrayList<AdContent> adsList = Ads.getAds(true);
+    RealmResults<AdContent> adsList = realm.where(AdContent.class).findAll();
     if (adsList != null && adsList.size() > 0){
         showEmptyText(false);
       adRecyclerView.setHasFixedSize(true);

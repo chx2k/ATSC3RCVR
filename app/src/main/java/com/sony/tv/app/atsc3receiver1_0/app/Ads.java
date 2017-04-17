@@ -9,19 +9,17 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.upstream.FileDataSource;
-import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
 import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringReader;
-import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
+
+import io.realm.Realm;
+import io.realm.RealmResults;
 
 /**
  * Created by xhamc on 4/11/17.
@@ -52,7 +50,7 @@ public class Ads {
 
 
     private static byte[] buffer=new byte[MANIFEST_BUFFER_SIZE];
-    private static ArrayList<Ad> adArrayList=new ArrayList<>();
+    private static ArrayList<AdContent> adArrayList=new ArrayList<>();
 
     public Ads(Context context){
         DataSource fileDataSource=new FileDataSource(null);
@@ -121,7 +119,7 @@ public class Ads {
                     if (titleTag) {
                         title = xpp.getText();
                     }
-                    titleTag=false;
+                    titleTag = false;
                 }
                 eventType = xpp.next();
             }
@@ -133,7 +131,34 @@ public class Ads {
 
 //            String newPeriod=period.substring(0,baseUrlStart).concat("<BaseURL>").concat("/asset").concat(uri.getPath().substring(0,uri.getPath().lastIndexOf("/")+1)).concat("</BaseURL>").concat(period.substring(baseUrlStart,period.length()));
 
-            adArrayList.add(new Ad(title,newPeriod,duration,scheme,replaceStartString,uri,enabled));
+            final AdContent ad = new AdContent(title,newPeriod,duration,scheme,replaceStartString,uri,enabled);
+            Log.d(TAG, "Uri: " + uri);
+            adArrayList.add(ad);
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Realm realm = Realm.getDefaultInstance();
+                    try {
+                        Log.d(TAG, "Realm created");
+                        AdContent adContent = realm.where(AdContent.class).equalTo("title", ad.title).findFirst();
+                        if (adContent == null){
+                            realm.executeTransaction(new Realm.Transaction() {
+                                @Override
+                                public void execute(Realm realm) {
+                                    long adId = ATSC3.adPrimaryKey.getAndIncrement();
+                                    AdContent content = realm.createObject(AdContent.class, adId);
+                                    content.updateToRealm(ad);
+                                }
+                            });
+                        }
+
+                    }finally {
+                        realm.close();
+                    }
+
+                }
+            });
+            thread.start();
             return  true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -141,12 +166,12 @@ public class Ads {
         }
     }
 
-    public static ArrayList<Ad> getAds(boolean enabled){
+    public static ArrayList<AdContent> getAds(boolean enabled){
         if (!enabled){
             return adArrayList;
         }else{
-            ArrayList<Ad> enabledArrayAds=new ArrayList<>();
-            for (Ad ad:adArrayList)
+            ArrayList<AdContent> enabledArrayAds=new ArrayList<>();
+            for (AdContent ad:adArrayList)
             {
                 if (ad.enabled) {
                     enabledArrayAds.add(ad);
@@ -156,12 +181,12 @@ public class Ads {
         }
     }
 
-    public static Ad getAdByTitle(String title){
+    public static AdContent getAdByTitle(String title){
 
-        for (Ad ad:adArrayList)
+        for (AdContent ad:adArrayList)
         {
             if (ad.title.equals(title)) {
-               return ad;
+                return ad;
             }
         }
         return null;
@@ -169,10 +194,12 @@ public class Ads {
     }
 
 
-    public static Ad getNextAd(boolean random){
-        ArrayList<Ad> enabledArrayAds=new ArrayList<>();
-//        return  adArrayList.get(2);
-        for (Ad ad:adArrayList)
+    public static AdContent getNextAd(boolean random){
+        ArrayList<AdContent> enabledArrayAds=new ArrayList<>();
+        Realm realm = Realm.getDefaultInstance();
+        RealmResults<AdContent> adContents = realm.where(AdContent.class).findAll();
+
+        for (AdContent ad:adContents)
         {
             if (ad.enabled) {
                 enabledArrayAds.add(ad);
@@ -182,39 +209,29 @@ public class Ads {
         if (random){
             if (enabledArrayAds.size()==0) return null;
             int randomAd=(int) Math.floor(enabledArrayAds.size()*Math.random());
-            return enabledArrayAds.get(randomAd);
+            AdContent randomlySelectedAd = enabledArrayAds.get(randomAd);
+            //randomlySelectedAd.displayCount++;
+            Uri savedUri = Uri.parse(randomlySelectedAd.uriString);
+            Log.d(TAG, "savedUri: " + savedUri);
+            randomlySelectedAd.uri = savedUri;
+            AdContent ad = realm.copyFromRealm(randomlySelectedAd);
+            realm.close();
+            return ad ;
 
         }else {
             adCount++;
-            if (adCount >= enabledArrayAds.size()) {
+            if (adCount > enabledArrayAds.size()) {
                 adCount = 0;
             }
-            return enabledArrayAds.get(adCount);
+            AdContent selectedAd = enabledArrayAds.get(adCount);
+            // selectedAd.displayCount++;
+            selectedAd.uri = Uri.parse(selectedAd.uriString);
+            AdContent ad = realm.copyFromRealm(selectedAd);
+            realm.close();
+            return ad;
         }
 
     }
 
-
-
-
-    public static class Ad{
-        public String title;
-        public String period;
-        public String duration;
-        public String scheme;
-        public String replaceStartString;
-        public Uri uri;
-        public boolean enabled;
-        public Ad(String title, String period, String duration, String scheme, String replaceStartString, Uri uri, boolean enabled){
-            this.title=title;
-            this.period=period;
-            this.duration=duration;
-            this.scheme=scheme;
-            this.replaceStartString=replaceStartString;
-            this.uri=uri;
-            this.enabled=enabled;
-        }
-
-    }
 
 }

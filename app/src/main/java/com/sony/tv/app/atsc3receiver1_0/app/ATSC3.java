@@ -30,6 +30,7 @@ public class ATSC3 extends Application {
     public final static boolean FAKEMANIFEST=false;
     public final static boolean FAKEPERIODINJECT=false;
     public static AtomicLong adPrimaryKey;
+    public static boolean ADS_ENABLED=true;                   //Enable ad replacements for xlinked periods
     public static boolean GZIP=false;
 
     public static String userAgent;
