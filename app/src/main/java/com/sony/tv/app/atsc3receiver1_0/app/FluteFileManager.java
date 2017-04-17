@@ -3,9 +3,7 @@ package com.sony.tv.app.atsc3receiver1_0.app;
 import android.util.Log;
 
 import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.upstream.DataSpec;
-import com.google.android.exoplayer2.util.Util;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -23,8 +21,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static com.google.android.exoplayer2.util.Util.parseXsDuration;
 
 
 /**
@@ -85,7 +81,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
     private static long availabilityStartTime;
     private static long availabilityStartTimeOffset;
 
-    private Ads.Ad lastAdInsertion;
+    private AdContent lastAdInsertion;
     private String lastAdStart="";
 
     public FluteFileManager(DataSpec dataSpec){

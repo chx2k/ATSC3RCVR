@@ -1,8 +1,10 @@
 package com.sony.tv.app.atsc3receiver1_0.app;
 
+import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
 
+import com.google.android.exoplayer2.upstream.AssetDataSource;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
@@ -15,7 +17,9 @@ import org.xmlpull.v1.XmlPullParserFactory;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.List;
+
+import io.realm.Realm;
+import io.realm.RealmResults;
 
 /**
  * Created by xhamc on 4/11/17.
@@ -23,64 +27,64 @@ import java.util.List;
 
 public class Ads {
 
-    private String title;
-    private String Period;
-    private String duration;
-    private String scheme;
-    private String parsedPeriod;
+    private static String title;
+    private static String Period;
+    private static String duration;
+    private static String scheme;
+    private static String parsedPeriod;
 
-    private DataSource dataSource;
-    private DataSource fileDataSource;
-    private DataSource assetDataSource;
-    private DataSource httpDataDataSource;
-    private XmlPullParserFactory factory;
-    private XmlPullParser xpp;
+    private static DataSource dataSource;
+    private static DataSource fileDataSource;
+    private static DataSource assetDataSource;
+    private static DataSource httpDataDataSource;
+    private static XmlPullParserFactory factory;
+    private static XmlPullParser xpp;
 
     private static final String TAG="Ads";
-    private static final String SCHEME_ASSET = "asset";
-    private static final String SCHEME_FLUTE = "flute";
-    private static final String SCHEME_HTTP  = "http";
-    private final static String XLINK_HREF  ="/@xlink:href ";
-    private final static int MANIFEST_BUFFER_SIZE=1000;
-
-    private byte[] buffer;
-    private ArrayList<Ad> adArrayList=new ArrayList<>();
+    public static final String SCHEME_ASSET = "asset";
+    public static final String SCHEME_FLUTE = "flute";
+    public static final String SCHEME_HTTP  = "http";
+    public final static String XLINK_HREF  ="/@xlink:href ";
+    private final static int MANIFEST_BUFFER_SIZE=5000;
+    private static int adCount=0;
 
 
-    public Ads(String uri, String scheme){
+    private static byte[] buffer=new byte[MANIFEST_BUFFER_SIZE];
+    private static ArrayList<AdContent> adArrayList=new ArrayList<>();
 
-        fileDataSource=new FileDataSource(null);
-        assetDataSource=new FileDataSource(null);
-        httpDataDataSource=new DefaultHttpDataSource(ATSC3.userAgent, null, null, DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS,
-                DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS, true) {
-        };
-        buffer=new byte[MANIFEST_BUFFER_SIZE];
+    public Ads(Context context){
+        DataSource fileDataSource=new FileDataSource(null);
+        assetDataSource=new AssetDataSource(context);
+        httpDataDataSource= new DefaultHttpDataSource(ATSC3.userAgent, null, null,
+                DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS,
+                DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS, true);
     }
 
-    public void addAd(String url, String scheme){
-        String title="",period="",duration="",replaceStartString="";
+    public static boolean addAd(String url, boolean enabled){
+        String title="",period="",duration="",replaceStartString="",manifest="";
         Uri uri=Uri.parse(url);
         if (Util.isLocalFileUri(uri)) {
             dataSource = fileDataSource;
-        } else if (SCHEME_ASSET.equals(scheme)) {
+        } else if (SCHEME_ASSET.equals(uri.getScheme())) {
             dataSource = assetDataSource;
-        } else if (SCHEME_HTTP.equals(scheme)) {
+        } else if (SCHEME_HTTP.equals(uri.getScheme())) {
             dataSource = httpDataDataSource;
         }else{
             Log.e(TAG,"URI scheme not recognized");
             dataSource = null;
-            return;
+            return false;
         }
         DataSpec dataSpec=new DataSpec(uri);
-        String manifest="";
+
         try {
             dataSource.open(dataSpec);
             int len=dataSource.read(buffer,0,MANIFEST_BUFFER_SIZE);
             manifest=new String (buffer,0,len);
         } catch (IOException e) {
             e.printStackTrace();
-            return;
+            return false;
         }
+
         XmlPullParserFactory factory = null;
         try {
             factory = XmlPullParserFactory.newInstance();
@@ -89,45 +93,170 @@ public class Ads {
             xpp.setInput(s);
             int eventType = xpp.getEventType();
             boolean titleTag=false;
-            while (eventType!=XmlPullParser.END_DOCUMENT) {
+            loop:while (eventType!=XmlPullParser.END_DOCUMENT) {
                 if(eventType == XmlPullParser.START_DOCUMENT) {
 
                 } else if(eventType == XmlPullParser.START_TAG) {
-                    if (xpp.getName()=="Title"){
+                    if (xpp.getName().equals("Title")){
                         titleTag=true;
                     }else{
                         titleTag=false;
                     }
-                    if (xpp.getName()=="Period"){
+                    if (xpp.getName().equals("Period")){
 
                         for (int i = 0; i < xpp.getAttributeCount(); i++) {
                             if (xpp.getAttributeName(i).equals("start")){
-                                replaceStartString="start=".concat(xpp.getAttributeValue(i));
+                                replaceStartString=xpp.getAttributeValue(i);
                             }
                             if (xpp.getAttributeName(i).equals("duration")){
                                 duration=xpp.getAttributeValue(i);
                             }
                         }
+                        break loop;
                     }
                 } else if(eventType == XmlPullParser.END_TAG) {
                 } else if(eventType == XmlPullParser.TEXT) {
                     if (titleTag) {
                         title = xpp.getText();
                     }
+                    titleTag = false;
                 }
                 eventType = xpp.next();
             }
+            period=manifest.substring(manifest.indexOf("<Period"),manifest.indexOf("</Period>")+9);
+            int baseUrlStart=period.indexOf("<Period");
+            baseUrlStart=period.indexOf(">",baseUrlStart+7)+1;
+
+            String newPeriod=period.substring(0,baseUrlStart).concat("<BaseURL>").concat(uri.toString().substring(0,uri.toString().lastIndexOf("/")+1)).concat("</BaseURL>").concat(period.substring(baseUrlStart,period.length()));
+
+//            String newPeriod=period.substring(0,baseUrlStart).concat("<BaseURL>").concat("/asset").concat(uri.getPath().substring(0,uri.getPath().lastIndexOf("/")+1)).concat("</BaseURL>").concat(period.substring(baseUrlStart,period.length()));
+
+            final AdContent ad = new AdContent(title,newPeriod,duration,scheme,replaceStartString,uri,enabled);
+            Log.d(TAG, "Uri: " + uri);
+            adArrayList.add(ad);
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Realm realm = Realm.getDefaultInstance();
+                    try {
+                        Log.d(TAG, "Realm created");
+                        AdContent adContent = realm.where(AdContent.class).equalTo("title", ad.title).findFirst();
+                        if (adContent == null){
+                            realm.executeTransaction(new Realm.Transaction() {
+                                @Override
+                                public void execute(Realm realm) {
+                                    long adId = ATSC3.adPrimaryKey.getAndIncrement();
+                                    AdContent content = realm.createObject(AdContent.class, adId);
+                                    content.updateToRealm(ad);
+                                }
+                            });
+                        }
+
+                    }finally {
+                        realm.close();
+                    }
+
+                }
+            });
+            thread.start();
+            return  true;
         } catch (Exception e) {
             e.printStackTrace();
-            return;
+            return false;
         }
-        period=manifest.substring(manifest.indexOf("<Period"),manifest.indexOf("</Period>")+9);
-        adArrayList.add(new Ad(title,period,duration,scheme,replaceStartString,uri));
-
     }
 
-    public static List<Ads> getAds() {
+    public static ArrayList<AdContent> getAds(boolean enabled){
+        if (!enabled){
+            return adArrayList;
+        }else{
+            ArrayList<AdContent> enabledArrayAds=new ArrayList<>();
+            for (AdContent ad:adArrayList)
+            {
+                if (ad.enabled) {
+                    enabledArrayAds.add(ad);
+                }
+            }
+            return enabledArrayAds;
+        }
+    }
+
+    public static AdContent getAdByTitle(String title){
+
+        for (AdContent ad:adArrayList)
+        {
+            if (ad.title.equals(title)) {
+                return ad;
+            }
+        }
         return null;
+
     }
+
+
+    public static AdContent getNextAd(boolean random){
+        ArrayList<AdContent> enabledArrayAds=new ArrayList<>();
+        Realm realm = Realm.getDefaultInstance();
+        RealmResults<AdContent> adContents = realm.where(AdContent.class).findAll();
+
+        for (AdContent ad:adContents)
+        {
+            if (ad.enabled) {
+                enabledArrayAds.add(ad);
+            }
+        }
+        if (enabledArrayAds.size()==0) return null;
+        if (random){
+            if (enabledArrayAds.size()==0) return null;
+            int randomAd=(int) Math.floor(enabledArrayAds.size()*Math.random());
+            AdContent randomlySelectedAd = enabledArrayAds.get(randomAd);
+            //randomlySelectedAd.displayCount++;
+            Uri savedUri = Uri.parse(randomlySelectedAd.uriString);
+            Log.d(TAG, "savedUri: " + savedUri);
+            randomlySelectedAd.uri = savedUri;
+            AdContent ad = realm.copyFromRealm(randomlySelectedAd);
+            realm.close();
+            return ad ;
+
+        }else {
+            adCount++;
+            if (adCount > enabledArrayAds.size()) {
+                adCount = 0;
+            }
+            AdContent selectedAd = enabledArrayAds.get(adCount);
+           // selectedAd.displayCount++;
+            selectedAd.uri = Uri.parse(selectedAd.uriString);
+            AdContent ad = realm.copyFromRealm(selectedAd);
+            realm.close();
+            return ad;
+        }
+
+    }
+
+
+
+
+//    public static class Ad{
+//        public String title;
+//        public String period;
+//        public String duration;
+//        public String scheme;
+//        public String replaceStartString;
+//        public int displayCount;
+//        public Uri uri;
+//        public String uriString;
+//        public boolean enabled;
+//        public Ad(String title, String period, String duration, String scheme, String replaceStartString, Uri uri, boolean enabled){
+//            this.title=title;
+//            this.period=period;
+//            this.duration=duration;
+//            this.scheme=scheme;
+//            this.replaceStartString=replaceStartString;
+//            this.uri=uri;
+//            this.uriString = uri.toString();
+//            this.enabled=true;
+//        }
+//
+//    }
 
 }

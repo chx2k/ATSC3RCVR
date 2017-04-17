@@ -104,5 +104,6 @@
         <item>Sample Add 5</item>
         <item>Sample Add 6</item>
     </string-array>
+    <string name="title_activity_phone_launcher">PhoneLauncherActivity</string>
 
 </resources>

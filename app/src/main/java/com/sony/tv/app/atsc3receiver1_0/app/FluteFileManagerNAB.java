@@ -4,7 +4,6 @@ import android.util.Log;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.upstream.DataSpec;
-import com.google.android.exoplayer2.util.XmlPullParserUtil;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -22,8 +21,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static com.google.android.exoplayer2.util.Util.parseXsDuration;
 
 /**
  * Created by xhamc on 4/2/17.
@@ -86,7 +83,7 @@ public class FluteFileManagerNAB implements FluteFileManagerBase {
         public String manifest;
         public long timeReceived;
     }
-    private Ads.Ad lastAdInsertion;
+    private AdContent lastAdInsertion;
     private String lastAdStart="";
 
     private SLS sls=new SLS();

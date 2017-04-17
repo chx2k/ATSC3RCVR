@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<MPD xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns='urn:mpeg:dash:schema:mpd:2011' xsi:schemalocation='urn:mpeg:dash:schema:mpd:2011 DASH-MPD.xsd' type='static' profiles='urn:mpeg:dash:profile:isoff-live:2011' mediaPresentationDuration='PT0H0M29S' minBufferTime='PT0H0M1S'>
+   <Title>Goldberg</Title>
+   <BaseURL>\</BaseURL>
+   <Period start='PT0S' duration='PT0H0M29S'>
+      <AdaptationSet maxWidth='1920' par='16:9' startWithSAP='1' maxHeight='1080' segmentAlignment='true' frameRate='24000/1001' contentType='video' codecs='hvc1.1.6.L120.B0' width='1920' height='1080' scanType='progressive' mimeType='video/mp4' sar='1:1' maxFrameRate='24000/1001'>
+         <Role schemeIdUri='urn:mpeg:dash:role:2011' value='main' />
+         <SegmentTemplate timescale='90000' initialization='video_init.m4s' media='video$Number$.m4s' startNumber='1' duration='90090'>
+         </SegmentTemplate>
+         <Representation id='Video1.1.1.1' bandwidth='8003160' />
+      </AdaptationSet>
+      <AdaptationSet segmentAlignment='true' mimeType='audio/mp4' contentType='audio' codecs='mp4a.40.2' audioSamplingRate='48000' startWithSAP='1'>
+         <AudioChannelConfiguration schemeIdUri='urn:mpeg:mpegB:cicp:ChannelConfiguration' value='2' />
+         <Role schemeIdUri='urn:mpeg:dash:role:2011' value='main' />
+         <SegmentTemplate timescale='90000' initialization='audio_init.m4s' media='audio$Number$.m4s' startNumber='1' duration='89966'>
+         </SegmentTemplate>
+         <Representation id='Audio1.1.1' bandwidth='133300' />
+      </AdaptationSet>
+   </Period>
+</MPD>

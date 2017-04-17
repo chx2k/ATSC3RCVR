@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -212,14 +213,14 @@ public class SampleChooserFragment extends Fragment {
           });
 
       }
-//        Handler handler = new Handler();
-//        handler.postDelayed(new Runnable() {
-//
-//            @Override
-//            public void run() {
-//                onSampleSelected(groups.get(0).samples.get(0), 0);
-//            }
-//        },10000);
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+
+            @Override
+            public void run() {
+                onSampleSelected(groups.get(0).samples.get(0), 0);
+            }
+        },5000);
 
 
     }

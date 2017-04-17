@@ -82,12 +82,12 @@ public class ATSC3 extends Application {
         Realm realm = Realm.getInstance(configuration);
 
         try {
-            adPrimaryKey = new AtomicLong(realm.where(Ad.class).max("id").longValue() + 1);
+            adPrimaryKey = new AtomicLong(realm.where(AdContent.class).max("id").longValue() + 1);
         } catch (Exception e) {
             realm.beginTransaction();
-            Ad task = realm.createObject(Ad.class, 0);
-            adPrimaryKey = new AtomicLong(realm.where(Ad.class).max("id").longValue() + 1);
-            RealmResults<Ad> results = realm.where(Ad.class).equalTo("id", 0).findAll();
+            AdContent task = realm.createObject(AdContent.class, 0);
+            adPrimaryKey = new AtomicLong(realm.where(AdContent.class).max("id").longValue() + 1);
+            RealmResults<AdContent> results = realm.where(AdContent.class).equalTo("id", 0).findAll();
             results.deleteAllFromRealm();
             realm.commitTransaction();
         }finally {

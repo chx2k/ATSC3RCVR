@@ -16,8 +16,15 @@
 package com.sony.tv.app.atsc3receiver1_0;
 
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbInterface;
+import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -73,19 +80,26 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
-import com.sony.tv.app.atsc3receiver1_0.app.Ad;
+import com.sony.tv.app.atsc3receiver1_0.app.AdContent;
+import com.sony.tv.app.atsc3receiver1_0.app.Ads;
 import com.sony.tv.app.atsc3receiver1_0.app.AdsListAdapter;
 import com.sony.tv.app.atsc3receiver1_0.app.NewAddDialogFragment;
+import com.sony.tv.app.atsc3receiver1_0.app.events.OnNewAdInsertedEvent;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
 import io.realm.Realm;
-import io.realm.RealmResults;
 
 import static com.sony.tv.app.atsc3receiver1_0.app.ATSC3.getContext;
 
@@ -100,6 +114,10 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   public static final String DRM_KEY_REQUEST_PROPERTIES = "drm_key_request_properties";
   public static final String PREFER_EXTENSION_DECODERS = "prefer_extension_decoders";
   public static final String CHANNEL_NAME = "channel_name";
+  public static final String USB_EVENT = "usb_broadcast_event";
+  public static final String TAG = "PlayerActivity";
+  private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
+
 
   public static final String ACTION_VIEW = "com.google.android.exoplayer.demo.action.VIEW";
   public static final String EXTENSION_EXTRA = "extension";
@@ -128,7 +146,6 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   private RecyclerView adRecyclerView;
   private AdsListAdapter adsListAdapter;
   private TextView noAdFoundTextView;
-  private RealmResults<Ad> adsList;
   private ImageButton addNewAdButton;
 
   private Button retryButton;
@@ -144,6 +161,12 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   private boolean shouldAutoPlay;
   private int resumeWindow;
   private long resumePosition;
+  private BroadcastReceiver usbBroadCastReceiver;
+  private UsbManager usbManager;
+  private PendingIntent mPermissionIntent;
+
+
+
 
   // Activity lifecycle
 
@@ -189,6 +212,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     simpleExoPlayerView.setControllerVisibilityListener(this);
     simpleExoPlayerView.requestFocus();
     simpleExoPlayerView.setUseController(false);
+
   }
 
 
@@ -197,12 +221,16 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     releasePlayer();
     shouldAutoPlay = true;
     clearResumePosition();
+    if (intent.getAction().equals(UsbManager.ACTION_USB_ACCESSORY_ATTACHED)){
+      Log.d(TAG, "Do something");
+    }
     setIntent(intent);
   }
 
   @Override
   public void onStart() {
     super.onStart();
+    EventBus.getDefault().register(this);
     if (Util.SDK_INT > 23) {
       initializePlayer();
     }
@@ -214,6 +242,26 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     if ((Util.SDK_INT <= 23 || player == null)) {
       initializePlayer();
     }
+
+    usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+    HashMap<String, UsbDevice> devices = usbManager.getDeviceList();
+    Iterator<UsbDevice> deviceIterator = devices.values().iterator();
+    while (deviceIterator.hasNext()){
+      UsbDevice device = deviceIterator.next();
+
+      String model = device.getDeviceName();
+      String deviceId = String.valueOf(device.getDeviceId());
+      String vendor = device.getManufacturerName();
+
+      if (vendor.equals("Sony")){
+        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        usbBroadCastReceiver = new UsbBroadcastReceiver();
+        registerReceiver(usbBroadCastReceiver, filter);
+
+      }
+
+    }
   }
 
   @Override
@@ -224,9 +272,12 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     }
   }
 
+
+
   @Override
   public void onStop() {
     super.onStop();
+    EventBus.getDefault().unregister(this);
     if (Util.SDK_INT > 23) {
       releasePlayer();
     }
@@ -260,7 +311,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
       case 19:
         //Up button clicked
         showPlayControllerLayout();
-        break;
+ //       break;
       case 20:
         //Down button clicked
 //        simpleExoPlayerView.setUseController(false);
@@ -268,11 +319,11 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         break;
       case 21:
         //Left button clicked
-        showDebugLayout();
+    //    showDebugLayout();
         break;
       case 22:
         //Right arrow clicked
-        showInfoLayout();
+     //   showInfoLayout();
         break;
       case 166:
         channelChange=ATSC3.channelUp(this);
@@ -281,7 +332,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         channelChange=ATSC3.channelDown(this);
         break;
       case 7:
-        //show Ad Switcher
+        //show AdContent Switcher
         showAdSelectorLayout();
         break;
       case 15:
@@ -321,7 +372,8 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     adSelectLayout.setVisibility(View.VISIBLE);
     addNewAdButton.requestFocus();
 
-    adsList = realm.where(Ad.class).findAll();
+
+    ArrayList<AdContent> adsList = Ads.getAds(true);
     if (adsList != null && adsList.size() > 0){
         showEmptyText(false);
       adRecyclerView.setHasFixedSize(true);
@@ -358,6 +410,12 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     debugLayout.setVisibility(View.VISIBLE);
 
   }
+
+  @Subscribe(threadMode = ThreadMode.MAIN)
+  public void onNewAddInserted(OnNewAdInsertedEvent event) {
+    showAdSelectorLayout();
+
+  };
 
   // OnClickListener methods
 
@@ -722,6 +780,65 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     }
     return false;
   }
+
+
+  public class UsbBroadcastReceiver extends BroadcastReceiver {
+
+      @Override
+      public void onReceive(Context context, Intent intent) {
+          String action = intent.getAction();
+          Log.d(USB_EVENT, action);
+          if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)){
+              UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+            if (device != null){
+              if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)){
+                Log.d(TAG, "Usb permission granted");
+
+              }else {
+                Log.d(TAG, "Usb permission denied");
+                usbManager.requestPermission(device, mPermissionIntent);
+              }
+
+            }
+
+          }
+      }
+
+    private UsbInterface findAdbInterface(UsbDevice device) {
+      Log.d(TAG, "findAdbInterface " + device);
+      int count = device.getInterfaceCount();
+      for (int i = 0; i < count; i++) {
+        UsbInterface intf = device.getInterface(i);
+        if (intf.getInterfaceClass() == 255 && intf.getInterfaceSubclass() == 66 &&
+                intf.getInterfaceProtocol() == 1) {
+          return intf;
+        }
+      }
+      return null;
+    }
+  }
+
+  private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+      String action = intent.getAction();
+      if (ACTION_USB_PERMISSION.equals(action)) {
+        synchronized (this){
+          UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+          if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)){
+            if (device != null){
+              Log.d(TAG, "Usb permission granted");
+            }
+          }else {
+            Log.d(TAG, "Usb permission denied");
+          }
+        }
+
+      }
+
+    }
+  };
+
 
 
 }
