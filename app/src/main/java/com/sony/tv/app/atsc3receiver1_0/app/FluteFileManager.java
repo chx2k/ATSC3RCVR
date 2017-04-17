@@ -3,9 +3,7 @@ package com.sony.tv.app.atsc3receiver1_0.app;
 import android.util.Log;
 
 import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.upstream.DataSpec;
-import com.google.android.exoplayer2.util.Util;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -24,80 +22,80 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static com.google.android.exoplayer2.util.Util.parseXsDuration;
-
 
 /**
- * The fileManager for Qualcomm server content. Based on use of EFDT instances rather than TOI instances
  * Created by xhamc on 3/21/17.
  */
 
 public class FluteFileManager  implements FluteFileManagerBase {
 
-    private static final long AVAILABILITY_TIME_OFFSET=1500;                    //Offset from time the content is received in buffer to time reported to player
-    private static final String MIN_BUFFER_TIME="PT1S";                         //Used by player to set lower buffer threshold
+    private static final long AVAILABILITY_TIME_OFFSET=1500;
+    private static final String MIN_BUFFER_TIME="PT1S";
 //    private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
-    private static final String TIME_SHIFT_BUFFER_DEPTH="PT3S";                 //Used by player to set the depth of the buffer
+    private static final String TIME_SHIFT_BUFFER_DEPTH="PT3S";
 
-    private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";                //Frequency the player can request MPD (>0 else can hurt performance)
+    private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";
     private static final String SUGGESTED_PRESENTATION_DELAY="PT0S";
 
     //        HashMap<String, ContentFileLocation> mapContentLocations;
     private static final String TAG="FileManager";
-    private static final int MAX_SIGNALING_BUFFERSIZE=10000;                    //Size of the circular buffer to manage signaling
-    private static final int MAX_VIDEO_BUFFERSIZE=20000000;                     //Size of the circular buffer to manage video
-    private static final int MAX_AUDIO_BUFFERSIZE=2000000;                      //Size of the circular buffer to manage audio
-    private static final int MAX_FILE_RETENTION_MS=10000;                       //Max time to keep stale content around (unused)
+    private static final int MAX_SIGNALING_BUFFERSIZE=10000;
+    private static final int MAX_VIDEO_BUFFERSIZE=20000000;
+    private static final int MAX_AUDIO_BUFFERSIZE=2000000;
+    private static final int MAX_FILE_RETENTION_MS=10000;
 
-    private HashMap<String, ContentFileLocation> mapFileLocationsSig;           //**
-    private HashMap<String, ContentFileLocation> mapFileLocationsAud;           //Map of filename to location in buffers
-    private HashMap<String, ContentFileLocation> mapFileLocationsVid;           //**
+    private static final int SERVER_TIME_OFFSET=7100;
 
-    private ArrayList<HashMap<String, ContentFileLocation>> arrayMapFileLocations;  //ArrayList of above
-    private HashMap<Integer,String> map_TOI_FileNameSig;                            //**
-    private HashMap<Integer,String> map_TOI_FileNameAud;                            //Given key TOI, return value FileName
-    private HashMap<Integer,String> map_TOI_FileNameVid;                            //**
-    private ArrayList<HashMap<Integer,String>> array_MapTOI_FileName =new ArrayList<>();    //ArrayList of above
-    private HashMap<Integer, Integer> mapGetTSIFromBufferNumber;                //key Buffer array index to value TSI
-    private HashMap<Integer, Integer> mapGetBufferNumberFromTSI;                //key TSI value to Buffer Array Index
+    private HashMap<String, ContentFileLocation> mapFileLocationsSig;
+    private HashMap<String, ContentFileLocation> mapFileLocationsAud;
+    private HashMap<String, ContentFileLocation> mapFileLocationsVid;
 
-    private byte[] signalingStorage;                                            //**
-    private byte[] videoStorage;                                                //Uninitialized circular buffers
-    private byte[] audioStorage;                                                //**
-    private ArrayList<byte[]> storage=new ArrayList<>();                        //ArrayList of above buffers
+    private ArrayList<HashMap<String, ContentFileLocation>> arrayMapFileLocations;
+    private HashMap<Integer,String> map_TOI_FileNameSig;
+    private HashMap<Integer,String> map_TOI_FileNameAud;
+    private HashMap<Integer,String> map_TOI_FileNameVid;
+    private ArrayList<HashMap<Integer,String>> array_MapTOI_FileName =new ArrayList<>();
+    private HashMap<Integer, Integer> mapGetTSIFromBufferNumber;             //retrieve the relevant FileManager from the TSI value
+    private HashMap<Integer, Integer> mapGetBufferNumberFromTSI;             //retrieve the relevant FileManager from the TSI value
 
-    private ReentrantLock lock = new ReentrantLock();                           //Lock for write and reading buffers
+    private byte[] signalingStorage;
+    private byte[] videoStorage;
+    private byte[] audioStorage;
 
-    private int[] firstAvailablePosition={0,0,0};                               //Tracks the first available write position in each buffer
-    private int[] maxAvailablePosition={MAX_SIGNALING_BUFFERSIZE-1,  MAX_VIDEO_BUFFERSIZE-1, MAX_AUDIO_BUFFERSIZE-1,};  //Tracks the last available write position in each buffer
 
-    private FluteFileManager sInstance;
 
-    private DataSpec signalingDataSpec;                                         //Uri info from Exoplayer for signal file
-    private DataSpec avDataSpec;                                                //Uri info from Exoplayer for AV file
 
-    private boolean first;                                                      //Indicates the first read from Exoplayer. Uses to set availability start time
-    private long availabilityStartTime;                                         //AvailabilityStartTime calc from video write time with respect to period start/segment duration
-    private long availabilityStartTimeOffset;                                   //Offset from this (set to static offset above)
+    private ArrayList<byte[]> storage=new ArrayList<>();
+    private ReentrantLock lock = new ReentrantLock();
+    private byte[] patchedMPD;
+    private int[] firstAvailablePosition={0,0,0};
+    private int[] maxAvailablePosition={MAX_SIGNALING_BUFFERSIZE-1,  MAX_VIDEO_BUFFERSIZE-1, MAX_AUDIO_BUFFERSIZE-1,};
 
-    private Ads.Ad lastAdInsertion;                                             //Which Ad was last inserted
-    private String lastAdStart="";                                              //Time for that ad in Manifest time format
+//    private static FluteFileManager sInstance=new FluteFileManager();
+    private FluteTaskManager mFluteTaskManager;
+    private static FluteFileManager sInstance;
+    private DataSpec signalingDataSpec;
+    private DataSpec avDataSpec;
 
-    public FluteFileManager(DataSpec dataSpec){                                 //Create just a signaling filemanager
+    private static boolean first;
+    private static long availabilityStartTime;
+    private static long availabilityStartTimeOffset;
+
+    private AdContent lastAdInsertion;
+    private String lastAdStart="";
+
+    public FluteFileManager(DataSpec dataSpec){
         sInstance=this;
         signalingDataSpec=dataSpec;
 
     }
 
-    public FluteFileManager(DataSpec signallingDataSpec, DataSpec av){          //Create bith signaling and av filemanager
+    public FluteFileManager(DataSpec signallingDataSpec, DataSpec av){
         sInstance=this;
         this.signalingDataSpec=signallingDataSpec;
         this.avDataSpec=av;
     }
 
-    /**
-     * Initialize the arrays and hashmaps
-     */
     public void reset(){
 
         mapFileLocationsSig=new HashMap<>();
@@ -139,9 +137,6 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
     }
 
-    /**
-     * Force player to calc availability start time again
-     */
     public void resetTimeStamp(){
         first=true;
     }
@@ -157,15 +152,14 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
     private byte[] mMPDbytes;
 
+    private HashMap<Integer, byte[]> threadBufferPointer=new HashMap<>();
+
     private int[] bytesToRead=new int[100];
     private int[] bytesRead=new int [100];
     private int[] bytesToSkip=new int[100];
     private int[] byteOffset=new int[100];
     private boolean[] timeOffsetFirst=new boolean[100];
 
-    /**
-     * Class to hold buffer pointers based on filename
-     */
     private class FileBuffer{
         public byte[] buffer;
         public int contentLength;
@@ -174,19 +168,9 @@ public class FluteFileManager  implements FluteFileManagerBase {
             this.buffer=buffer; this.contentLength=contentLength; this.startOfContent=startOfContent;
         }
     }
-
-    /**
-     * allows up to 100 different threads to open a file!
-     */
     private FileBuffer[] fileBuffer=new FileBuffer[100];
 
-    /**
-     * Called from Exoplayer via FluteDataSource to open a file to read
-     * @param dataSpec
-     * @param thread tracks which Exoplayer sink is calling the filemanager (sig/aud/vid)
-     * @return length of the file to read or -1 if not found;
-     * @throws IOException
-     */
+
     public long open(DataSpec dataSpec, int thread) throws IOException {
         lock.lock();
 //        mFluteTaskManager=FluteReceiver.getInstance().mFluteTaskManager;
@@ -234,15 +218,6 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
     }
 
-    /**
-     * Called from Exoplayer via FluteDataSource to read from opened buffer
-     * @param buffer
-     * @param offset
-     * @param readLength
-     * @param thread
-     * @return
-     * @throws IOException
-     */
     public int read(byte[] buffer, int offset, int readLength, int thread) throws IOException {
         lock.lock();
         try {
@@ -277,12 +252,6 @@ public class FluteFileManager  implements FluteFileManagerBase {
         }
     }
 
-    /**
-     * Determines the buffer location of the file and returns it. If request is manifest then return adjusted manifest (buffer times, AST, ad inserted periods)
-     * @param fileName
-     * @param thread
-     * @return
-     */
     private FileBuffer openInternal(String fileName, int thread){
         Log.d(TAG,"Opening new File: ***********"+fileName);
 
@@ -296,7 +265,8 @@ public class FluteFileManager  implements FluteFileManagerBase {
             index--;
             if (fileName.toLowerCase().endsWith(".mpd")) {
                 String mpdData = new String(storage.get(0), f.start, f.contentLength);
-                mMPDbytes = parseManifest(mpdData);
+                Date d = getAvailabilityStartTime(mpdData);
+                mMPDbytes = MPDParse(mpdData);
                 contentLength=mMPDbytes.length;
 
                 return new FileBuffer(mMPDbytes, contentLength, 0);
@@ -315,16 +285,44 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
     }
 
-    /**
-     * Called from FluteTaskManager to write an object received over flute;
-     * If last object then make available by removing .new off name and timestampe it;
-     *
-     * @param r
-     * @param input
-     * @param offset
-     * @param length
-     * @return
-     */
+//
+//    public int read(String fileName, byte[] output, int offset,  int length){
+//        lock.lock();
+//        try {
+//            short tsi; int index=0; ContentFileLocation f;
+//            if (fileName.toLowerCase().contains("usbd.xml") || fileName.toLowerCase().contains("s-tsid.xml") || fileName.toLowerCase().endsWith(".mpd")){
+//
+//                f = arrayMapFileLocations.get(0).get(fileName);
+//            }else {
+//                index=1;
+//                tsi=mapGetTSIFromBufferNumber.get(index);          //Audio tsi
+//                f = arrayMapFileLocations.get(tsi).get(fileName);     //Test for audio filename
+//                if (f==null){
+//                    index=2;
+//                    tsi=mapGetTSIFromBufferNumber.get(index);          //Video tsi
+//                    f=arrayMapFileLocations.get(tsi).get(fileName);  //test for Video filename
+//                }
+//            }
+//            if (f != null) {
+//                int bytesToFetch = Math.min(length, f.contentLength - offset);
+//                bytesToFetch = (bytesToFetch < 0) ? 0 : bytesToFetch;
+//                int startPosition = f.start + offset;
+//                System.arraycopy(storage.get(index), startPosition, output, 0, bytesToFetch);
+//                return bytesToFetch;
+//            }
+//            else {
+//                Log.d(TAG,"File not found whilst reading: "+fileName);
+//            }
+//            return 0;
+//        }finally{
+//            lock.unlock();
+//        }
+//    }
+
+
+
+
+
     public String write(RouteDecodeBase r, byte[] input, int offset, int length){
         int toi=r.toi();
         lock.lock();
@@ -367,21 +365,58 @@ public class FluteFileManager  implements FluteFileManagerBase {
         }
 
     }
+    //        public boolean delete(String fileName) {
+//            if (locations.containsKey(fileName)) {
+//                locations.remove(fileName);
+//                return true;
+//            }
+//            return false;
+//        }
 
-    /**
-     * Manipulate the Manifest by replacing AST, changing buffering params and inserting ads
-     * @param mpdData input data
-     * @return changed data
-     */
-    private byte[] parseManifest(String mpdData){
+    public Date getAvailabilityStartTime(String mpdData){
 
         TimeZone timeZone = TimeZone.getTimeZone("UTC");
+
+        Calendar c= Calendar.getInstance(timeZone);
+        Date now=c.getTime();
+        String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
+        String[] result2=result[1].split("[\"]+",2);
+        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        formatter.setTimeZone(timeZone);
+
+        try{
+            Date mpd=formatter.parse(result2[0]);
+            Log.d(TAG, "Time now minus time MPD created in s: "+ (double)(now.getTime()-mpd.getTime())/1000);
+
+//            formatter = new SimpleDateFormat("yyyy-MM-dd'T'H:mm:ss.SSS'Z'");
+
+            return mpd;
+
+        }catch (ParseException e){
+            Log.e(TAG, "Error parsing date from MPD");
+            return null;
+        }
+    }
+
+
+
+    public byte[] MPDParse(String mpdData){
+
+
+
+        TimeZone timeZone = TimeZone.getTimeZone("UTC");
+        Calendar c= Calendar.getInstance(timeZone);
         DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
         if (first){
             MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
             mpdParser.MPDParse();
-            availabilityStartTimeOffset=AVAILABILITY_TIME_OFFSET;
+//            if (!"".equals(mpdParser.mpd.getAttribute("availabilityStartTimeOffset")))
+//                availabilityStartTimeOffset=Long.parseLong(mpdParser.mpd.getAttribute("availabilityStartTimeOffset"));
+//            else
+                availabilityStartTimeOffset=AVAILABILITY_TIME_OFFSET;
+
+//            Log.d(TAG,"AvailabilityStartTimeOffset set to "+availabilityStartTimeOffset);
             availabilityStartTime=mpdParser.mpd.getAvailabilityStartTimeFromVideos(mapFileLocationsVid)+availabilityStartTimeOffset;
             Log.d(TAG,"AvailabilityStartTime set to "+availabilityStartTime +  "  difference: "+ ((Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime()).getTime()-availabilityStartTime));
             first=false;
@@ -401,76 +436,102 @@ public class FluteFileManager  implements FluteFileManagerBase {
 //        mpdParser.mpd.getAttributes().put("timeShiftBufferOffset",TIME_SHIFT_BUFFER_OFFSET);
         mpdParser.mpd.getAttributes().put("timeShiftBufferDepth",TIME_SHIFT_BUFFER_DEPTH);
         mpdParser.mpd.getAttributes().put("minimumUpdatePeriod",MINIMUM_UPDATE_PERIOD);
+//        mpdParser.mpd.getAttributes().put("suggestedPresentationDelay",SUGGESTED_PRESENTATION_DELAY);
         mpdParser.mpd.getAttributes().put("availabilityStartTime",availabilityStartTimeString);
+//        mpdParser.mpd.getAttributes().remove("presentationTimeOffset");`
+        long suggestedPresentationDelay= ((c.getTime()).getTime()-availabilityStartTime)/1000;
+//
+
+//        MPDParser mpdPeriodParser=new MPDParser(mpdData);
+//        long periodZeroStart=parseXsDuration(mpdPeriodParser.parseFirstPeriodStart()[0]);
+//        long mediaPresentationDuration=parseXsDuration( mpdParser.mpd.getAttributes().get("mediaPresentationDuration"));
+//        mediaPresentationDuration+=periodZeroStart;
+
+
+
+
+//        mpdParser.mpd.getAttributes().put ("mediaPresentationDuration",String.format("PT%1.2fS",(float)(mediaPresentationDuration/1000)));
         mpdParser.mpd.getAttributes().put ("mediaPresentationDuration","PT1000H20M35S");
 
-        mpdData=mpdParser.toStringBuilder().toString().split("</MPD>")[0].concat(mpdDataSplit[1]);
+        mpdData=mpdParser.mMPDgenerate().toString().split("</MPD>")[0].concat(mpdDataSplit[1]);
 
-        if (ATSC3.ADS_ENABLED){
-            try {
-                XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-                XmlPullParser xpp = factory.newPullParser();
-                StringReader s=new StringReader(mpdData);
-                xpp.setInput(s);
-                int periodNumber=0;
-                int eventType = xpp.getEventType();
-                while (eventType!=XmlPullParser.END_DOCUMENT) {
-                    if(eventType == XmlPullParser.START_DOCUMENT) {
+        try {
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            XmlPullParser xpp = factory.newPullParser();
+            StringReader s=new StringReader(mpdData);
+            xpp.setInput(s);
+            int periodNumber=0;
+            int eventType = xpp.getEventType();
+            while (eventType!=XmlPullParser.END_DOCUMENT) {
+                if(eventType == XmlPullParser.START_DOCUMENT) {
 
-                    } else if(eventType == XmlPullParser.START_TAG) {
-                        if (xpp.getName().equals("Period")){
-                            for (int i=0; i<xpp.getAttributeCount(); i++){
-                                if (xpp.getAttributeName(i).startsWith("xlink")){
-                                    int indexStart=0;
-                                    int indexEnd=0;
-                                    String period="";
-                                    for (int j=0; j<=periodNumber; j++){
-                                        indexStart=mpdData.indexOf("<Period", indexEnd+9);
-                                        indexEnd=mpdData.indexOf("</Period>", indexEnd+9);
-                                    }
-                                    String start=xpp.getAttributeValue(null,"start");
-                                    if (lastAdInsertion==null || !start.equals(lastAdStart)){
-                                        lastAdStart=start;
-                                        start="start=\"".concat(start).concat("\"");
-                                        lastAdInsertion=Ads.getNextAd(false);
-                                        lastAdInsertion.period=lastAdInsertion.period.replaceFirst( "start=['|\"][PTMHS\\.0-9]+['|\"]",start);
-
-                                    }
-                                    mpdData=mpdData.substring(0,indexStart).concat(lastAdInsertion.period).concat(mpdData.substring(indexEnd+9,mpdData.length()));
-                                    break;
+                } else if(eventType == XmlPullParser.START_TAG) {
+                    if (xpp.getName().equals("Period")){
+                        for (int i=0; i<xpp.getAttributeCount(); i++){
+                            if (xpp.getAttributeName(i).startsWith("xlink")){
+                                int indexStart=0;
+                                int indexEnd=0;
+                                String period="";
+                                for (int j=0; j<=periodNumber; j++){
+                                    indexStart=mpdData.indexOf("<Period", indexEnd+9);
+                                    indexEnd=mpdData.indexOf("</Period>", indexEnd+9);
                                 }
+                                String start=xpp.getAttributeValue(null,"start");
+                                if (lastAdInsertion==null || !start.equals(lastAdStart)){
+                                    lastAdStart=start;
+                                    start="start=\"".concat(start).concat("\"");
+                                    lastAdInsertion=Ads.getNextAd(true);
+                                    lastAdInsertion.period=lastAdInsertion.period.replaceFirst( "start=['|\"][PTMHS\\.0-9]+['|\"]",start);
+
+                                }
+                                mpdData=mpdData.substring(0,indexStart).concat(lastAdInsertion.period).concat(mpdData.substring(indexEnd+9,mpdData.length()));
+                                break;
                             }
-                            periodNumber++;
-
                         }
-                    } else if(eventType == XmlPullParser.END_TAG) {
-                    } else if(eventType == XmlPullParser.TEXT) {
-                    }else{
-                    }
-                    eventType = xpp.next();
-                }
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-        }
+                        periodNumber++;
 
+                    }
+                } else if(eventType == XmlPullParser.END_TAG) {
+                } else if(eventType == XmlPullParser.TEXT) {
+                }else{
+                }
+                eventType = xpp.next();
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+//        String[] result=mpdData.split("availabilityStartTime[\\s]?=[\\s]?\"");
+//        String[] result2=result[1].split("[\"]+",2);
+//        mpdData=result[0].concat("availabilityStartTime=\"").concat(availabilityStartTimeString).concat("\"").concat(result2[1]);
+//        Log.d(TAG,"AvailabilityStartTime= "+availabilityStartTimeString);
+
+//        double durationUs=(c.getTime().getTime()- (availabilityStartTime)+2500 )/1000;
+//        String duration=String.format("PT%1.2fS", durationUs);
+//        result=mpdData.split("mediaPresentationDuration[\\s]?=[\\s]?\"");
+//        result2=result[1].split("[\"]+",2);
+//
+//        mpdData=result[0].concat("mediaPresentationDuration=\"").concat(duration).concat("\"").concat(result2[1]);
+////
+//        String[] result=mpdData.split("(?<=availabilityStartTime[\\s]?=[\\s]?\"[0-9\\-]{10}[\\s]?[\\s]?)");
+//        String[] result2=result[2].split("[\"]+",2);
+//        mpdData=result[0].trim().concat("T").concat(result2[0].concat("Z").concat("\"").concat(result2[1]));
         return mpdData.getBytes();
 
+//
+//        String finalResult=mpdParser.mMPDgenerate().toString();
+////        Log.d(TAG, finalResult);
+//        return finalResult.getBytes();
     }
 
-    /**
-     * New EFDT file instance found so create in relevant buffer labeled .new
-     * Remove any overwritten entries;
-     * @param r
-     * @return
-     * @throws Exception
-     */
     public boolean create(RouteDecodeBase r) throws Exception {
         lock.lock();
         try {
             int tsi=r.tsi();
             int index=mapGetBufferNumberFromTSI.get(tsi);
-
+            if (tsi>2){
+                Log.e(TAG,"Asking for tsi> 2: :"+tsi);
+                throw new Exception("Asking for tsi> 2: :"+tsi);
+            }
             HashMap<Integer,String> t=array_MapTOI_FileName.get(index);
             HashMap<String, ContentFileLocation> m=arrayMapFileLocations.get(index);
             firstAvailablePosition[index] = (firstAvailablePosition[index] + r.contentLength()) > maxAvailablePosition[index] ? 0 : firstAvailablePosition[index];
@@ -481,13 +542,23 @@ public class FluteFileManager  implements FluteFileManagerBase {
             Iterator<Map.Entry<String,ContentFileLocation>> iterator= m.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<String,ContentFileLocation> it= iterator.next();
+//                    if(it.getKey().endsWith(".new")){
+//                        Log.e(TAG, "Creating new file but one already in play: ");
+//                        Log.e(TAG,"fileName: "+it.getValue().fileName);
+//                        Log.e(TAG,"ContentLength: "+it.getValue().contentLength);
+//                        Log.e(TAG,"Start: "+it.getValue().start);
+//                        Log.e(TAG,"Next Write position: "+it.getValue().nextWritePosition);
+//                        Log.e(TAG,"Toi: "+it.getKey());
+//                    }
                 int itStart=it.getValue().start;
                 int itEnd=it.getValue().start+it.getValue().contentLength-1;
                 int cStart=c.start;
                 int cEnd=c.start+c.contentLength-1;
                 if ( (itStart<=cStart && itEnd>=cStart) || (itStart>=cStart && itStart<=cEnd) ) {             //the new content will overwrite this entry so remove from list;
+
                     t.remove(it.getValue().toi);
                     iterator.remove();
+
                 }
             }
 
@@ -495,6 +566,8 @@ public class FluteFileManager  implements FluteFileManagerBase {
             t.put(r.efdt_toi(),c.fileName);
 
             firstAvailablePosition[index] += r.contentLength();
+
+            snapshot_of_Filemanager();
             return true;
 
         } finally {
@@ -502,5 +575,36 @@ public class FluteFileManager  implements FluteFileManagerBase {
         }
     }
 
+    public void snapshot_of_Filemanager(){
+
+//        Log.d(TAG, "FileManager Array Sizes: Signalling "+ array_MapTOI_FileName.get(0).size()+ "  "+ arrayMapFileLocations.get(0).size());
+//        Log.d(TAG, "FileManager Array Sizes: Video      "+ array_MapTOI_FileName.get(1).size()+ "  "+ arrayMapFileLocations.get(1).size());
+//        Log.d(TAG, "FileManager Array Sizes: Audio      "+ array_MapTOI_FileName.get(2).size()+ "  "+ arrayMapFileLocations.get(2).size());
+
+
+//
+//        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(0).entrySet() ){
+//            Log.d(TAG,"Signaling: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(0).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
+//        }
+//        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(0).entrySet() ){
+//            Log.v(TAG,"Signaling: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength+"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
+//        }
+////        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(1).entrySet() ){
+////            Log.d(TAG,"Video: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(1).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
+////        }
+//        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(1).entrySet() ){
+//            Log.v(TAG,"Video: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength+"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
+//        }
+////        for (Map.Entry<Integer,String> entry : array_MapTOI_FileName.get(2).entrySet() ){
+////            Log.d(TAG,"Audio: Toi mapping to filenames:   size: "+array_MapTOI_FileName.get(2).size()+"TOI: "+entry.getKey()+"   FileName:  "+entry.getValue());
+////        }
+//        for (Map.Entry<String,ContentFileLocation> entry : arrayMapFileLocations.get(2).entrySet() ){
+//            Log.v(TAG,"Audio: Filename mapping to ContentLocations:  size:  "+ entry.getValue().contentLength +"FileName: "+entry.getKey() +"   TOI:  "+entry.getValue().toi);
+//        }
+    }
+
+    public  String write (RouteDecodeNAB r, byte[] input, int offset, int length){
+        return "";
+    }
 }
 

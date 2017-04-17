@@ -16,17 +16,27 @@
 package com.sony.tv.app.atsc3receiver1_0;
 
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbInterface;
+import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -70,24 +80,44 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
+import com.sony.tv.app.atsc3receiver1_0.app.AdContent;
+import com.sony.tv.app.atsc3receiver1_0.app.Ads;
+import com.sony.tv.app.atsc3receiver1_0.app.AdsListAdapter;
+import com.sony.tv.app.atsc3receiver1_0.app.NewAddDialogFragment;
+import com.sony.tv.app.atsc3receiver1_0.app.events.OnNewAdInsertedEvent;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+
+import io.realm.Realm;
+
+import static com.sony.tv.app.atsc3receiver1_0.app.ATSC3.getContext;
 
 /**
  * An activity that plays media using {@link SimpleExoPlayer}.
  */
 public class PlayerActivity extends Activity implements OnClickListener, ExoPlayer.EventListener,
-    PlaybackControlView.VisibilityListener {
+    PlaybackControlView.VisibilityListener{
 
   public static final String DRM_SCHEME_UUID_EXTRA = "drm_scheme_uuid";
   public static final String DRM_LICENSE_URL = "drm_license_url";
   public static final String DRM_KEY_REQUEST_PROPERTIES = "drm_key_request_properties";
   public static final String PREFER_EXTENSION_DECODERS = "prefer_extension_decoders";
+  public static final String CHANNEL_NAME = "channel_name";
+  public static final String USB_EVENT = "usb_broadcast_event";
+  public static final String TAG = "PlayerActivity";
+  private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
+
 
   public static final String ACTION_VIEW = "com.google.android.exoplayer.demo.action.VIEW";
   public static final String EXTENSION_EXTRA = "extension";
@@ -104,12 +134,22 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     DEFAULT_COOKIE_MANAGER.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
   }
 
+  private Realm realm;
   private Handler mainHandler;
   private EventLogger eventLogger;
   private SimpleExoPlayerView simpleExoPlayerView;
   private LinearLayout debugRootView;
+  private LinearLayout infoLayout;
+  private LinearLayout debugLayout;
+  private LinearLayout adSelectLayout;
   private TextView debugTextView;
+  private RecyclerView adRecyclerView;
+  private AdsListAdapter adsListAdapter;
+  private TextView noAdFoundTextView;
+  private ImageButton addNewAdButton;
+
   private Button retryButton;
+
 
   private DataSource.Factory mediaDataSourceFactory;
   private SimpleExoPlayer player;
@@ -121,6 +161,12 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   private boolean shouldAutoPlay;
   private int resumeWindow;
   private long resumePosition;
+  private BroadcastReceiver usbBroadCastReceiver;
+  private UsbManager usbManager;
+  private PendingIntent mPermissionIntent;
+
+
+
 
   // Activity lifecycle
 
@@ -131,6 +177,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     clearResumePosition();
     mediaDataSourceFactory = buildDataSourceFactory(true);
     mainHandler = new Handler();
+    realm = Realm.getDefaultInstance();
     if (CookieHandler.getDefault() != DEFAULT_COOKIE_MANAGER) {
       CookieHandler.setDefault(DEFAULT_COOKIE_MANAGER);
     }
@@ -139,6 +186,24 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     View rootView = findViewById(R.id.root);
     rootView.setOnClickListener(this);
     debugRootView = (LinearLayout) findViewById(R.id.controls_root);
+    infoLayout = (LinearLayout) findViewById(R.id.info_layout);
+    debugLayout = (LinearLayout) findViewById(R.id.debug_layout);
+    adSelectLayout = (LinearLayout) findViewById(R.id.ad_drop_down_layout);
+    adRecyclerView = (RecyclerView) findViewById(R.id.ad_recycler_view);
+    noAdFoundTextView = (TextView) findViewById(R.id.empty_text);
+    addNewAdButton = (ImageButton) findViewById(R.id.add_new_ad_button);
+    addNewAdButton.setSelected(true);
+
+    addNewAdButton.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        closeAdSelectorLayout();
+        showNewAdDialogScreen();
+      }
+    });
+
+
+
     debugTextView = (TextView) findViewById(R.id.debug_text_view);
     retryButton = (Button) findViewById(R.id.retry_button);
     retryButton.setOnClickListener(this);
@@ -146,19 +211,26 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     simpleExoPlayerView = (SimpleExoPlayerView) findViewById(R.id.player_view);
     simpleExoPlayerView.setControllerVisibilityListener(this);
     simpleExoPlayerView.requestFocus();
+    simpleExoPlayerView.setUseController(false);
+
   }
+
 
   @Override
   public void onNewIntent(Intent intent) {
     releasePlayer();
     shouldAutoPlay = true;
     clearResumePosition();
+    if (intent.getAction().equals(UsbManager.ACTION_USB_ACCESSORY_ATTACHED)){
+      Log.d(TAG, "Do something");
+    }
     setIntent(intent);
   }
 
   @Override
   public void onStart() {
     super.onStart();
+    EventBus.getDefault().register(this);
     if (Util.SDK_INT > 23) {
       initializePlayer();
     }
@@ -170,6 +242,26 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     if ((Util.SDK_INT <= 23 || player == null)) {
       initializePlayer();
     }
+
+    usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+    HashMap<String, UsbDevice> devices = usbManager.getDeviceList();
+    Iterator<UsbDevice> deviceIterator = devices.values().iterator();
+    while (deviceIterator.hasNext()){
+      UsbDevice device = deviceIterator.next();
+
+      String model = device.getDeviceName();
+      String deviceId = String.valueOf(device.getDeviceId());
+      String vendor = device.getManufacturerName();
+
+      if (vendor.equals("Sony")){
+        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        usbBroadCastReceiver = new UsbBroadcastReceiver();
+        registerReceiver(usbBroadCastReceiver, filter);
+
+      }
+
+    }
   }
 
   @Override
@@ -180,12 +272,21 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     }
   }
 
+
+
   @Override
   public void onStop() {
     super.onStop();
+    EventBus.getDefault().unregister(this);
     if (Util.SDK_INT > 23) {
       releasePlayer();
     }
+  }
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    realm.close();
   }
 
   @Override
@@ -206,19 +307,115 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
 
     Log.d("KEY","Key Pressed: "+event.getKeyCode());
     boolean channelChange=false;
-    if (event.getKeyCode()==166){
-      channelChange=ATSC3.channelUp(this);
-    }else if(event.getKeyCode()==167){
-      channelChange=ATSC3.channelDown(this);
-    }
-    if (channelChange){
+    switch (event.getKeyCode()){
+      case 19:
+        //Up button clicked
+        showPlayControllerLayout();
+ //       break;
+      case 20:
+        //Down button clicked
+//        simpleExoPlayerView.setUseController(false);
+//        simpleExoPlayerView.hideController();
+        break;
+      case 21:
+        //Left button clicked
+    //    showDebugLayout();
+        break;
+      case 22:
+        //Right arrow clicked
+     //   showInfoLayout();
+        break;
+      case 166:
+        channelChange=ATSC3.channelUp(this);
+        break;
+      case 167:
+        channelChange=ATSC3.channelDown(this);
+        break;
+      case 7:
+        //show AdContent Switcher
+        showAdSelectorLayout();
+        break;
+      case 15:
+        //Close Add Switcher
+        closeAdSelectorLayout();
+        break;
 
     }
+
+
     // Show the controls on any key event.
-    simpleExoPlayerView.showController();
+
     // If the event was not handled then see if the player view can handle it as a media key event.
     return super.dispatchKeyEvent(event) || simpleExoPlayerView.dispatchMediaKeyEvent(event);
   }
+
+  private void closeAdSelectorLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    infoLayout.setVisibility(View.GONE);
+    debugLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+
+  }
+
+  private void showNewAdDialogScreen() {
+    NewAddDialogFragment dialogFragment = new NewAddDialogFragment();
+    dialogFragment.show(getFragmentManager(), "Dialog");
+  }
+
+
+  private void showAdSelectorLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    infoLayout.setVisibility(View.GONE);
+    debugLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.VISIBLE);
+    addNewAdButton.requestFocus();
+
+
+    ArrayList<AdContent> adsList = Ads.getAds(true);
+    if (adsList != null && adsList.size() > 0){
+        showEmptyText(false);
+      adRecyclerView.setHasFixedSize(true);
+      adRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+      adsListAdapter = new AdsListAdapter(adsList, realm);
+      adRecyclerView.setAdapter(adsListAdapter);
+    }else {
+      showEmptyText(true);
+    }
+  }
+
+  private void showPlayControllerLayout() {
+    simpleExoPlayerView.setUseController(true);
+    simpleExoPlayerView.showController();
+    debugLayout.setVisibility(View.GONE);
+    infoLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+
+  }
+
+  private void showInfoLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    debugLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+    infoLayout.setVisibility(View.VISIBLE);
+  }
+
+  private void showDebugLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    infoLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+    debugLayout.setVisibility(View.VISIBLE);
+
+  }
+
+  @Subscribe(threadMode = ThreadMode.MAIN)
+  public void onNewAddInserted(OnNewAdInsertedEvent event) {
+    showAdSelectorLayout();
+
+  };
 
   // OnClickListener methods
 
@@ -232,6 +429,16 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         trackSelectionHelper.showSelectionDialog(this, ((Button) view).getText(),
             trackSelector.getCurrentMappedTrackInfo(), (int) view.getTag());
       }
+    }
+  }
+
+  public void showEmptyText(boolean showText) {
+    if (showText){
+      adRecyclerView.setVisibility(View.GONE);
+      noAdFoundTextView.setVisibility(View.VISIBLE);
+    }else {
+      noAdFoundTextView.setVisibility(View.GONE);
+      adRecyclerView.setVisibility(View.VISIBLE);
     }
   }
 
@@ -573,5 +780,65 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     }
     return false;
   }
+
+
+  public class UsbBroadcastReceiver extends BroadcastReceiver {
+
+      @Override
+      public void onReceive(Context context, Intent intent) {
+          String action = intent.getAction();
+          Log.d(USB_EVENT, action);
+          if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)){
+              UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+            if (device != null){
+              if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)){
+                Log.d(TAG, "Usb permission granted");
+
+              }else {
+                Log.d(TAG, "Usb permission denied");
+                usbManager.requestPermission(device, mPermissionIntent);
+              }
+
+            }
+
+          }
+      }
+
+    private UsbInterface findAdbInterface(UsbDevice device) {
+      Log.d(TAG, "findAdbInterface " + device);
+      int count = device.getInterfaceCount();
+      for (int i = 0; i < count; i++) {
+        UsbInterface intf = device.getInterface(i);
+        if (intf.getInterfaceClass() == 255 && intf.getInterfaceSubclass() == 66 &&
+                intf.getInterfaceProtocol() == 1) {
+          return intf;
+        }
+      }
+      return null;
+    }
+  }
+
+  private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+      String action = intent.getAction();
+      if (ACTION_USB_PERMISSION.equals(action)) {
+        synchronized (this){
+          UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+          if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)){
+            if (device != null){
+              Log.d(TAG, "Usb permission granted");
+            }
+          }else {
+            Log.d(TAG, "Usb permission denied");
+          }
+        }
+
+      }
+
+    }
+  };
+
+
 
 }

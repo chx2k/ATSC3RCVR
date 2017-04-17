@@ -84,5 +84,26 @@
     <string name="storage_permission_denied">Permission to access storage was denied</string>
 
     <string name="sample_list_load_error">One or more sample lists failed to load</string>
+    <string name="no_ad_found">No Ad Found, use + button to add</string>
+    <string name="file">file</string>
+    <string name="asset">asset</string>
+    <string name="check" />
+    <string name="http">http</string>
+    <string name="select_url_prefix">Select Url Prefix</string>
+    <string name="dialog_title">Title</string>
+    <string name="enter_new_add">Enter new Ad</string>
+    <string name="enter_title">Enter Title</string>
+    <string name="enter_url">Enter Url</string>
+
+
+    <string-array name="sample_ads">
+        <item>Sample Add 1</item>
+        <item>Sample Add 2</item>
+        <item>Sample Add 3</item>
+        <item>Sample Add 4</item>
+        <item>Sample Add 5</item>
+        <item>Sample Add 6</item>
+    </string-array>
+    <string name="title_activity_phone_launcher">PhoneLauncherActivity</string>
 
 </resources>

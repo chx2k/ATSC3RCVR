@@ -1,6 +1,6 @@
 [
     {
-        "outputFile": "/home/xhamc/gitProjects/ATSC3Receiver1_0/testutils/build/intermediates/incremental/mergeDebugAndroidTestResources/merged.dir/values-nb/values-nb.xml",
+        "outputFile": "/Users/valokafor/AndroidStudioProjects/ATSC3RCVR/testutils/build/intermediates/incremental/mergeDebugAndroidTestResources/merged.dir/values-nb/values-nb.xml",
         "map": [
             {
                 "to": {
@@ -11,7 +11,7 @@
                     "endOffset": 133
                 },
                 "from": {
-                    "file": "/home/xhamc/gitProjects/ATSC3Receiver1_0/testutils/build/intermediates/exploded-aar/ATSC3Receiver1_0/exoplayer/unspecified/res/values-nb/values-nb.xml",
+                    "file": "/Users/valokafor/AndroidStudioProjects/ATSC3RCVR/testutils/build/intermediates/exploded-aar/ATSC3RCVR/exoplayer/unspecified/res/values-nb/values-nb.xml",
                     "position": {
                         "startLine": 2,
                         "startColumn": 4,
@@ -30,7 +30,7 @@
                     "endOffset": 204
                 },
                 "from": {
-                    "file": "/home/xhamc/gitProjects/ATSC3Receiver1_0/testutils/build/intermediates/exploded-aar/ATSC3Receiver1_0/exoplayer/unspecified/res/values-nb/values-nb.xml",
+                    "file": "/Users/valokafor/AndroidStudioProjects/ATSC3RCVR/testutils/build/intermediates/exploded-aar/ATSC3RCVR/exoplayer/unspecified/res/values-nb/values-nb.xml",
                     "position": {
                         "startLine": 3,
                         "startColumn": 4,
@@ -49,7 +49,7 @@
                     "endOffset": 279
                 },
                 "from": {
-                    "file": "/home/xhamc/gitProjects/ATSC3Receiver1_0/testutils/build/intermediates/exploded-aar/ATSC3Receiver1_0/exoplayer/unspecified/res/values-nb/values-nb.xml",
+                    "file": "/Users/valokafor/AndroidStudioProjects/ATSC3RCVR/testutils/build/intermediates/exploded-aar/ATSC3RCVR/exoplayer/unspecified/res/values-nb/values-nb.xml",
                     "position": {
                         "startLine": 4,
                         "startColumn": 4,
@@ -68,7 +68,7 @@
                     "endOffset": 348
                 },
                 "from": {
-                    "file": "/home/xhamc/gitProjects/ATSC3Receiver1_0/testutils/build/intermediates/exploded-aar/ATSC3Receiver1_0/exoplayer/unspecified/res/values-nb/values-nb.xml",
+                    "file": "/Users/valokafor/AndroidStudioProjects/ATSC3RCVR/testutils/build/intermediates/exploded-aar/ATSC3RCVR/exoplayer/unspecified/res/values-nb/values-nb.xml",
                     "position": {
                         "startLine": 5,
                         "startColumn": 4,
@@ -87,7 +87,7 @@
                     "endOffset": 425
                 },
                 "from": {
-                    "file": "/home/xhamc/gitProjects/ATSC3Receiver1_0/testutils/build/intermediates/exploded-aar/ATSC3Receiver1_0/exoplayer/unspecified/res/values-nb/values-nb.xml",
+                    "file": "/Users/valokafor/AndroidStudioProjects/ATSC3RCVR/testutils/build/intermediates/exploded-aar/ATSC3RCVR/exoplayer/unspecified/res/values-nb/values-nb.xml",
                     "position": {
                         "startLine": 6,
                         "startColumn": 4,
@@ -106,7 +106,7 @@
                     "endOffset": 502
                 },
                 "from": {
-                    "file": "/home/xhamc/gitProjects/ATSC3Receiver1_0/testutils/build/intermediates/exploded-aar/ATSC3Receiver1_0/exoplayer/unspecified/res/values-nb/values-nb.xml",
+                    "file": "/Users/valokafor/AndroidStudioProjects/ATSC3RCVR/testutils/build/intermediates/exploded-aar/ATSC3RCVR/exoplayer/unspecified/res/values-nb/values-nb.xml",
                     "position": {
                         "startLine": 7,
                         "startColumn": 4,
@@ -125,7 +125,7 @@
                     "endOffset": 568
                 },
                 "from": {
-                    "file": "/home/xhamc/gitProjects/ATSC3Receiver1_0/testutils/build/intermediates/exploded-aar/ATSC3Receiver1_0/exoplayer/unspecified/res/values-nb/values-nb.xml",
+                    "file": "/Users/valokafor/AndroidStudioProjects/ATSC3RCVR/testutils/build/intermediates/exploded-aar/ATSC3RCVR/exoplayer/unspecified/res/values-nb/values-nb.xml",
                     "position": {
                         "startLine": 8,
                         "startColumn": 4,
