@@ -17,9 +17,11 @@ package com.sony.tv.app.atsc3receiver1_0;
 import android.app.Activity;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 
 import com.google.android.exoplayer2.upstream.DataSpec;
@@ -47,6 +49,7 @@ public class MainActivity extends Activity {
     private static boolean stComplete=false;
     private static boolean firstLLS =true;
     public static boolean ExoPlayerStarted=false;
+    private static boolean first=true;
     private Ads ads;
 
     CallBackInterface callBackInterface;
@@ -118,8 +121,8 @@ public class MainActivity extends Activity {
                     }
                     startSignalingFluteSession(type);
                     firstLLS =false;
-                    if (!fragmentsInitialized)
-                        initFragments();
+//                    if (!fragmentsInitialized)
+//                        initFragments();
                 }
             }
 
@@ -135,41 +138,49 @@ public class MainActivity extends Activity {
                     }
                     startSignalingFluteSession(type);
                     firstLLS  = false;
-                    if (!fragmentsInitialized)
-                        initFragments();
+//                    if (!fragmentsInitialized)
+//                        initFragments();
                 }
             }
 
             @Override
             public void callBackUSBDFound(FluteTaskManagerBase fluteTaskManager) {
-                if (fluteTaskManager.isFirst() &&
+                if (isFirst() &&
                         fluteTaskManager.isManifestFound() &&
                         fluteTaskManager.isSTSIDFound()){
 //                        fluteTaskManager.stop();
+                    first=false;
+
+                    launchPlayer();
                 }
             }
 
             @Override
             public void callBackSTSIDFound(FluteTaskManagerBase fluteTaskManager) {
-                if (fluteTaskManager.isFirst() &&
+                if (isFirst() &&
                         fluteTaskManager.isManifestFound() &&
                         fluteTaskManager.isUsbdFound()){
 //                        fluteTaskManager.stop();
+                    first=false;
+
+                    launchPlayer();
                 }
             }
 
             @Override
             public void callBackManifestFound(FluteTaskManagerBase fluteTaskManager) {
-                if (fluteTaskManager.isFirst() &&
+                if (isFirst() &&
                         fluteTaskManager.isUsbdFound() &&
                         fluteTaskManager.isSTSIDFound()){
 //                        fluteTaskManager.stop();
+                    first=false;
+                    launchPlayer();
                 }
             }
 
             @Override
             public void callBackFluteStopped(FluteTaskManagerBase fluteTaskManager){
-                if (fluteTaskManager.isFirst() &&
+                if (isFirst() &&
                         fluteTaskManager.isUsbdFound() &&
                         fluteTaskManager.isSTSIDFound() &&
                         fluteTaskManager.isManifestFound()){
@@ -189,6 +200,27 @@ public class MainActivity extends Activity {
 //        initFragments();
     }
 
+    private boolean isFirst(){
+        return first;
+    }
+
+    private void launchPlayer() {
+//        Handler handler = new Handler();
+//        handler.postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+                initFragments();
+//                ATSC3.dataSourceIndex=0;
+//                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+//                intent.setAction(PlayerActivity.ACTION_VIEW);
+//                intent.setData(Uri.parse("udp://239.255.8.1:3000/ManifestUpdate_Dynamic.mpd"));
+//                intent.putExtra(PlayerActivity.PREFER_EXTENSION_DECODERS, false);
+//                intent.setComponent(new ComponentName("com.sony.tv.app.atsc3receiver1_0", "com.sony.tv.app.atsc3receiver1_0.PlayerActivity"));
+//                startActivity(intent);
+//
+//            }
+//        }, 5000);
+    }
 
     @Override
     public void onStop(){

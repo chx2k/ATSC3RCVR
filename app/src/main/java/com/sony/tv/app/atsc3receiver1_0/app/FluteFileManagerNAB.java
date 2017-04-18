@@ -22,6 +22,9 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
+
+import static com.google.android.exoplayer2.util.Util.parseXsDuration;
+
 /**
  * Created by xhamc on 4/2/17.
  */
@@ -83,13 +86,23 @@ private byte[] signalingStorage;                                                
 
     private SLS sls=new SLS();
 
+    public boolean manifestFound=false;
+    public boolean stsidFound=false;
+    public boolean usbdFound=false;
+    private FluteTaskManagerNAB fluteTaskManagerNAB;
+
     public FluteFileManagerNAB(DataSpec dataSpec){
         sInstance=this;
         baseDataSpec=dataSpec;
         reset();
     }
 
-
+    public FluteFileManagerNAB(DataSpec dataSpec, FluteTaskManagerNAB fluteTaskManagerNAB){
+        sInstance=this;
+        baseDataSpec=dataSpec;
+        this.fluteTaskManagerNAB=fluteTaskManagerNAB;
+        reset();
+    }
     /**
      * Initialize the arrays and hashmaps
      */
@@ -646,12 +659,22 @@ private byte[] signalingStorage;                                                
             slsLocation=contentFileLocation;
             String sls=new String(storage,contentFileLocation.start,contentFileLocation.contentLength);
             if (extractManifest(sls)){
+                manifestFound=true;
+                fluteTaskManagerNAB.callBackInterface.callBackManifestFound(fluteTaskManagerNAB);
+
                 //TODO create a manifest file in buffer
             }
             if (extractUSBD(sls)){
+                usbdFound=true;
+                fluteTaskManagerNAB.callBackInterface.callBackUSBDFound(fluteTaskManagerNAB);
+
+
                 //TODO create a usbd file in buffer
             }
             if (extractSTSID(sls)){
+                stsidFound=true;
+                fluteTaskManagerNAB.callBackInterface.callBackSTSIDFound(fluteTaskManagerNAB);
+
 
             }
 

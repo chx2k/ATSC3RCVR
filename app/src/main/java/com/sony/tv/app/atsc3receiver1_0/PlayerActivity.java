@@ -238,7 +238,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   @Override
   public void onStart() {
     super.onStart();
-    EventBus.getDefault().register(this);
+//    EventBus.getDefault().register(this);
     if (Util.SDK_INT > 23) {
       initializePlayer();
     }
@@ -285,7 +285,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   @Override
   public void onStop() {
     super.onStop();
-    EventBus.getDefault().unregister(this);
+//    EventBus.getDefault().unregister(this);
     if (Util.SDK_INT > 23) {
       releasePlayer();
     }
@@ -317,10 +317,16 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     Timer t=new Timer();
 
     switch (event.getKeyCode()) {
+      case 7:
+        showAdSelectorLayout();
+        break;
+      case 15:
+        closeAdSelectorLayout();
+        break;
       case 19:
         //Up button clicked
         showPlayControllerLayout();
-        //       break;
+               break;
       case 20:
         //Down button clicked
 //        simpleExoPlayerView.setUseController(false);

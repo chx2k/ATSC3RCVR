@@ -19,6 +19,11 @@ import com.sony.tv.app.atsc3receiver1_0.SampleChooserFragment;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicLong;
+
+import io.realm.Realm;
+import io.realm.RealmConfiguration;
+import io.realm.RealmResults;
 
 
 /**
@@ -44,6 +49,8 @@ public class ATSC3 extends Application {
     public static int QUALCOMM=2;
 
     private static Context context;
+
+    public static AtomicLong adPrimaryKey,catPrimaryKey;
 
     public interface CallBackInterface{
         void callBackSLTFound();
