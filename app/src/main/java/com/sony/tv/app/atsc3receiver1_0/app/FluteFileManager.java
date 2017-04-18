@@ -36,7 +36,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
 
     private static final long AVAILABILITY_TIME_OFFSET=1500;                    //Offset from time the content is received in buffer to time reported to player
     private static final String MIN_BUFFER_TIME="PT1S";                         //Used by player to set lower buffer threshold
-//    private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
+    //    private static final String TIME_SHIFT_BUFFER_OFFSET="PT3S";
     private static final String TIME_SHIFT_BUFFER_DEPTH="PT3S";                 //Used by player to set the depth of the buffer
 
     private static final String MINIMUM_UPDATE_PERIOD="PT0.75S";                //Frequency the player can request MPD (>0 else can hurt performance)
@@ -80,7 +80,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
     private long availabilityStartTime;                                         //AvailabilityStartTime calc from video write time with respect to period start/segment duration
     private long availabilityStartTimeOffset;                                   //Offset from this (set to static offset above)
 
-    private Ads.Ad lastAdInsertion;                                             //Which Ad was last inserted
+    private AdContent lastAdInsertion;                                             //Which Ad was last inserted
     private String lastAdStart="";                                              //Time for that ad in Manifest time format
 
     public FluteFileManager(DataSpec dataSpec){                                 //Create just a signaling filemanager
@@ -206,7 +206,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
             if (signalingDataSpec.uri.getHost().equals(host) && signalingDataSpec.uri.getPort()==port ||
                     avDataSpec.uri.getHost().equals(host) && avDataSpec.uri.getPort()==port){
 
-            String path=dataSpec.uri.getPath();
+                String path=dataSpec.uri.getPath();
                 bytesToSkip[thread]=(int) dataSpec.position;
                 FileBuffer fb = openInternal(path, thread);
                 if (fb==null){
@@ -477,7 +477,7 @@ public class FluteFileManager  implements FluteFileManagerBase {
             Date now=Calendar.getInstance(TimeZone.getTimeZone("UTC")).getTime();
 
             ContentFileLocation c = new ContentFileLocation(r.fileName().concat(".new"), r.efdt_toi(), firstAvailablePosition[index], r.contentLength(),
-                                                                now.getTime(), now.getTime() + MAX_FILE_RETENTION_MS);
+                    now.getTime(), now.getTime() + MAX_FILE_RETENTION_MS);
             Iterator<Map.Entry<String,ContentFileLocation>> iterator= m.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<String,ContentFileLocation> it= iterator.next();
@@ -503,4 +503,3 @@ public class FluteFileManager  implements FluteFileManagerBase {
     }
 
 }
-

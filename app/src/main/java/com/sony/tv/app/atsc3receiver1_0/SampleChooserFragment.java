@@ -20,9 +20,9 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,19 +33,15 @@ import android.widget.ExpandableListView.OnChildClickListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
-
+import com.sony.tv.app.atsc3receiver1_0.SampleListLoader.SampleGroup;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSCSample;
-import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
 import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
-
-import com.sony.tv.app.atsc3receiver1_0.SampleListLoader.*;
 /**
  * An activity for selecting from a list of samples.
  */
@@ -224,6 +220,15 @@ public class SampleChooserFragment extends Fragment {
           });
 
       }
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+
+            @Override
+            public void run() {
+                onSampleSelected(groups.get(0).samples.get(0), 0);
+            }
+        },5000);
+
 
     }
 

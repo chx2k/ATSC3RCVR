@@ -5,7 +5,6 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.widget.Toast;
 
 import com.google.android.exoplayer2.upstream.DataSource;
 
@@ -72,6 +71,44 @@ public class ATSC3 extends Application {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        initRealm();
+    }
+
+    private void initRealm() {
+        Realm.init(this);
+        RealmConfiguration configuration  = new RealmConfiguration.Builder()
+                .name("atsc3demo")
+                .schemaVersion(1)
+                .deleteRealmIfMigrationNeeded()
+                .build();
+        Realm.setDefaultConfiguration(configuration);
+        Realm realm = Realm.getInstance(configuration);
+
+        try {
+            adPrimaryKey = new AtomicLong(realm.where(AdContent.class).max("id").longValue() + 1);
+        } catch (Exception e) {
+            realm.beginTransaction();
+            AdContent task = realm.createObject(AdContent.class, 0);
+            adPrimaryKey = new AtomicLong(realm.where(AdContent.class).max("id").longValue() + 1);
+            RealmResults<AdContent> results = realm.where(AdContent.class).equalTo("id", 0).findAll();
+            results.deleteAllFromRealm();
+            realm.commitTransaction();
+        }
+
+        try {
+            catPrimaryKey = new AtomicLong(realm.where(AdCategory.class).max("id").longValue() + 1);
+        } catch (Exception e) {
+            realm.beginTransaction();
+            AdCategory category = realm.createObject(AdCategory.class, 0);
+            catPrimaryKey = new AtomicLong(realm.where(AdCategory.class).max("id").longValue() + 1);
+            RealmResults<AdCategory> results = realm.where(AdCategory.class).equalTo("id", 0).findAll();
+            results.deleteAllFromRealm();
+            realm.commitTransaction();
+
+
+        }finally {
+            realm.close();
+        }
 
 
     }
@@ -102,8 +139,6 @@ public class ATSC3 extends Application {
             resetTimeStamp(dataSourceIndex);
             ATSCSample sample=getSampleFromIndex(dataSourceIndex);
             activity.startActivity(sample.buildIntent(activity));
-            Toast t=Toast.makeText(getContext(),"CHANNEL: ".concat(LLSReceiver.getInstance().slt.mSLTData.mServices.get(0).shortServiceName),Toast.LENGTH_SHORT);
-            t.show();
             return true;
         }
         return false;
@@ -116,9 +151,6 @@ public class ATSC3 extends Application {
             resetTimeStamp(dataSourceIndex);
             ATSCSample sample=getSampleFromIndex(dataSourceIndex);
             activity.startActivity(sample.buildIntent(activity));
-            Toast t=Toast.makeText(getContext(),"CHANNEL: ".concat(LLSReceiver.getInstance().slt.mSLTData.mServices.get(1).shortServiceName),Toast.LENGTH_SHORT);
-            t.show();
-
             return true;
         }
         return false;
