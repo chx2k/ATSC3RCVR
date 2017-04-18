@@ -5,6 +5,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.widget.Toast;
 
 import com.google.android.exoplayer2.upstream.DataSource;
 
@@ -101,6 +102,8 @@ public class ATSC3 extends Application {
             resetTimeStamp(dataSourceIndex);
             ATSCSample sample=getSampleFromIndex(dataSourceIndex);
             activity.startActivity(sample.buildIntent(activity));
+            Toast t=Toast.makeText(getContext(),"CHANNEL: ".concat(LLSReceiver.getInstance().slt.mSLTData.mServices.get(0).shortServiceName),Toast.LENGTH_SHORT);
+            t.show();
             return true;
         }
         return false;
@@ -113,6 +116,9 @@ public class ATSC3 extends Application {
             resetTimeStamp(dataSourceIndex);
             ATSCSample sample=getSampleFromIndex(dataSourceIndex);
             activity.startActivity(sample.buildIntent(activity));
+            Toast t=Toast.makeText(getContext(),"CHANNEL: ".concat(LLSReceiver.getInstance().slt.mSLTData.mServices.get(1).shortServiceName),Toast.LENGTH_SHORT);
+            t.show();
+
             return true;
         }
         return false;

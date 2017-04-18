@@ -71,12 +71,15 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
+import com.sony.tv.app.atsc3receiver1_0.app.MPD;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 /**
@@ -122,7 +125,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   private boolean shouldAutoPlay;
   private int resumeWindow;
   private long resumePosition;
-
+  private PlayerActivity playerActivity;
   // Activity lifecycle
 
   @Override
@@ -147,6 +150,14 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     simpleExoPlayerView = (SimpleExoPlayerView) findViewById(R.id.player_view);
     simpleExoPlayerView.setControllerVisibilityListener(this);
     simpleExoPlayerView.requestFocus();
+    playerActivity=this;
+    Timer t=new Timer();
+    t.schedule(new TimerTask() {
+      @Override
+      public void run() {
+        new DispatchKey((167));
+      }
+    },10*60*1000);
   }
 
   @Override
@@ -207,18 +218,44 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
 
     Log.d("KEY","Key Pressed: "+event.getKeyCode());
     boolean channelChange=false;
+    Timer t=new Timer();
     if (event.getKeyCode()==166){
-      channelChange=ATSC3.channelUp(this);
-    }else if(event.getKeyCode()==167){
-      channelChange=ATSC3.channelDown(this);
-    }
-    if (channelChange){
+      ATSC3.channelUp(this);
+      t.schedule(new TimerTask() {
+        @Override
+        public void run() {
+          new DispatchKey((167));
+        }
+      },10*60*1000);
+      return true;
 
+    }else if(event.getKeyCode()==167){
+      ATSC3.channelDown(this);
+      t.schedule(new TimerTask() {
+        @Override
+        public void run() {
+          new DispatchKey((166));
+        }
+      },10*60*1000);
+      return true;
     }
+
     // Show the controls on any key event.
     simpleExoPlayerView.showController();
     // If the event was not handled then see if the player view can handle it as a media key event.
     return super.dispatchKeyEvent(event) || simpleExoPlayerView.dispatchMediaKeyEvent(event);
+  }
+
+  private class DispatchKey implements Runnable{
+    private final int key;
+    public DispatchKey(int key){
+      this.key=key;
+      runOnUiThread(this);
+    }
+    public void run(){
+      KeyEvent keyEvent=new KeyEvent(KeyEvent.ACTION_DOWN,key);
+      dispatchKeyEvent(keyEvent);
+    }
   }
 
   float downXValue;
@@ -227,10 +264,12 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     switch (ev.getAction()){
       case MotionEvent.ACTION_DOWN:
         downXValue=ev.getX();
+
         break;
       case MotionEvent.ACTION_UP:
         if (ev.getX()-downXValue>200){
           ATSC3.channelUp(this);
+
 
         }else if(ev.getX()-downXValue<-200){
           ATSC3.channelDown(this);
