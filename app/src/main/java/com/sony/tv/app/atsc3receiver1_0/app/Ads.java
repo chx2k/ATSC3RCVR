@@ -2,6 +2,7 @@ package com.sony.tv.app.atsc3receiver1_0.app;
 
 import android.content.Context;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.android.exoplayer2.upstream.AssetDataSource;
@@ -32,6 +33,7 @@ public class Ads {
     private static String duration;
     private static String scheme;
     private static String parsedPeriod;
+    private static String category;
 
     private static DataSource dataSource;
     private static DataSource fileDataSource;
@@ -50,7 +52,7 @@ public class Ads {
 
 
     private static byte[] buffer=new byte[MANIFEST_BUFFER_SIZE];
-    private static ArrayList<AdContent> adArrayList=new ArrayList<>();
+   // private static ArrayList<AdContent> adArrayList=new ArrayList<>();
 
     public Ads(Context context){
         DataSource fileDataSource=new FileDataSource(null);
@@ -61,7 +63,7 @@ public class Ads {
     }
 
     public static boolean addAd(String url, boolean enabled){
-        String title="",period="",duration="",replaceStartString="",manifest="";
+        String title="",period="",duration="",replaceStartString="",manifest="", category="";
         Uri uri=Uri.parse(url);
         if (Util.isLocalFileUri(uri)) {
             dataSource = fileDataSource;
@@ -102,6 +104,7 @@ public class Ads {
                     }else{
                         titleTag=false;
                     }
+
                     if (xpp.getName().equals("Period")){
 
                         for (int i = 0; i < xpp.getAttributeCount(); i++) {
@@ -111,7 +114,12 @@ public class Ads {
                             if (xpp.getAttributeName(i).equals("duration")){
                                 duration=xpp.getAttributeValue(i);
                             }
-                        }
+                            if (xpp.getAttributeName(i).equals("category")){
+                                category=xpp.getAttributeValue(i);
+                                Log.d(TAG, "Category: " + category);
+                            }
+
+                    }
                         break loop;
                     }
                 } else if(eventType == XmlPullParser.END_TAG) {
@@ -131,34 +139,11 @@ public class Ads {
 
 //            String newPeriod=period.substring(0,baseUrlStart).concat("<BaseURL>").concat("/asset").concat(uri.getPath().substring(0,uri.getPath().lastIndexOf("/")+1)).concat("</BaseURL>").concat(period.substring(baseUrlStart,period.length()));
 
-            final AdContent ad = new AdContent(title,newPeriod,duration,scheme,replaceStartString,uri,enabled);
-            Log.d(TAG, "Uri: " + uri);
-            adArrayList.add(ad);
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    Realm realm = Realm.getDefaultInstance();
-                    try {
-                        Log.d(TAG, "Realm created");
-                        AdContent adContent = realm.where(AdContent.class).equalTo("title", ad.title).findFirst();
-                        if (adContent == null){
-                            realm.executeTransaction(new Realm.Transaction() {
-                                @Override
-                                public void execute(Realm realm) {
-                                    long adId = ATSC3.adPrimaryKey.getAndIncrement();
-                                    AdContent content = realm.createObject(AdContent.class, adId);
-                                    content.updateToRealm(ad);
-                                }
-                            });
-                        }
 
-                    }finally {
-                        realm.close();
-                    }
-
-                }
-            });
-            thread.start();
+            if (!TextUtils.isEmpty(title)) {
+                final AdContent ad = new AdContent(title,newPeriod,duration,scheme,replaceStartString,uri,enabled);
+                insertAdIntoDatabase(ad, category);
+            }
             return  true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -166,32 +151,74 @@ public class Ads {
         }
     }
 
-    public static ArrayList<AdContent> getAds(boolean enabled){
-        if (!enabled){
-            return adArrayList;
-        }else{
-            ArrayList<AdContent> enabledArrayAds=new ArrayList<>();
-            for (AdContent ad:adArrayList)
-            {
-                if (ad.enabled) {
-                    enabledArrayAds.add(ad);
+    private static void insertAdIntoDatabase(final AdContent ad, final String category) {
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Realm realm = Realm.getDefaultInstance();
+                try {
+                    Log.d(TAG, "Realm created");
+                    AdContent adContent = realm.where(AdContent.class).equalTo("title", ad.title).findFirst();
+                    final String finalCategory;
+                    if (TextUtils.isEmpty(category)){
+                        finalCategory = "general";
+                    }else {
+                        finalCategory = category;
+                    }
+                    if (adContent == null){
+                        realm.beginTransaction();
+                        long adId = ATSC3.adPrimaryKey.getAndIncrement();
+                        adContent = realm.createObject(AdContent.class, adId);
+                        adContent.updateToRealm(ad);
+
+                        AdCategory adCategory = realm.where(AdCategory.class).equalTo("name", finalCategory).findFirst();
+
+                        if (adCategory == null){
+                            long catId = ATSC3.catPrimaryKey.getAndIncrement();
+                            adCategory = realm.createObject(AdCategory.class, catId);
+                            String upperCaseCategory = finalCategory.substring(0,1).toUpperCase() + finalCategory.substring(1);
+                            adCategory.setName(upperCaseCategory);
+                        }
+
+                        adCategory.getAds().add(adContent);
+                        realm.commitTransaction();
+                    }
+                }finally {
+                    realm.close();
                 }
+
             }
-            return enabledArrayAds;
-        }
+        });
+        thread.start();
+
     }
 
-    public static AdContent getAdByTitle(String title){
-
-        for (AdContent ad:adArrayList)
-        {
-            if (ad.title.equals(title)) {
-                return ad;
-            }
-        }
-        return null;
-
-    }
+//    public static ArrayList<AdContent> getAds(boolean enabled){
+//        if (!enabled){
+//            return adArrayList;
+//        }else{
+//            ArrayList<AdContent> enabledArrayAds=new ArrayList<>();
+//            for (AdContent ad:adArrayList)
+//            {
+//                if (ad.enabled) {
+//                    enabledArrayAds.add(ad);
+//                }
+//            }
+//            return enabledArrayAds;
+//        }
+//    }
+//
+//    public static AdContent getAdByTitle(String title){
+//
+//        for (AdContent ad:adArrayList)
+//        {
+//            if (ad.title.equals(title)) {
+//                return ad;
+//            }
+//        }
+//        return null;
+//
+//    }
 
 
     public static AdContent getNextAd(boolean random){

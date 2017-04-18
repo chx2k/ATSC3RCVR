@@ -23,10 +23,10 @@ import io.realm.Realm;
 
 public class AdsListAdapter extends RecyclerView.Adapter<AdsListAdapter.ViewHolder>{
     private int selectedPosition = -1;
-    private final List<AdContent> adsList;
+    private final List<AdCategory> adsList;
     private final Realm realm;
 
-    public AdsListAdapter(List<AdContent> adsList, Realm realm) {
+    public AdsListAdapter(List<AdCategory> adsList, Realm realm) {
         this.adsList = adsList;
         this.realm = realm;
     }
@@ -42,7 +42,7 @@ public class AdsListAdapter extends RecyclerView.Adapter<AdsListAdapter.ViewHold
 
     @Override
     public void onBindViewHolder(ViewHolder holder, final int position) {
-        AdContent selectedAd = adsList.get(position);
+        final AdCategory selectedCategory = adsList.get(position);
         if (selectedPosition == position){
             holder.itemView.setBackgroundColor(Color.parseColor("#000000"));
         }else {
@@ -57,44 +57,43 @@ public class AdsListAdapter extends RecyclerView.Adapter<AdsListAdapter.ViewHold
             }
         });
 
-        if (selectedAd != null && !TextUtils.isEmpty(selectedAd.title)) {
-            holder.adNameTextView.setText(selectedAd.title);
+        if (selectedCategory != null && !TextUtils.isEmpty(selectedCategory.getName())) {
+            holder.adNameTextView.setText(selectedCategory.getName());
         }
 
-        if (selectedAd != null && !TextUtils.isEmpty(selectedAd.uri.toString())) {
-            holder.adUrlTextView.setText(selectedAd.uri.toString());
-        }
-        if (selectedAd != null) {
-            holder.adEnableCheckbox.setChecked(selectedAd.enabled);
-        }
-        if (selectedAd != null && selectedAd.displayCount > 0) {
-            holder.adCounterTextView.setText(String.valueOf(selectedAd.displayCount));
+        if (selectedCategory != null && selectedCategory.getAds().size() > 0) {
+            if (selectedCategory.getAds().get(0).enabled == true){
+                holder.adEnableCheckbox.setChecked(true);
+            } else {
+                holder.adEnableCheckbox.setChecked(false);
+            }
         }
 
-        holder.adEnableCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                final AdContent selectedAd = adsList.get(position);
-                if (isChecked){
-                    realm.executeTransaction(new Realm.Transaction() {
-                        @Override
-                        public void execute(Realm realm) {
-                            selectedAd.enabled = true;
-                            //notifyItemChanged(getAdapterPosition());
-                        }
-                    });
-                }else {
-                    realm.executeTransaction(new Realm.Transaction() {
-                        @Override
-                        public void execute(Realm realm) {
-                            selectedAd.enabled = false;
-                            //notifyItemChanged(getAdapterPosition());
-                        }
-                    });
+        if (selectedCategory.getAds() != null && selectedCategory.getAds().size() > 0){
+            String listOfAdTitle = "";
+            int count = 0;
 
+            for (AdContent selectedAd: selectedCategory.getAds()){
+                if (selectedAd != null && !TextUtils.isEmpty(selectedAd.title)) {
+                    String title = selectedAd.title;
+                    title = title + "\n";
+                    listOfAdTitle += title;
+                }
+                if (selectedAd != null && selectedAd.displayCount > 0) {
+                    count += selectedAd.displayCount;
                 }
             }
-        });
+            holder.adUrlTextView.setText(listOfAdTitle);
+            if (count > 0) {
+                holder.adCounterTextView.setText(String.valueOf(count));
+            }
+
+
+        }
+
+
+
+
 
     }
 
@@ -121,6 +120,32 @@ public class AdsListAdapter extends RecyclerView.Adapter<AdsListAdapter.ViewHold
             adNameTextView = (TextView) itemView.findViewById(R.id.ad_name_textview);
             adUrlTextView = (TextView) itemView.findViewById(R.id.ad_url_textview);
             adEnableCheckbox = (CheckBox) itemView.findViewById(R.id.ad_enable_checkbox);
+
+            adEnableCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    final AdCategory category = adsList.get(getLayoutPosition());
+                    if (isChecked){
+                        realm.executeTransaction(new Realm.Transaction() {
+                            @Override
+                            public void execute(Realm realm) {
+                                for (AdContent selectedAd: category.getAds())
+                                    selectedAd.enabled = true;
+
+                            }
+                        });
+                    }else {
+                        realm.executeTransaction(new Realm.Transaction() {
+                            @Override
+                            public void execute(Realm realm) {
+                                for (AdContent selectedAd: category.getAds())
+                                    selectedAd.enabled = false;
+                            }
+                        });
+
+                    }
+                }
+            });
 
 
         }

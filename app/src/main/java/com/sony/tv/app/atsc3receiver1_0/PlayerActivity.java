@@ -80,6 +80,7 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
+import com.sony.tv.app.atsc3receiver1_0.app.AdCategory;
 import com.sony.tv.app.atsc3receiver1_0.app.AdContent;
 import com.sony.tv.app.atsc3receiver1_0.app.AdsListAdapter;
 import com.sony.tv.app.atsc3receiver1_0.app.NewAddDialogFragment;
@@ -94,6 +95,7 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -372,12 +374,17 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     addNewAdButton.requestFocus();
 
 
-    RealmResults<AdContent> adsList = realm.where(AdContent.class).findAll();
-    if (adsList != null && adsList.size() > 0){
+    RealmResults<AdCategory> categoryList = realm.where(AdCategory.class).findAll();
+    if (categoryList != null){
+      int count = categoryList.size();
+      List<AdContent> ads = categoryList.get(0).getAds();
+      Log.d(TAG, "Size: " + count);
+    }
+    if (categoryList != null && categoryList.size() > 0){
         showEmptyText(false);
       adRecyclerView.setHasFixedSize(true);
       adRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-      adsListAdapter = new AdsListAdapter(adsList, realm);
+      adsListAdapter = new AdsListAdapter(categoryList, realm);
       adRecyclerView.setAdapter(adsListAdapter);
     }else {
       showEmptyText(true);

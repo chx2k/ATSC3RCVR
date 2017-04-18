@@ -30,6 +30,7 @@ public class ATSC3 extends Application {
     public final static boolean FAKEMANIFEST=false;
     public final static boolean FAKEPERIODINJECT=false;
     public static AtomicLong adPrimaryKey;
+    public static AtomicLong catPrimaryKey;
     public static boolean ADS_ENABLED=true;                   //Enable ad replacements for xlinked periods
     public static boolean GZIP=false;
 
@@ -91,6 +92,19 @@ public class ATSC3 extends Application {
             RealmResults<AdContent> results = realm.where(AdContent.class).equalTo("id", 0).findAll();
             results.deleteAllFromRealm();
             realm.commitTransaction();
+        }
+
+        try {
+            catPrimaryKey = new AtomicLong(realm.where(AdCategory.class).max("id").longValue() + 1);
+        } catch (Exception e) {
+            realm.beginTransaction();
+            AdCategory category = realm.createObject(AdCategory.class, 0);
+            catPrimaryKey = new AtomicLong(realm.where(AdCategory.class).max("id").longValue() + 1);
+            RealmResults<AdCategory> results = realm.where(AdCategory.class).equalTo("id", 0).findAll();
+            results.deleteAllFromRealm();
+            realm.commitTransaction();
+
+
         }finally {
             realm.close();
         }
