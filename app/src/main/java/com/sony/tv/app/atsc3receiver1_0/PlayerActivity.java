@@ -24,6 +24,7 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -219,6 +220,43 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     // If the event was not handled then see if the player view can handle it as a media key event.
     return super.dispatchKeyEvent(event) || simpleExoPlayerView.dispatchMediaKeyEvent(event);
   }
+
+  float downXValue;
+  @Override
+  public boolean dispatchTouchEvent(MotionEvent ev) {
+    switch (ev.getAction()){
+      case MotionEvent.ACTION_DOWN:
+        downXValue=ev.getX();
+        break;
+      case MotionEvent.ACTION_UP:
+        if (ev.getX()-downXValue>200){
+          ATSC3.channelUp(this);
+
+        }else if(ev.getX()-downXValue<-200){
+          ATSC3.channelDown(this);
+
+        }
+        break;
+    }
+
+    return super.dispatchTouchEvent(ev);
+  }
+//
+//    Log.d("KEY","Key Pressed: "+event.getKeyCode());
+//    boolean channelChange=false;
+//    if (event.getKeyCode()==166){
+//      channelChange=ATSC3.channelUp(this);
+//    }else if(event.getKeyCode()==167){
+//      channelChange=ATSC3.channelDown(this);
+//    }
+//    if (channelChange){
+//
+//    }
+//    // Show the controls on any key event.
+//    simpleExoPlayerView.showController();
+//    // If the event was not handled then see if the player view can handle it as a media key event.
+//    return super.dispatchKeyEvent(event) || simpleExoPlayerView.dispatchMediaKeyEvent(event);
+//  }
 
   // OnClickListener methods
 

@@ -388,6 +388,10 @@ private byte[] signalingStorage;                                                
                                 mapGetBufferNumberFromTSI.put(sls.stsidParser.getTSI(i), i+1); //TODO: Use bw to determine video if there is both audio and video
                                 mapGetTSIFromBufferNumber.put(i+1, sls.stsidParser.getTSI(i));
                             }
+                        }else {
+
+                            Log.d(TAG, "window for live: write offset from period zero secs: " + (double) (l.time - periodStart-availabilityStartTime) / 1000.0 +
+                                    "  availabilityStartTime secs: " + availabilityStartTime / 1000 + "  period zero start: " + periodStart);
                         }
 
 
@@ -446,7 +450,8 @@ private byte[] signalingStorage;                                                
             if (f != null) {
 
                 liveReadFromBufferTime=f.time;              //Exoplayer is reading from here so is closest time to live edge we know of
-                Log.d(TAG,"window for live: liveBufferTimeRead offset from avail in secs: "+(liveReadFromBufferTime-availabilityStartTime)/1000);
+                Log.d(TAG,"window for live: liveBufferTimeRead offset from avail in secs: "+(liveReadFromBufferTime-availabilityStartTime)/1000 +
+                        "  availabilityStartTime secs: "+availabilityStartTime/1000+"  period zero start: "+periodStart);
                 index--;
                 return new FileBuffer(storage.get(index), f.contentLength, f.start);
             }else{
@@ -458,6 +463,7 @@ private byte[] signalingStorage;                                                
     }
 
 
+    long periodStart=0;
     /**
      * Manipulate the Manifest by replacing AST, changing buffering params and inserting ads
      * @param mpdData input data
@@ -468,10 +474,10 @@ private byte[] signalingStorage;                                                
         TimeZone timeZone = TimeZone.getTimeZone("UTC");
         Calendar c= Calendar.getInstance(timeZone);
         DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-
+        MPDParser mpdParser;
         if (first){
             long firstTimeOffset=0;
-            MPDParser mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
+            mpdParser=new MPDParser(mpdData, mapFileLocationsVid, mapFileLocationsAud);
             mpdParser.MPDParse();
 
             availabilityStartTimeOffset=AVAILABILITY_TIME_OFFSET;
@@ -504,7 +510,7 @@ private byte[] signalingStorage;                                                
         String availabilityStartTimeString= formatter.format(availabilityStartTime);
         Log.d(TAG, availabilityStartTimeString);
 
-        MPDParser mpdParser=new MPDParser(mpdHeader, mapFileLocationsVid, mapFileLocationsAud);
+        mpdParser=new MPDParser(mpdHeader, mapFileLocationsVid, mapFileLocationsAud);
         mpdParser.MPDParse();
         mpdParser.mpd.getAttributes().put("minBufferTime",MIN_BUFFER_TIME);
 //        mpdParser.mpd.getAttributes().put("timeShiftBufferOffset",TIME_SHIFT_BUFFER_OFFSET);
@@ -531,6 +537,7 @@ private byte[] signalingStorage;                                                
                     } else if(eventType == XmlPullParser.START_TAG) {
                         if (xpp.getName().equals("Period")){
                             for (int i=0; i<xpp.getAttributeCount(); i++){
+                                String start=xpp.getAttributeValue(null,"start");
                                 if (xpp.getAttributeName(i).startsWith("xlink")){
                                     int indexStart=0;
                                     int indexEnd=0;
@@ -539,17 +546,42 @@ private byte[] signalingStorage;                                                
                                         indexStart=mpdData.indexOf("<Period", indexEnd+9);
                                         indexEnd=mpdData.indexOf("</Period>", indexEnd+9);
                                     }
-                                    String start=xpp.getAttributeValue(null,"start");
                                     if (lastAdInsertion==null || !start.equals(lastAdStart)){
                                         lastAdStart=start;
                                         start="start=\"".concat(start).concat("\"");
                                         lastAdInsertion=Ads.getNextAd(false);
-                                        lastAdInsertion.period=lastAdInsertion.period.replaceFirst( "start=['|\"][PTMHS\\.0-9]+['|\"]",start);
+                                        lastAdInsertion.period=lastAdInsertion.period.replaceAll( "start=['|\"][PTMHS\\.0-9]+['|\"]","grotbags");
+                                        lastAdInsertion.period=lastAdInsertion.period.replaceFirst( "grotbags",start);
+                                        String shortPeriodStart="start=\"PT"+String.format("%.3f", (parseXsDuration(lastAdStart)+28000)/1000.0)+"S\"";
+
+                                        lastAdInsertion.period=lastAdInsertion.period.replaceFirst( "grotbags",shortPeriodStart);
                                     }
-                                    mpdData=mpdData.substring(0,indexStart).concat(lastAdInsertion.period).concat(mpdData.substring(indexEnd+9,mpdData.length()));
+//                                    if (periodNumber==0){
+//                                        int indexStart2=mpdData.indexOf("<Period", indexEnd+9);
+//                                        int indexEnd2=mpdData.indexOf("</Period>", indexEnd+9)+9;
+//                                        String secondPeriod=mpdData.substring(indexStart2,indexEnd2);
+//                                        periodStart=parseXsDuration(lastAdStart)+29000;
+//                                        String startString="start=\"PT"+String.format("%.3f", periodStart/1000.0)+"S\"";
+//                                        secondPeriod=secondPeriod.replaceFirst( "start=['|\"][PTMHS\\.0-9]+['|\"]",startString);
+//                                        mpdData=mpdData.substring(0,indexStart).concat(lastAdInsertion.period).concat(secondPeriod).concat("\n</MPD>\n");
+//                                    }else {
+
+
+                                        mpdData = mpdData.substring(0, indexStart).concat(lastAdInsertion.period).concat(mpdData.substring(indexEnd + 9, mpdData.length()));
+//                                    }
+
                                     break;
+                                }else {
+                                    if (lastAdInsertion != null) {
+
+
+                                    }
+                                }
+                                if (periodNumber==0){
+                                    periodStart=parseXsDuration(start);
                                 }
                             }
+
                             periodNumber++;
 
                         }
