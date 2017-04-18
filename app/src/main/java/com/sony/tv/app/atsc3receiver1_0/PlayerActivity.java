@@ -33,6 +33,7 @@ import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -80,6 +81,12 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
+import com.sony.tv.app.atsc3receiver1_0.app.AdCategory;
+import com.sony.tv.app.atsc3receiver1_0.app.AdContent;
+import com.sony.tv.app.atsc3receiver1_0.app.AdsListAdapter;
+import com.sony.tv.app.atsc3receiver1_0.app.NewAddDialogFragment;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -88,6 +95,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 import io.realm.Realm;
@@ -305,29 +314,46 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   public boolean dispatchKeyEvent(KeyEvent event) {
 
     Log.d("KEY","Key Pressed: "+event.getKeyCode());
-    boolean channelChange=false;
     Timer t=new Timer();
-    if (event.getKeyCode()==166){
-      ATSC3.channelUp(this);
-      t.schedule(new TimerTask() {
-        @Override
-        public void run() {
-          new DispatchKey((167));
-        }
-      },10*60*1000);
-      return true;
 
-    }else if(event.getKeyCode()==167){
-      ATSC3.channelDown(this);
-      t.schedule(new TimerTask() {
-        @Override
-        public void run() {
-          new DispatchKey((166));
-        }
-      },10*60*1000);
-      return true;
+    switch (event.getKeyCode()) {
+      case 19:
+        //Up button clicked
+        showPlayControllerLayout();
+        //       break;
+      case 20:
+        //Down button clicked
+//        simpleExoPlayerView.setUseController(false);
+//        simpleExoPlayerView.hideController();
+        break;
+      case 21:
+        //Left button clicked
+        //    showDebugLayout();
+        break;
+      case 22:
+        //Right arrow clicked
+        //   showInfoLayout();
+        break;
+      case 166:
+        ATSC3.channelUp(this);
+        t.schedule(new TimerTask() {
+          @Override
+          public void run() {
+            new DispatchKey((167));
+          }
+        },10*60*1000);
+        return true;
+      case 167:
+        ATSC3.channelDown(this);
+        t.schedule(new TimerTask() {
+          @Override
+          public void run() {
+            new DispatchKey((166));
+          }
+        },10*60*1000);
+        return true;
+
     }
-
     // Show the controls on any key event.
     simpleExoPlayerView.showController();
     // If the event was not handled then see if the player view can handle it as a media key event.
@@ -368,6 +394,81 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
 
     return super.dispatchTouchEvent(ev);
   }
+
+
+  private void closeAdSelectorLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    infoLayout.setVisibility(View.GONE);
+    debugLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+
+  }
+
+  private void showNewAdDialogScreen() {
+    NewAddDialogFragment dialogFragment = new NewAddDialogFragment();
+    dialogFragment.show(getFragmentManager(), "Dialog");
+  }
+
+
+  private void showAdSelectorLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    infoLayout.setVisibility(View.GONE);
+    debugLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.VISIBLE);
+    addNewAdButton.requestFocus();
+
+
+    RealmResults<AdCategory> categoryList = realm.where(AdCategory.class).findAll();
+    if (categoryList != null){
+      int count = categoryList.size();
+      List<AdContent> ads = categoryList.get(0).getAds();
+      Log.d(TAG, "Size: " + count);
+    }
+    if (categoryList != null && categoryList.size() > 0){
+      showEmptyText(false);
+      adRecyclerView.setHasFixedSize(true);
+      adRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+      adsListAdapter = new AdsListAdapter(categoryList, realm);
+      adRecyclerView.setAdapter(adsListAdapter);
+    }else {
+      showEmptyText(true);
+    }
+  }
+
+  private void showPlayControllerLayout() {
+    simpleExoPlayerView.setUseController(true);
+    simpleExoPlayerView.showController();
+    debugLayout.setVisibility(View.GONE);
+    infoLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+
+  }
+
+  private void showInfoLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    debugLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+    infoLayout.setVisibility(View.VISIBLE);
+  }
+
+  private void showDebugLayout() {
+    simpleExoPlayerView.setUseController(false);
+    simpleExoPlayerView.hideController();
+    infoLayout.setVisibility(View.GONE);
+    adSelectLayout.setVisibility(View.GONE);
+    debugLayout.setVisibility(View.VISIBLE);
+
+  }
+
+//  @Subscribe(threadMode = ThreadMode.MAIN)
+//  public void onNewAddInserted(OnNewAdInsertedEvent event) {
+//    showAdSelectorLayout();
+//
+//  };
+
 //
 //    Log.d("KEY","Key Pressed: "+event.getKeyCode());
 //    boolean channelChange=false;

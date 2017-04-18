@@ -145,7 +145,7 @@ public class MainActivity extends Activity {
                 if (fluteTaskManager.isFirst() &&
                         fluteTaskManager.isManifestFound() &&
                         fluteTaskManager.isSTSIDFound()){
-                        fluteTaskManager.stop();
+//                        fluteTaskManager.stop();
                 }
             }
 
@@ -154,7 +154,7 @@ public class MainActivity extends Activity {
                 if (fluteTaskManager.isFirst() &&
                         fluteTaskManager.isManifestFound() &&
                         fluteTaskManager.isUsbdFound()){
-                        fluteTaskManager.stop();
+//                        fluteTaskManager.stop();
                 }
             }
 
@@ -163,7 +163,7 @@ public class MainActivity extends Activity {
                 if (fluteTaskManager.isFirst() &&
                         fluteTaskManager.isUsbdFound() &&
                         fluteTaskManager.isSTSIDFound()){
-                        fluteTaskManager.stop();
+//                        fluteTaskManager.stop();
                 }
             }
 
