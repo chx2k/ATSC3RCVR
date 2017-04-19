@@ -166,8 +166,8 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   private UsbManager usbManager;
   private PendingIntent mPermissionIntent;
 
-  Timer timerForKey=new Timer();
-  TimerTask timerTask;
+  Timer timerForKeyUp, timerForKeyDown;
+  TimerTask timerTaskUp,timerTaskDown;
 
   // Activity lifecycle
 
@@ -212,14 +212,14 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     simpleExoPlayerView = (SimpleExoPlayerView) findViewById(R.id.player_view);
     simpleExoPlayerView.setControllerVisibilityListener(this);
     simpleExoPlayerView.requestFocus();
-    timerForKey=new Timer();
-    timerTask=new TimerTask() {
+    timerForKeyDown=new Timer();
+    timerTaskDown=new TimerTask() {
       @Override
       public void run() {
         new DispatchKey(167);
       }
     };
-    timerForKey.schedule(timerTask,5*60*1000);
+    timerForKeyDown.schedule(timerTaskDown,5*60*1000);
   }
 
 
@@ -341,24 +341,33 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         break;
       case 166:
         ATSC3.channelUp(this);
-      timerTask=new TimerTask() {
+        if (null!=timerTaskUp) {
+          timerTaskUp.cancel();
+          timerForKeyUp.cancel();
+        }
+        timerTaskUp=new TimerTask() {
           @Override
           public void run() {
           new DispatchKey(167);
           }
-      };
-
-      timerForKey.schedule(timerTask,5*60*1000);
+        };
+        timerForKeyUp=new Timer();
+        timerForKeyUp.schedule(timerTaskUp,5*60*1000);
         return true;
       case 167:
         ATSC3.channelDown(this);
-      timerTask=new TimerTask() {
+        if (null!=timerTaskDown) {
+          timerTaskDown.cancel();
+          timerForKeyDown.cancel();
+        }
+        timerForKeyDown=new Timer();
+        timerTaskDown=new TimerTask() {
           @Override
           public void run() {
           new DispatchKey(166);
           }
-      };
-      timerForKey.schedule(timerTask,5*60*1000);
+        };
+        timerForKeyDown.schedule(timerTaskDown,5*60*1000);
         return true;
 
     }
