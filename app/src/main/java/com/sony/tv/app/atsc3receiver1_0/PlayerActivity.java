@@ -166,8 +166,8 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   private UsbManager usbManager;
   private PendingIntent mPermissionIntent;
 
-
-
+  Timer timerForKey=new Timer();
+  TimerTask timerTask;
 
   // Activity lifecycle
 
@@ -212,15 +212,14 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     simpleExoPlayerView = (SimpleExoPlayerView) findViewById(R.id.player_view);
     simpleExoPlayerView.setControllerVisibilityListener(this);
     simpleExoPlayerView.requestFocus();
-    simpleExoPlayerView.setUseController(false);
-
-    Timer t=new Timer();
-    t.schedule(new TimerTask() {
+    timerForKey=new Timer();
+    timerTask=new TimerTask() {
       @Override
       public void run() {
-        new DispatchKey((167));
+        new DispatchKey(167);
       }
-    },10*60*1000);
+    };
+    timerForKey.schedule(timerTask,5*60*1000);
   }
 
 
@@ -342,21 +341,24 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         break;
       case 166:
         ATSC3.channelUp(this);
-        t.schedule(new TimerTask() {
+      timerTask=new TimerTask() {
           @Override
           public void run() {
-            new DispatchKey((167));
+          new DispatchKey(167);
           }
-        },10*60*1000);
+      };
+
+      timerForKey.schedule(timerTask,5*60*1000);
         return true;
       case 167:
         ATSC3.channelDown(this);
-        t.schedule(new TimerTask() {
+      timerTask=new TimerTask() {
           @Override
           public void run() {
-            new DispatchKey((166));
+          new DispatchKey(166);
           }
-        },10*60*1000);
+      };
+      timerForKey.schedule(timerTask,5*60*1000);
         return true;
 
     }
@@ -394,6 +396,12 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         }else if(ev.getX()-downXValue<-200){
           ATSC3.channelDown(this);
 
+        }else{
+          if (ev.getX()>simpleExoPlayerView.getWidth()/3 && ev.getX()<simpleExoPlayerView.getWidth()*2/3){
+            showAdSelectorLayout();
+          }else{
+            closeAdSelectorLayout();
+          }
         }
         break;
     }

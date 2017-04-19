@@ -28,6 +28,7 @@ public class MainPhoneActivity extends Activity {
     private static boolean stComplete=false;
     private static boolean firstLLS =true;
     public static boolean ExoPlayerStarted=false;
+    private static boolean first=true;
     private Ads ads;
 
     ATSC3.CallBackInterface callBackInterface;
@@ -84,6 +85,8 @@ public class MainPhoneActivity extends Activity {
             e.printStackTrace();
         }
 
+//        Ads.getAdByTitle("Better Call Saul").enabled=true;
+
         callBackInterface=new ATSC3.CallBackInterface() {
             @Override
             public void callBackSLTFound() {
@@ -97,8 +100,8 @@ public class MainPhoneActivity extends Activity {
                     }
                     startSignalingFluteSession(type);
                     firstLLS =false;
-                    if (!fragmentsInitialized)
-                        initFragments();
+//                    if (!fragmentsInitialized)
+//                        initFragments();
                 }
             }
 
@@ -114,41 +117,49 @@ public class MainPhoneActivity extends Activity {
                     }
                     startSignalingFluteSession(type);
                     firstLLS  = false;
-                    if (!fragmentsInitialized)
-                        initFragments();
+//                    if (!fragmentsInitialized)
+//                        initFragments();
                 }
             }
 
             @Override
             public void callBackUSBDFound(FluteTaskManagerBase fluteTaskManager) {
-                if (fluteTaskManager.isFirst() &&
+                if (isFirst() &&
                         fluteTaskManager.isManifestFound() &&
                         fluteTaskManager.isSTSIDFound()){
-//                    fluteTaskManager.stop();
+//                        fluteTaskManager.stop();
+                    first=false;
+
+                    launchPlayer();
                 }
             }
 
             @Override
             public void callBackSTSIDFound(FluteTaskManagerBase fluteTaskManager) {
-                if (fluteTaskManager.isFirst() &&
+                if (isFirst() &&
                         fluteTaskManager.isManifestFound() &&
                         fluteTaskManager.isUsbdFound()){
-//                    fluteTaskManager.stop();
+//                        fluteTaskManager.stop();
+                    first=false;
+
+                    launchPlayer();
                 }
             }
 
             @Override
             public void callBackManifestFound(FluteTaskManagerBase fluteTaskManager) {
-                if (fluteTaskManager.isFirst() &&
+                if (isFirst() &&
                         fluteTaskManager.isUsbdFound() &&
                         fluteTaskManager.isSTSIDFound()){
-//                    fluteTaskManager.stop();
+//                        fluteTaskManager.stop();
+                    first=false;
+                    launchPlayer();
                 }
             }
 
             @Override
             public void callBackFluteStopped(FluteTaskManagerBase fluteTaskManager){
-                if (fluteTaskManager.isFirst() &&
+                if (isFirst() &&
                         fluteTaskManager.isUsbdFound() &&
                         fluteTaskManager.isSTSIDFound() &&
                         fluteTaskManager.isManifestFound()){
@@ -158,7 +169,7 @@ public class MainPhoneActivity extends Activity {
                     }else{
                         type=ATSC3.NAB;
                     }
-//                    startCompleteFluteSession(type, fluteTaskManager);
+                    startCompleteFluteSession(type, fluteTaskManager);
                 }
             }
         };
@@ -168,6 +179,27 @@ public class MainPhoneActivity extends Activity {
 //        initFragments();
     }
 
+    private boolean isFirst(){
+        return first;
+    }
+
+    private void launchPlayer() {
+//        Handler handler = new Handler();
+//        handler.postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+        initFragments();
+//                ATSC3.dataSourceIndex=0;
+//                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+//                intent.setAction(PlayerActivity.ACTION_VIEW);
+//                intent.setData(Uri.parse("udp://239.255.8.1:3000/ManifestUpdate_Dynamic.mpd"));
+//                intent.putExtra(PlayerActivity.PREFER_EXTENSION_DECODERS, false);
+//                intent.setComponent(new ComponentName("com.sony.tv.app.atsc3receiver1_0", "com.sony.tv.app.atsc3receiver1_0.PlayerActivity"));
+//                startActivity(intent);
+//
+//            }
+//        }, 5000);
+    }
 
     @Override
     public void onStop(){
@@ -213,6 +245,8 @@ public class MainPhoneActivity extends Activity {
 
         fragmentsInitialized=true;
     }
+
+
 
     private void initLLSReceiver(){
         startLLSReceiver();

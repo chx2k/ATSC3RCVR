@@ -227,7 +227,7 @@ public class SampleChooserFragment extends Fragment {
             public void run() {
                 onSampleSelected(groups.get(0).samples.get(0), 0);
             }
-        },5000);
+        },8000);
 
 
     }

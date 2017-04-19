@@ -23,6 +23,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.View;
 
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;

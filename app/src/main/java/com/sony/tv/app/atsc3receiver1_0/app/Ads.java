@@ -256,7 +256,7 @@ public class Ads {
 
         }else {
             adCount++;
-            if (adCount > enabledArrayAds.size()) {
+            if (adCount >= enabledArrayAds.size()) {
                 adCount = 0;
             }
             AdContent selectedAd = enabledArrayAds.get(adCount);
