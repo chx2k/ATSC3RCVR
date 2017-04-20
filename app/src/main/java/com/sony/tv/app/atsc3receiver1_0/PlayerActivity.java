@@ -84,6 +84,8 @@ import com.sony.tv.app.atsc3receiver1_0.app.ATSC3;
 import com.sony.tv.app.atsc3receiver1_0.app.AdCategory;
 import com.sony.tv.app.atsc3receiver1_0.app.AdContent;
 import com.sony.tv.app.atsc3receiver1_0.app.AdsListAdapter;
+import com.sony.tv.app.atsc3receiver1_0.app.FluteReceiver;
+import com.sony.tv.app.atsc3receiver1_0.app.LLSReceiver;
 import com.sony.tv.app.atsc3receiver1_0.app.NewAddDialogFragment;
 
 import org.greenrobot.eventbus.EventBus;
@@ -166,7 +168,9 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   private UsbManager usbManager;
   private PendingIntent mPermissionIntent;
 
-  Timer timerForKeyUp, timerForKeyDown;
+  private boolean stopped=false;
+
+  Timer timerForChannelChange;
   TimerTask timerTaskUp,timerTaskDown;
 
   // Activity lifecycle
@@ -212,14 +216,20 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     simpleExoPlayerView = (SimpleExoPlayerView) findViewById(R.id.player_view);
     simpleExoPlayerView.setControllerVisibilityListener(this);
     simpleExoPlayerView.requestFocus();
-    timerForKeyDown=new Timer();
+    timerForChannelChange=new Timer();
     timerTaskDown=new TimerTask() {
       @Override
       public void run() {
         new DispatchKey(167);
       }
     };
-    timerForKeyDown.schedule(timerTaskDown,5*60*1000);
+    timerTaskUp=new TimerTask() {
+      @Override
+      public void run() {
+        new DispatchKey(166);
+      }
+    };
+    timerForChannelChange.schedule(timerTaskDown,10*60*1000);
   }
 
 
@@ -241,6 +251,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     if (Util.SDK_INT > 23) {
       initializePlayer();
     }
+    stopped=false;
   }
 
   @Override
@@ -288,12 +299,20 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
     if (Util.SDK_INT > 23) {
       releasePlayer();
     }
+    timerTaskDown.cancel();
+    timerTaskUp.cancel();
+    timerForChannelChange.cancel();
+    timerForChannelChange=null;
+    timerTaskDown=null;
+    timerTaskUp=null;
+    stopped=true;
   }
 
   @Override
   protected void onDestroy() {
     super.onDestroy();
     realm.close();
+
   }
 
   @Override
@@ -341,33 +360,31 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         break;
       case 166:
         ATSC3.channelUp(this);
-        if (null!=timerTaskUp) {
-          timerTaskUp.cancel();
-          timerForKeyUp.cancel();
+
+        timerTaskDown.cancel();
+        if (!stopped) {
+          timerTaskDown = new TimerTask() {
+            @Override
+            public void run() {
+              new DispatchKey(167);
+            }
+          };
+          timerForChannelChange.schedule(timerTaskDown, 10*60*1000);
         }
-        timerTaskUp=new TimerTask() {
-          @Override
-          public void run() {
-          new DispatchKey(167);
-          }
-        };
-        timerForKeyUp=new Timer();
-        timerForKeyUp.schedule(timerTaskUp,5*60*1000);
         return true;
       case 167:
         ATSC3.channelDown(this);
-        if (null!=timerTaskDown) {
-          timerTaskDown.cancel();
-          timerForKeyDown.cancel();
+
+        timerTaskUp.cancel();
+        if (!stopped) {
+          timerTaskUp = new TimerTask() {
+            @Override
+            public void run() {
+              new DispatchKey(166);
+            }
+          };
+          timerForChannelChange.schedule(timerTaskUp, 10*60*1000);
         }
-        timerForKeyDown=new Timer();
-        timerTaskDown=new TimerTask() {
-          @Override
-          public void run() {
-          new DispatchKey(166);
-          }
-        };
-        timerForKeyDown.schedule(timerTaskDown,5*60*1000);
         return true;
 
     }
@@ -486,30 +503,6 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
 
   }
 
-//  @Subscribe(threadMode = ThreadMode.MAIN)
-//  public void onNewAddInserted(OnNewAdInsertedEvent event) {
-//    showAdSelectorLayout();
-//
-//  };
-
-//
-//    Log.d("KEY","Key Pressed: "+event.getKeyCode());
-//    boolean channelChange=false;
-//    if (event.getKeyCode()==166){
-//      channelChange=ATSC3.channelUp(this);
-//    }else if(event.getKeyCode()==167){
-//      channelChange=ATSC3.channelDown(this);
-//    }
-//    if (channelChange){
-//
-//    }
-//    // Show the controls on any key event.
-//    simpleExoPlayerView.showController();
-//    // If the event was not handled then see if the player view can handle it as a media key event.
-//    return super.dispatchKeyEvent(event) || simpleExoPlayerView.dispatchMediaKeyEvent(event);
-//  }
-
-  // OnClickListener methods
 
   @Override
   public void onClick(View view) {
