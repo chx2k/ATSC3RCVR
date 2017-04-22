@@ -261,25 +261,25 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
       initializePlayer();
     }
 
-    usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-    HashMap<String, UsbDevice> devices = usbManager.getDeviceList();
-    Iterator<UsbDevice> deviceIterator = devices.values().iterator();
-    while (deviceIterator.hasNext()){
-      UsbDevice device = deviceIterator.next();
-
-      String model = device.getDeviceName();
-      String deviceId = String.valueOf(device.getDeviceId());
-      String vendor = device.getManufacturerName();
-
-      if (vendor.equals("Sony")){
-        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        usbBroadCastReceiver = new UsbBroadcastReceiver();
-        registerReceiver(usbBroadCastReceiver, filter);
-
-      }
-
-    }
+//    usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+//    HashMap<String, UsbDevice> devices = usbManager.getDeviceList();
+//    Iterator<UsbDevice> deviceIterator = devices.values().iterator();
+//    while (deviceIterator.hasNext()){
+//      UsbDevice device = deviceIterator.next();
+//
+//      String model = device.getDeviceName();
+//      String deviceId = String.valueOf(device.getDeviceId());
+//      String vendor = device.getManufacturerName();
+//
+//      if (vendor.equals("Sony")){
+//        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+//        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+//        usbBroadCastReceiver = new UsbBroadcastReceiver();
+//        registerReceiver(usbBroadCastReceiver, filter);
+//
+//      }
+//
+//    }
   }
 
   @Override
@@ -867,62 +867,62 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   }
 
 
-  public class UsbBroadcastReceiver extends BroadcastReceiver {
-
-      @Override
-      public void onReceive(Context context, Intent intent) {
-          String action = intent.getAction();
-          Log.d(USB_EVENT, action);
-          if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)){
-              UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            if (device != null){
-              if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)){
-                Log.d(TAG, "Usb permission granted");
-
-              }else {
-                Log.d(TAG, "Usb permission denied");
-                usbManager.requestPermission(device, mPermissionIntent);
-              }
-
-            }
-
-          }
-      }
-
-    private UsbInterface findAdbInterface(UsbDevice device) {
-      Log.d(TAG, "findAdbInterface " + device);
-      int count = device.getInterfaceCount();
-      for (int i = 0; i < count; i++) {
-        UsbInterface intf = device.getInterface(i);
-        if (intf.getInterfaceClass() == 255 && intf.getInterfaceSubclass() == 66 &&
-                intf.getInterfaceProtocol() == 1) {
-          return intf;
-        }
-      }
-      return null;
-    }
-  }
-
-  private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
-    @Override
-    public void onReceive(Context context, Intent intent) {
-      String action = intent.getAction();
-      if (ACTION_USB_PERMISSION.equals(action)) {
-        synchronized (this){
-          UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-          if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)){
-            if (device != null){
-              Log.d(TAG, "Usb permission granted");
-            }
-          }else {
-            Log.d(TAG, "Usb permission denied");
-          }
-        }
-
-      }
-
-    }
-  };
+//  public class UsbBroadcastReceiver extends BroadcastReceiver {
+//
+//      @Override
+//      public void onReceive(Context context, Intent intent) {
+//          String action = intent.getAction();
+//          Log.d(USB_EVENT, action);
+//          if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)){
+//              UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+//            if (device != null){
+//              if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)){
+//                Log.d(TAG, "Usb permission granted");
+//
+//              }else {
+//                Log.d(TAG, "Usb permission denied");
+//                usbManager.requestPermission(device, mPermissionIntent);
+//              }
+//
+//            }
+//
+//          }
+//      }
+//
+//    private UsbInterface findAdbInterface(UsbDevice device) {
+//      Log.d(TAG, "findAdbInterface " + device);
+//      int count = device.getInterfaceCount();
+//      for (int i = 0; i < count; i++) {
+//        UsbInterface intf = device.getInterface(i);
+//        if (intf.getInterfaceClass() == 255 && intf.getInterfaceSubclass() == 66 &&
+//                intf.getInterfaceProtocol() == 1) {
+//          return intf;
+//        }
+//      }
+//      return null;
+//    }
+//  }
+//
+//  private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+//    @Override
+//    public void onReceive(Context context, Intent intent) {
+//      String action = intent.getAction();
+//      if (ACTION_USB_PERMISSION.equals(action)) {
+//        synchronized (this){
+//          UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+//          if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)){
+//            if (device != null){
+//              Log.d(TAG, "Usb permission granted");
+//            }
+//          }else {
+//            Log.d(TAG, "Usb permission denied");
+//          }
+//        }
+//
+//      }
+//
+//    }
+//  };
 
 
 
