@@ -229,7 +229,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
         new DispatchKey(166);
       }
     };
-    timerForChannelChange.schedule(timerTaskDown,10*60*1000);
+    timerForChannelChange.schedule(timerTaskDown,5*60*1000);
     getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -237,7 +237,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
                     | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     | View.SYSTEM_UI_FLAG_FULLSCREEN
                     | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-    
+
   }
 
 
@@ -377,7 +377,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
               new DispatchKey(167);
             }
           };
-          timerForChannelChange.schedule(timerTaskDown, 10*60*1000);
+          timerForChannelChange.schedule(timerTaskDown, 5*60*1000);
         }
         return true;
       case 167:
@@ -391,7 +391,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
               new DispatchKey(166);
             }
           };
-          timerForChannelChange.schedule(timerTaskUp, 10*60*1000);
+          timerForChannelChange.schedule(timerTaskUp, 5*60*1000);
         }
         return true;
 
